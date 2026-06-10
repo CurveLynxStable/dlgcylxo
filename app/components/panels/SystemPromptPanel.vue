@@ -28,18 +28,18 @@ const allSelected = computed(() => {
   return sortedItems.value.every((item) => selectedHashSet.value.has(item.hash));
 });
 const deleteConfirmTitle = computed(() =>
-  pendingDeleteIsBatch.value ? "批量删除记录" : "删除记录",
+  pendingDeleteIsBatch.value ? "Массовое удаление записей" : "Удаление записи",
 );
 const deleteConfirmMessage = computed(() => {
   if (!pendingDeleteHashes.value.length) {
-    return "请确认是否删除该记录。";
+    return "Подтвердите удаление записи.";
   }
   if (pendingDeleteIsBatch.value) {
-    return `确认删除所选 ${pendingDeleteHashes.value.length} 条记录？此操作不可恢复。`;
+    return `Удалить выбранные записи (${pendingDeleteHashes.value.length})? Это действие необратимо.`;
   }
   const hashValue = pendingDeleteHashes.value[0] || "";
   const hashPrefix = hashValue.slice(0, 12);
-  return `确认删除记录 ${hashPrefix}${hashValue.length > 12 ? "..." : ""}？此操作不可恢复。`;
+  return `Удалить запись ${hashPrefix}${hashValue.length > 12 ? "..." : ""}? Это действие необратимо.`;
 });
 
 const formatTime = (value: string) => {
@@ -197,8 +197,10 @@ onMounted(() => {
 <template>
   <div class="flex items-center justify-between gap-3">
     <div>
-      <h2 class="mtga-card-title">系统提示词</h2>
-      <p class="mtga-card-subtitle">收录系统提示词哈希记录并支持增量编辑</p>
+      <h2 class="mtga-card-title">Системные промпты</h2>
+      <p class="mtga-card-subtitle">
+        Хранение хеш-записей системных промптов с инкрементным редактированием
+      </p>
     </div>
     <div class="flex items-center gap-2">
       <MtgaBulkDeleteControls
@@ -213,26 +215,26 @@ onMounted(() => {
         :disabled="busy"
         @click="refreshList"
       >
-        刷新
+        Обновить
       </button>
     </div>
   </div>
 
   <div class="mt-4 space-y-2">
-    <!-- 删除模式：全选栏 -->
+    <!-- Режим удаления: панель «выбрать всё» -->
     <MtgaBulkDeleteControls
       variant="selection"
       :active="deleteMode"
       :all-selected="allSelected"
       :busy="busy"
-      item-label="条记录"
+      item-label="зап."
       :selected-count="selectedHashes.length"
       :total-count="sortedItems.length"
       @delete-selected="handleDeleteSelected"
       @select-all-change="setAllSelected"
     />
 
-    <!-- 列表内容 -->
+    <!-- Содержимое списка -->
     <template v-if="deleteMode">
       <label
         v-for="item in sortedItems"
@@ -252,9 +254,7 @@ onMounted(() => {
           <span class="font-mono text-xs text-slate-700 break-all leading-relaxed">{{
             item.hash
           }}</span>
-          <span class="text-[10px] text-slate-400"
-            >创建时间：{{ formatTime(item.created_at) }}</span
-          >
+          <span class="text-[10px] text-slate-400">Создано: {{ formatTime(item.created_at) }}</span>
         </div>
         <button
           type="button"
@@ -288,9 +288,7 @@ onMounted(() => {
       >
         <span class="flex min-w-0 flex-col items-start gap-1 text-left">
           <span class="font-mono text-xs text-slate-700 break-all">{{ item.hash }}</span>
-          <span class="text-[11px] text-slate-500"
-            >创建时间：{{ formatTime(item.created_at) }}</span
-          >
+          <span class="text-[11px] text-slate-500">Создано: {{ formatTime(item.created_at) }}</span>
         </span>
       </button>
     </template>
@@ -299,7 +297,7 @@ onMounted(() => {
       v-if="!loading && sortedItems.length === 0"
       class="rounded-xl border border-slate-200/70 bg-white/40 p-6 text-center text-sm text-slate-400"
     >
-      暂无系统提示词记录
+      Пока нет записей системных промптов
     </div>
   </div>
 
@@ -309,8 +307,8 @@ onMounted(() => {
     type="error"
     :title="deleteConfirmTitle"
     :message="deleteConfirmMessage"
-    confirm-text="删除"
-    cancel-text="取消"
+    confirm-text="Удалить"
+    cancel-text="Отмена"
     @confirm="handleDeleteConfirm"
     @cancel="handleDeleteCancel"
   />

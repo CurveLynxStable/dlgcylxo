@@ -14,7 +14,8 @@ def setup_error_logging(
     error_log_filename: str,
     logger_name: str = "mtga_gui",
 ) -> str:
-    """配置全局日志，将 ERROR 级别写入用户日志目录并带时间戳。"""
+    """Настраивает глобальное логирование: уровень ERROR пишется в пользовательский каталог логов с
+    меткой времени."""
     log_path = get_log_path(error_log_filename)
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
@@ -41,12 +42,12 @@ def setup_error_logging(
 
 
 def log_error(message: str, exc_info: Any = None, *, logger_name: str = "mtga_gui") -> None:
-    """统一的错误日志入口，写入文件并附带时间戳。"""
+    """Единая точка логирования ошибок: запись в файл с меткой времени."""
     logging.getLogger(logger_name).error(message, exc_info=exc_info)
 
 
 def install_global_exception_hook(*, log_error: Callable[..., None]) -> None:
-    """将未捕获异常写入错误日志。"""
+    """Записывает неперехваченные исключения в лог ошибок."""
 
     def handle_exception(
         exc_type: type[BaseException],

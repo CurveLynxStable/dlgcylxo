@@ -4,11 +4,13 @@ from collections.abc import Callable
 
 
 def check_environment(*, check_resources: Callable[[], list[str]]) -> tuple[bool, str]:
-    """检查运行环境所需资源是否齐全。"""
+    """Проверяет, что все ресурсы, необходимые среде выполнения, на месте."""
     missing_resources = check_resources()
 
     if missing_resources:
-        error_msg = "环境检查失败，缺少以下资源:\n" + "\n".join(missing_resources)
+        error_msg = "Проверка окружения не пройдена, отсутствуют ресурсы:\n" + "\n".join(
+            missing_resources
+        )
         return False, error_msg
 
-    return True, "环境检查通过"
+    return True, "Проверка окружения пройдена"

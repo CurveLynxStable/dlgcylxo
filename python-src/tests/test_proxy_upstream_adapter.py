@@ -387,9 +387,11 @@ class UpstreamRouteTests(unittest.TestCase):
             Path(config_file).read_text(encoding="utf-8"),
             invalid_config_text,
         )
-        self.assertTrue(any("加载全局配置失败" in item for item in logs))
         self.assertTrue(
-            any("跳过 prompt cache bucket id 自动持久化" in item for item in logs)
+            any("Не удалось загрузить глобальную конфигурацию" in item for item in logs)
+        )
+        self.assertTrue(
+            any("пропускаем автосохранение prompt cache bucket id" in item for item in logs)
         )
 
     def test_missing_provider_defaults_to_openai_chat_completion(self) -> None:
@@ -452,7 +454,7 @@ class ProxyTransportTests(unittest.TestCase):
             "choices": [
                 {
                     "index": 0,
-                    "delta": {"role": "assistant", "content": "你好"},
+                    "delta": {"role": "assistant", "content": "привет"},
                     "finish_reason": None,
                 }
             ],
@@ -471,7 +473,7 @@ class ProxyTransportTests(unittest.TestCase):
         payload_json = decoded.split("data: ", maxsplit=1)[1].strip()
         chunk_payload = json.loads(payload_json)
         self.assertEqual(chunk_payload["object"], "chat.completion.chunk")
-        self.assertEqual(chunk_payload["choices"][0]["delta"]["content"], "你好")
+        self.assertEqual(chunk_payload["choices"][0]["delta"]["content"], "привет")
 
     def test_openai_event_preserves_all_choices_usage_and_logprobs(self) -> None:
         event = {
@@ -482,14 +484,14 @@ class ProxyTransportTests(unittest.TestCase):
             "choices": [
                 {
                     "index": 0,
-                    "delta": {"role": "assistant", "content": "甲"},
-                    "logprobs": {"content": [{"token": "甲", "logprob": -0.1}]},
+                    "delta": {"role": "assistant", "content": "А"},
+                    "logprobs": {"content": [{"token": "А", "logprob": -0.1}]},
                     "finish_reason": None,
                 },
                 {
                     "index": 1,
-                    "delta": {"role": "assistant", "content": "乙"},
-                    "logprobs": {"content": [{"token": "乙", "logprob": -0.2}]},
+                    "delta": {"role": "assistant", "content": "Б"},
+                    "logprobs": {"content": [{"token": "Б", "logprob": -0.2}]},
                     "finish_reason": "stop",
                 },
             ],
@@ -509,11 +511,11 @@ class ProxyTransportTests(unittest.TestCase):
         self.assertEqual(chunk_payload["usage"]["total_tokens"], 12)
         self.assertEqual(
             chunk_payload["choices"][0]["logprobs"]["content"][0]["token"],
-            "甲",
+            "А",
         )
         self.assertEqual(
             chunk_payload["choices"][1]["logprobs"]["content"][0]["token"],
-            "乙",
+            "Б",
         )
 
     def test_openai_event_preserves_empty_terminal_delta(self) -> None:
@@ -554,15 +556,15 @@ class ProxyTransportTests(unittest.TestCase):
                     "index": 0,
                     "message": {
                         "role": "assistant",
-                        "reasoning_content": "先思考",
-                        "content": "你好世界",
+                        "reasoning_content": "размышление",
+                        "content": "привет мир",
                         "tool_calls": [
                             {
                                 "id": "call_1",
                                 "type": "function",
                                 "function": {
                                     "name": "lookup_weather",
-                                    "arguments": "{\"city\":\"北京\"}",
+                                    "arguments": "{\"city\":\"Москва\"}",
                                 },
                             }
                         ],
@@ -608,7 +610,7 @@ class ProxyTransportTests(unittest.TestCase):
                     "index": 0,
                     "message": {
                         "role": "assistant",
-                        "content": "甲",
+                        "content": "А",
                     },
                     "finish_reason": "stop",
                 },
@@ -616,8 +618,8 @@ class ProxyTransportTests(unittest.TestCase):
                     "index": 1,
                     "message": {
                         "role": "assistant",
-                        "reasoning_content": "先想",
-                        "content": "乙",
+                        "reasoning_content": "думаю",
+                        "content": "Б",
                     },
                     "finish_reason": "length",
                 },
@@ -693,7 +695,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "extra_body": {"return_reasoning": True},
                     "thinking": {"type": "enabled"},
                     "verbosity": "high",
@@ -743,7 +745,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "allowed_openai_params": ["thinking"],
                     "thinking": {"type": "enabled"},
                     "verbosity": "high",
@@ -789,7 +791,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "allowed_openai_params": ["temperature"],
                     "temperature": 0,
                 },
@@ -818,7 +820,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         ) as completion_mock:
             adapter.create_chat_completion(
                 route=route,
-                request_data={"messages": [{"role": "user", "content": "你好"}]},
+                request_data={"messages": [{"role": "user", "content": "привет"}]},
             )
 
         call_kwargs = completion_mock.call_args.kwargs
@@ -864,7 +866,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                 },
             )
 
@@ -876,7 +878,8 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         self.assertIn(
             (
                 "provider=openai_chat_completion request_api=chat_completions "
-                "model=gpt-4o-mini 遇到建连阶段故障，准备重试: attempt=2/3 "
+                "model=gpt-4o-mini Сбой на этапе установления соединения, готовимся к повтору: "
+                "attempt=2/3 "
                 "error=mlitellm.APIConnectionError: connect failed"
             ),
             logs,
@@ -914,7 +917,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                 },
             )
 
@@ -949,7 +952,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                 },
             )
 
@@ -995,7 +998,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             first_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "extra_body": {"return_reasoning": True},
                     "thinking": {"type": "enabled", "budget_tokens": 1024},
                     "verbosity": "high",
@@ -1004,7 +1007,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             second_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "extra_body": {"return_reasoning": True},
                     "thinking": {"type": "enabled", "budget_tokens": 1024},
                     "verbosity": "high",
@@ -1042,17 +1045,21 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         )
         self.assertIn(
             (
-                "⚠️ [临时兼容] provider=openai_chat_completion request_api=chat_completions "
+                "⚠️ [временная совместимость] provider=openai_chat_completion "
+                "request_api=chat_completions "
                 "model=Qwen/Qwen3.5-27B\n"
                 "error=Unsupported parameter: 'thinking.budget_tokens'\n"
-                "上游拒绝参数，自动剔除后重试: extra_body.thinking.budget_tokens"
+                "Апстрим отклонил параметр, автоматически удаляем и повторяем: "
+                "extra_body.thinking.budget_tokens"
             ),
             logs,
         )
         self.assertIn(
             (
-                "⚠️ [临时兼容] provider=openai_chat_completion request_api=chat_completions "
-                "model=Qwen/Qwen3.5-27B 命中上游不兼容参数缓存，已跳过: "
+                "⚠️ [временная совместимость] provider=openai_chat_completion "
+                "request_api=chat_completions "
+                "model=Qwen/Qwen3.5-27B Совпадение с кэшем несовместимых параметров апстрима, "
+                "пропущены: "
                 "extra_body.thinking.budget_tokens"
             ),
             logs,
@@ -1091,7 +1098,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             first_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "extra_body": {"return_reasoning": True},
                     "thinking": {"type": "enabled"},
                     "verbosity": "high",
@@ -1100,7 +1107,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             second_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "extra_body": {"return_reasoning": True},
                     "thinking": {"type": "enabled"},
                     "verbosity": "high",
@@ -1138,15 +1145,17 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         )
         self.assertIn(
             (
-                "⚠️ [临时兼容] provider=openai_chat_completion request_api=chat_completions "
+                "⚠️ [временная совместимость] provider=openai_chat_completion "
+                "request_api=chat_completions "
                 "model=Qwen/Qwen3.5-27B\n"
                 "error='type' must be in [\"enabled\", \"disabled\", \"auto\"]\n"
-                "根据上游报错临时剔除参数后重试（本次不缓存）: extra_body.thinking.type"
+                "По ошибке апстрима временно удаляем параметр и повторяем (без кэширования): "
+                "extra_body.thinking.type"
             ),
             logs,
         )
         self.assertFalse(
-            any("命中上游不兼容参数缓存" in log for log in logs)
+            any("Совпадение с кэшем несовместимых параметров апстрима" in log for log in logs)
         )
 
     def test_openai_chat_completion_retries_by_dropping_explicit_unsupported_param(self) -> None:
@@ -1178,7 +1187,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "verbosity": "high",
                 },
             )
@@ -1221,14 +1230,14 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             first_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "temperature": 9,
                 },
             )
             second_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "temperature": 9,
                 },
             )
@@ -1242,14 +1251,18 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         self.assertNotIn("temperature", completion_mock.call_args_list[3].kwargs)
         self.assertIn(
             (
-                "⚠️ [临时兼容] provider=openai_chat_completion request_api=chat_completions "
+                "⚠️ [временная совместимость] provider=openai_chat_completion "
+                "request_api=chat_completions "
                 "model=gpt-5\n"
                 "error=Invalid value for 'temperature': expected a number between 0 and 2\n"
-                "根据上游报错临时剔除参数后重试（本次不缓存）: temperature"
+                "По ошибке апстрима временно удаляем параметр и повторяем (без кэширования): "
+                "temperature"
             ),
             logs,
         )
-        self.assertFalse(any("命中上游不兼容参数缓存" in log for log in logs))
+        self.assertFalse(
+            any("Совпадение с кэшем несовместимых параметров апстрима" in log for log in logs)
+        )
 
     def test_openai_chat_completion_retries_explicit_nested_invalid_value_without_caching(
         self,
@@ -1285,7 +1298,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             first_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "response_format": {
                         "type": "json_schema",
                         "strict": "wrong",
@@ -1295,7 +1308,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             second_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "response_format": {
                         "type": "json_schema",
                         "strict": "wrong",
@@ -1330,14 +1343,18 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         )
         self.assertIn(
             (
-                "⚠️ [临时兼容] provider=openai_chat_completion request_api=chat_completions "
+                "⚠️ [временная совместимость] provider=openai_chat_completion "
+                "request_api=chat_completions "
                 "model=gpt-5\n"
                 "error=Invalid value for 'response_format.strict': expected a boolean\n"
-                "根据上游报错临时剔除参数后重试（本次不缓存）: response_format.strict"
+                "По ошибке апстрима временно удаляем параметр и повторяем (без кэширования): "
+                "response_format.strict"
             ),
             logs,
         )
-        self.assertFalse(any("命中上游不兼容参数缓存" in log for log in logs))
+        self.assertFalse(
+            any("Совпадение с кэшем несовместимых параметров апстрима" in log for log in logs)
+        )
 
     def test_openai_chat_completion_cache_is_scoped_by_model(self) -> None:
         logs: list[str] = []
@@ -1383,14 +1400,14 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             response_gpt5 = adapter.create_chat_completion(
                 route=route_gpt5,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "verbosity": "high",
                 },
             )
             response_gpt4o = adapter.create_chat_completion(
                 route=route_gpt4o,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "verbosity": "high",
                 },
             )
@@ -1403,7 +1420,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         self.assertEqual(completion_mock.call_args_list[2].kwargs["verbosity"], "high")
         self.assertNotIn("verbosity", completion_mock.call_args_list[3].kwargs)
         self.assertFalse(
-            any("命中上游不兼容参数缓存" in log for log in logs)
+            any("Совпадение с кэшем несовместимых параметров апстрима" in log for log in logs)
         )
 
     def test_openai_chat_completion_cache_is_scoped_by_api_key(self) -> None:
@@ -1447,14 +1464,14 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             response_key_a = adapter.create_chat_completion(
                 route=route_key_a,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "verbosity": "high",
                 },
             )
             response_key_b = adapter.create_chat_completion(
                 route=route_key_b,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "verbosity": "high",
                 },
             )
@@ -1466,7 +1483,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         self.assertNotIn("verbosity", completion_mock.call_args_list[1].kwargs)
         self.assertEqual(completion_mock.call_args_list[2].kwargs["verbosity"], "high")
         self.assertFalse(
-            any("命中上游不兼容参数缓存" in log for log in logs)
+            any("Совпадение с кэшем несовместимых параметров апстрима" in log for log in logs)
         )
 
     def test_openai_chat_completion_persists_learned_rules_after_fallback_success(
@@ -1513,7 +1530,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             first_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "foo": 1,
                     "bar": 2,
                     "baz": 3,
@@ -1522,7 +1539,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             second_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "foo": 1,
                     "bar": 2,
                     "baz": 3,
@@ -1548,8 +1565,9 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         self.assertNotIn("extra_body", completion_mock.call_args_list[4].kwargs)
         self.assertIn(
             (
-                "⚠️ [临时兼容] provider=openai_chat_completion request_api=chat_completions "
-                "model=gpt-5 命中上游不兼容参数缓存，已跳过: "
+                "⚠️ [временная совместимость] provider=openai_chat_completion "
+                "request_api=chat_completions "
+                "model=gpt-5 Совпадение с кэшем несовместимых параметров апстрима, пропущены: "
                 "extra_body.bar, extra_body.baz, extra_body.foo"
             ),
             logs,
@@ -1579,7 +1597,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "temperature": 0,
                     "service_tier": "priority",
                     "store": True,
@@ -1596,7 +1614,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         self.assertIn(
             (
                 "provider=openai_response request_api=responses model=gpt-5 "
-                "已忽略不兼容参数: service_tier, store, temperature"
+                "Проигнорированы несовместимые параметры: service_tier, store, temperature"
             ),
             logs,
         )
@@ -1620,7 +1638,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         ) as completion_mock:
             adapter.create_chat_completion(
                 route=route,
-                request_data={"messages": [{"role": "user", "content": "你好"}]},
+                request_data={"messages": [{"role": "user", "content": "привет"}]},
             )
 
         call_kwargs = completion_mock.call_args.kwargs
@@ -1666,7 +1684,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "thinking": {"type": "enabled", "budget_tokens": 1024},
                 },
             )
@@ -1712,14 +1730,14 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             first_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "thinking": {"type": "enabled", "budget_tokens": 1024},
                 },
             )
             second_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "thinking": {"type": "enabled", "budget_tokens": 1024},
                 },
             )
@@ -1738,14 +1756,16 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
                 "error=anthropic does not support parameters: ['thinking'], "
                 "for model=glm-4.7-flash."
                 in log
-                and "\n上游拒绝参数，自动剔除后重试: thinking" in log
+                and "\nАпстрим отклонил параметр, автоматически удаляем и повторяем: thinking"
+                in log
                 for log in logs
             )
         )
         self.assertIn(
             (
-                "⚠️ [临时兼容] provider=anthropic request_api=chat_completions "
-                "model=anthropic/glm-4.7-flash 命中上游不兼容参数缓存，已跳过: "
+                "⚠️ [временная совместимость] provider=anthropic request_api=chat_completions "
+                "model=anthropic/glm-4.7-flash Совпадение с кэшем несовместимых параметров "
+                "апстрима, пропущены: "
                 "thinking"
             ),
             logs,
@@ -1789,7 +1809,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             first_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "foo": 1,
                     "bar": 2,
                 },
@@ -1797,7 +1817,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             second_response = adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "foo": 1,
                     "bar": 2,
                 },
@@ -1818,8 +1838,9 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         self.assertNotIn("bar", completion_mock.call_args_list[3].kwargs)
         self.assertIn(
             (
-                "⚠️ [临时兼容] provider=anthropic request_api=chat_completions "
-                "model=anthropic/glm-4.7-flash 命中上游不兼容参数缓存，已跳过: "
+                "⚠️ [временная совместимость] provider=anthropic request_api=chat_completions "
+                "model=anthropic/glm-4.7-flash Совпадение с кэшем несовместимых параметров "
+                "апстрима, пропущены: "
                 "bar, foo"
             ),
             logs,
@@ -1848,7 +1869,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "thinking": {"type": "enabled", "budget_tokens": 1024},
                     "stream_options": {"include_usage": True},
                     "service_tier": "priority",
@@ -1884,7 +1905,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         ) as completion_mock:
             adapter.create_chat_completion(
                 route=route,
-                request_data={"messages": [{"role": "user", "content": "你好"}]},
+                request_data={"messages": [{"role": "user", "content": "привет"}]},
             )
 
         call_kwargs = completion_mock.call_args.kwargs
@@ -1923,7 +1944,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         ) as completion_mock:
             adapter.create_chat_completion(
                 route=route,
-                request_data={"messages": [{"role": "user", "content": "你好"}]},
+                request_data={"messages": [{"role": "user", "content": "привет"}]},
             )
 
         call_kwargs = completion_mock.call_args.kwargs
@@ -1968,7 +1989,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "extra_headers": {
                         "Authorization": "Bearer explicit-token",
                         "X-Test": "1",
@@ -2005,7 +2026,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "thinking": {"type": "enabled"},
                 },
             )
@@ -2036,7 +2057,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "thinking": {"type": "enabled"},
                     "stream_options": {"include_usage": True},
                     "service_tier": "priority",
@@ -2073,7 +2094,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "extra_body": {"return_reasoning": True},
                     "thinking": {"type": "enabled"},
                     "verbosity": "medium",
@@ -2116,7 +2137,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         ) as completion_mock:
             adapter.create_chat_completion(
                 route=route,
-                request_data={"messages": [{"role": "user", "content": "你好"}]},
+                request_data={"messages": [{"role": "user", "content": "привет"}]},
             )
 
         call_kwargs = completion_mock.call_args.kwargs
@@ -2146,7 +2167,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             adapter.create_chat_completion(
                 route=route,
                 request_data={
-                    "messages": [{"role": "user", "content": "你好"}],
+                    "messages": [{"role": "user", "content": "привет"}],
                     "prompt_cache_key": "explicit-cache-key",
                 },
             )
@@ -2175,7 +2196,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         ) as completion_mock:
             adapter.create_chat_completion(
                 route=route,
-                request_data={"messages": [{"role": "user", "content": "你好"}]},
+                request_data={"messages": [{"role": "user", "content": "привет"}]},
             )
 
         call_kwargs = completion_mock.call_args.kwargs
@@ -2214,7 +2235,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
         ) as completion_mock:
             adapter.create_chat_completion(
                 route=route,
-                request_data={"messages": [{"role": "user", "content": "你好"}]},
+                request_data={"messages": [{"role": "user", "content": "привет"}]},
             )
 
         self.assertEqual(
@@ -2244,7 +2265,7 @@ class MLiteLLMUpstreamAdapterTests(unittest.TestCase):
             ) as completion_mock:
                 adapter.create_chat_completion(
                     route=route,
-                    request_data={"messages": [{"role": "user", "content": "你好"}]},
+                    request_data={"messages": [{"role": "user", "content": "привет"}]},
                 )
             self.assertEqual(mlitellm.ssl_verify, "global-sentinel")
         finally:

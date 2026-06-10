@@ -24,8 +24,10 @@ const handleOpen = async () => {
 <template>
   <div class="mtga-soft-panel space-y-3">
     <div>
-      <div class="text-sm font-semibold text-slate-900">hosts 文件</div>
-      <div class="text-xs text-slate-500">快速修改与备份恢复</div>
+      <div class="text-sm font-semibold text-slate-900">Файл hosts</div>
+      <div class="text-xs text-slate-500">
+        Быстрое изменение, резервное копирование и восстановление
+      </div>
     </div>
     <div class="space-y-2">
       <MtgaLoadingButton
@@ -34,7 +36,7 @@ const handleOpen = async () => {
         :disabled="Boolean(runningAction)"
         @click="handleModify"
       >
-        修改hosts文件
+        Изменить файл hosts
       </MtgaLoadingButton>
       <div class="grid grid-cols-2 gap-2">
         <MtgaLoadingButton
@@ -43,7 +45,7 @@ const handleOpen = async () => {
           :disabled="Boolean(runningAction)"
           @click="handleBackup"
         >
-          备份hosts
+          Резервная копия hosts
         </MtgaLoadingButton>
         <MtgaLoadingButton
           class="mtga-btn-outline"
@@ -51,7 +53,7 @@ const handleOpen = async () => {
           :disabled="Boolean(runningAction)"
           @click="handleRestore"
         >
-          还原hosts
+          Восстановить hosts
         </MtgaLoadingButton>
       </div>
       <MtgaLoadingButton
@@ -60,7 +62,7 @@ const handleOpen = async () => {
         :disabled="Boolean(runningAction)"
         @click="handleOpen"
       >
-        打开hosts文件
+        Открыть файл hosts
       </MtgaLoadingButton>
     </div>
   </div>

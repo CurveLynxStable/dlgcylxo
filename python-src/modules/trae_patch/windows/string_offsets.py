@@ -72,11 +72,11 @@ class PeLayout:
 
 def parse_pe_layout(data: bytes) -> PeLayout:
     if data[:2] != b"MZ":
-        raise ValueError("不是有效 PE 文件：缺少 MZ 头")
+        raise ValueError("Недопустимый PE-файл: отсутствует заголовок MZ")
 
     pe_offset = struct.unpack_from("<I", data, 0x3C)[0]
     if data[pe_offset : pe_offset + 4] != b"PE\x00\x00":
-        raise ValueError("不是有效 PE 文件：缺少 PE 签名")
+        raise ValueError("Недопустимый PE-файл: отсутствует сигнатура PE")
 
     coff_offset = pe_offset + 4
     section_count = struct.unpack_from("<H", data, coff_offset + 2)[0]
@@ -88,7 +88,7 @@ def parse_pe_layout(data: bytes) -> PeLayout:
     elif magic == PE32_MAGIC:
         image_base = struct.unpack_from("<I", data, optional_offset + 28)[0]
     else:
-        raise ValueError(f"不支持的 PE optional header magic: {hex(magic)}")
+        raise ValueError(f"Неподдерживаемый PE optional header magic: {hex(magic)}")
 
     section_offset = optional_offset + optional_header_size
     sections: list[Section] = []
@@ -152,16 +152,19 @@ def build_report(dll_path: Path, keywords: tuple[str, ...]) -> dict[str, Any]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="定位 ai_agent.dll 关键字符串的 offset/RVA/section"
+        description="Определяет offset/RVA/section ключевых строк в ai_agent.dll"
     )
-    parser.add_argument("--dll-path", type=Path, default=AI_AGENT_DLL, help="目标 DLL")
+    parser.add_argument("--dll-path", type=Path, default=AI_AGENT_DLL, help="Целевая DLL")
     parser.add_argument(
         "--keyword",
         action="append",
         dest="keywords",
-        help="追加自定义关键字；不传则使用默认 native 切点关键字",
+        help=(
+            "Добавить свои ключевые слова; если не задано — используются ключевые слова native "
+            "точек по умолчанию"
+        ),
     )
-    parser.add_argument("--json", action="store_true", help="输出 JSON")
+    parser.add_argument("--json", action="store_true", help="Вывод в JSON")
     return parser
 
 

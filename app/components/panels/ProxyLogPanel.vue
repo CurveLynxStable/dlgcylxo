@@ -19,19 +19,19 @@ const hasTraces = computed(() => traces.value.length > 0);
 
 const statusMeta: Record<ProxyTrace["status"], { label: string; className: string }> = {
   active: {
-    label: "进行中",
+    label: "Выполняется",
     className: "border-sky-200 bg-sky-50 text-sky-700",
   },
   completed: {
-    label: "完成",
+    label: "Завершено",
     className: "border-emerald-200 bg-emerald-50 text-emerald-700",
   },
   failed: {
-    label: "失败",
+    label: "Ошибка",
     className: "border-rose-200 bg-rose-50 text-rose-700",
   },
   cancelled: {
-    label: "中断",
+    label: "Прервано",
     className: "border-slate-200 bg-slate-100 text-slate-600",
   },
 };
@@ -97,11 +97,11 @@ const traceTitle = (trace: ProxyTraceSummary) => {
 
 const eventKindLabel = (kind: string) => {
   const labels: Record<string, string> = {
-    route_attempt: "路由尝试",
-    route_resolved: "命中目标",
-    target_cooldown: "冷却",
-    transport_failover: "故障转移",
-    upstream_request: "上游请求",
+    route_attempt: "Попытка маршрутизации",
+    route_resolved: "Цель найдена",
+    target_cooldown: "Охлаждение",
+    transport_failover: "Фейловер",
+    upstream_request: "Запрос к апстриму",
   };
   return labels[kind] || kind;
 };
@@ -240,8 +240,10 @@ onBeforeUnmount(() => {
   <div class="flex h-full min-h-0 flex-col">
     <div class="flex shrink-0 items-center justify-between gap-3">
       <div>
-        <h2 class="mtga-card-title">代理日志</h2>
-        <p class="mtga-card-subtitle">按请求追踪代理转发、响应与错误</p>
+        <h2 class="mtga-card-title">Логи прокси</h2>
+        <p class="mtga-card-subtitle">
+          Отслеживание пересылки, ответов и ошибок по каждому запросу
+        </p>
       </div>
       <div class="flex items-center gap-2">
         <button
@@ -250,7 +252,7 @@ onBeforeUnmount(() => {
           :disabled="loading || clearing"
           @click="refresh"
         >
-          刷新
+          Обновить
         </button>
         <button
           class="btn btn-sm btn-outline rounded-xl border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50"
@@ -258,7 +260,7 @@ onBeforeUnmount(() => {
           :disabled="loading || clearing || !hasTraces"
           @click="clearLogs"
         >
-          清空
+          Очистить
         </button>
       </div>
     </div>
@@ -324,7 +326,7 @@ onBeforeUnmount(() => {
         v-if="!loading && traces.length === 0"
         class="rounded-xl border border-slate-200/70 bg-white/40 p-6 text-center text-sm text-slate-400"
       >
-        暂无代理请求记录
+        Пока нет записей запросов прокси
       </div>
     </div>
 
@@ -339,7 +341,7 @@ onBeforeUnmount(() => {
       >
         <div v-if="detailOpen && selectedTrace" class="fixed inset-0 z-50 bg-slate-950/30">
           <button
-            aria-label="关闭代理日志详情"
+            aria-label="Закрыть детали лога прокси"
             class="absolute inset-0 cursor-default"
             tabindex="-1"
             type="button"
@@ -384,7 +386,7 @@ onBeforeUnmount(() => {
                     type="button"
                     @click="closeDetail"
                   >
-                    关闭
+                    Закрыть
                   </button>
                 </div>
               </div>
@@ -396,7 +398,7 @@ onBeforeUnmount(() => {
                   <div
                     class="min-w-0 overflow-hidden rounded-lg border border-slate-200/60 bg-white/50 p-3"
                   >
-                    <div class="font-bold text-slate-500">路由</div>
+                    <div class="font-bold text-slate-500">Маршрут</div>
                     <div
                       class="mt-1 overflow-x-auto whitespace-nowrap font-mono text-slate-700 custom-scrollbar"
                     >
@@ -407,7 +409,7 @@ onBeforeUnmount(() => {
                   <div
                     class="min-w-0 overflow-hidden rounded-lg border border-slate-200/60 bg-white/50 p-3"
                   >
-                    <div class="font-bold text-slate-500">上游</div>
+                    <div class="font-bold text-slate-500">Апстрим</div>
                     <div
                       class="mt-1 overflow-x-auto whitespace-nowrap font-mono text-slate-700 custom-scrollbar"
                     >
@@ -416,25 +418,25 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                   <div class="min-w-0 rounded-lg border border-slate-200/60 bg-white/50 p-3">
-                    <div class="font-bold text-slate-500">响应</div>
+                    <div class="font-bold text-slate-500">Ответ</div>
                     <div class="mt-1 text-slate-700">
                       {{ selectedTrace.status_code || "-" }} ·
                       {{ selectedTrace.is_stream ? "SSE" : "JSON" }}
                     </div>
                   </div>
                   <div class="min-w-0 rounded-lg border border-slate-200/60 bg-white/50 p-3">
-                    <div class="font-bold text-slate-500">请求体</div>
+                    <div class="font-bold text-slate-500">Тело запроса</div>
                     <div class="mt-1 text-slate-700">
                       {{ formatBytes(selectedTrace.request_body?.bytes) }}
-                      <span v-if="selectedTrace.request_body?.truncated"> · 已截断</span>
-                      <span v-if="selectedTrace.request_body?.redacted"> · 已脱敏</span>
+                      <span v-if="selectedTrace.request_body?.truncated"> · обрезано</span>
+                      <span v-if="selectedTrace.request_body?.redacted"> · скрыты данные</span>
                     </div>
                   </div>
                   <div class="min-w-0 rounded-lg border border-slate-200/60 bg-white/50 p-3">
-                    <div class="font-bold text-slate-500">响应体</div>
+                    <div class="font-bold text-slate-500">Тело ответа</div>
                     <div class="mt-1 text-slate-700">
                       {{ formatBytes(selectedTrace.response_body?.bytes) }}
-                      <span v-if="selectedTrace.response_body?.truncated"> · 已截断</span>
+                      <span v-if="selectedTrace.response_body?.truncated"> · обрезано</span>
                     </div>
                   </div>
                 </div>

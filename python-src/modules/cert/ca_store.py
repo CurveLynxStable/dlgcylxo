@@ -106,7 +106,7 @@ def _parse_pem_certificate(pem_block: str, log_func: LogFunc = print) -> dict[st
     try:
         certificate = x509.load_pem_x509_certificate(pem_block.encode("utf-8"))
     except Exception as exc:  # noqa: BLE001
-        log_func(f"⚠️ 解析 PEM 证书失败: {exc}")
+        log_func(f"⚠️ Не удалось разобрать PEM-сертификат: {exc}")
         return None
 
     return {
@@ -183,7 +183,7 @@ def _open_windows_cert_store(crypt32: Any) -> wintypes.HANDLE:
         SYSTEM_STORE_ROOT,
     )
     if not store:
-        raise OSError("无法打开证书存储")
+        raise OSError("Не удалось открыть хранилище сертификатов")
     return store
 
 
@@ -297,23 +297,24 @@ def _load_windows_cert_info(
 
 
 def check_ca_cert(ca_common_name: str, log_func: LogFunc = print) -> OperationResult:
-    """检查系统信任存储中是否存在指定 CA。"""
+    """Проверить наличие указанного CA в системном хранилище доверия."""
     if is_macos():
         return _check_ca_on_macos(ca_common_name, log_func=log_func)
     if is_windows():
         return _check_ca_on_windows(ca_common_name, log_func=log_func)
 
-    log_func("?? 当前平台不支持自动检查系统CA证书")
+    log_func("?? Текущая платформа не поддерживает автоматическую проверку системного "
+        "CA-сертификата")
     return OperationResult.failure(
-        "当前平台不支持自动检查系统CA证书",
+        "Текущая платформа не поддерживает автоматическую проверку системного CA-сертификата",
         exists=False,
     )
 
 
 def install_ca_cert_file(ca_cert_file: str, log_func: LogFunc = print) -> OperationResult:
-    """将指定 CA 证书安装到系统信任存储。"""
+    """Установить указанный CA-сертификат в системное хранилище доверия."""
     if not ca_cert_file:
-        return OperationResult.failure("证书路径为空")
+        return OperationResult.failure("Пустой путь к сертификату")
 
     if is_windows():
         return _install_ca_on_windows(ca_cert_file, log_func=log_func)
@@ -322,34 +323,36 @@ def install_ca_cert_file(ca_cert_file: str, log_func: LogFunc = print) -> Operat
     if is_posix():
         return _install_ca_on_linux(ca_cert_file, log_func=log_func)
 
-    log_func("错误: 不支持的操作系统")
-    return OperationResult.failure("不支持的操作系统")
+    log_func("Ошибка: неподдерживаемая операционная система")
+    return OperationResult.failure("Неподдерживаемая операционная система")
 
 
 def clear_ca_cert_store(ca_common_name: str, log_func: LogFunc = print) -> OperationResult:
-    """从系统信任存储中清除指定 CA。"""
+    """Удалить указанный CA из системного хранилища доверия."""
     if is_macos():
         return _clear_ca_on_macos(ca_common_name, log_func=log_func)
     if is_windows():
         return _clear_ca_on_windows(ca_common_name, log_func=log_func)
 
-    log_func("⚠️ 当前平台不支持自动清除CA证书")
-    return OperationResult.failure("当前平台不支持自动清除CA证书")
+    log_func("⚠️ Текущая платформа не поддерживает автоматическое удаление CA-сертификата")
+    return OperationResult.failure("Текущая платформа не поддерживает автоматическое удаление "
+        "CA-сертификата")
 
 
 def _check_ca_on_windows(ca_common_name: str, log_func: LogFunc = print) -> OperationResult:
-    log_func("检查 Windows 受信任根证书存储中的 CA 证书...")
+    log_func("Проверяем CA-сертификат в хранилище доверенных корневых сертификатов Windows...")
     try:
         match_count, certs = _load_windows_cert_info(ca_common_name)
     except Exception as exc:  # noqa: BLE001
-        log_func(f"⚠️ Windows 证书查询失败: {exc}")
+        log_func(f"⚠️ Ошибка запроса сертификатов Windows: {exc}")
         return OperationResult.failure(
-            "读取证书存储失败",
+            "Не удалось прочитать хранилище сертификатов",
             exists=False,
         )
 
     if match_count > 1:
-        log_func(f"检测到 {match_count} 个匹配证书，按规则视为不匹配")
+        log_func(f"Обнаружено совпадающих сертификатов: {match_count}; по правилам считаем "
+            f"несовпадением")
         return OperationResult.success(
             exists=False,
             match_count=match_count,
@@ -357,19 +360,19 @@ def _check_ca_on_windows(ca_common_name: str, log_func: LogFunc = print) -> Oper
         )
 
     if certs:
-        log_func("检测到 1 个匹配的 CA 证书")
+        log_func("Обнаружен 1 совпадающий CA-сертификат")
         return OperationResult.success(
             exists=True,
             match_count=1,
             certs=certs,
         )
 
-    log_func("未找到匹配的 CA 证书")
+    log_func("Совпадающий CA-сертификат не найден")
     return OperationResult.success(exists=False, match_count=0, certs=[])
 
 
 def _check_ca_on_macos(ca_common_name: str, log_func: LogFunc = print) -> OperationResult:
-    log_func("检查 macOS 系统钥匙串中的 CA 证书...")
+    log_func("Проверяем CA-сертификат в системной связке ключей macOS...")
     cmd = [
         "security",
         "find-certificate",
@@ -386,20 +389,20 @@ def _check_ca_on_macos(ca_common_name: str, log_func: LogFunc = print) -> Operat
         and stderr
         and "could not be found" in stderr.lower()
     ):
-        log_func("未在系统钥匙串中找到匹配的 CA 证书")
+        log_func("Совпадающий CA-сертификат в системной связке ключей не найден")
         return OperationResult.success(exists=False)
 
     if return_code not in (0, MAC_KEYCHAIN_ITEM_NOT_FOUND):
-        log_func(f"? 检查系统钥匙串失败 (返回码: {return_code})")
+        log_func(f"? Не удалось проверить системную связку ключей (код возврата: {return_code})")
         log_lines(stderr, log_func)
         return OperationResult.failure(
-            "检查系统钥匙串失败",
+            "Не удалось проверить системную связку ключей",
             exists=False,
             returncode=return_code,
         )
 
     if not stdout.strip():
-        log_func("未在系统钥匙串中找到匹配的 CA 证书")
+        log_func("Совпадающий CA-сертификат в системной связке ключей не найден")
         return OperationResult.success(exists=False, certs=[])
 
     certs: list[dict[str, object]] = []
@@ -409,29 +412,29 @@ def _check_ca_on_macos(ca_common_name: str, log_func: LogFunc = print) -> Operat
             certs.append(cert_info)
 
     if certs:
-        log_func("检测到系统钥匙串中存在匹配的 CA 证书")
+        log_func("В системной связке ключей обнаружен совпадающий CA-сертификат")
         return OperationResult.success(exists=True, match_count=len(certs), certs=certs)
 
-    log_func("未在系统钥匙串中找到匹配的 CA 证书")
+    log_func("Совпадающий CA-сертификат в системной связке ключей не найден")
     return OperationResult.success(exists=False, certs=[])
 
 
 def _install_ca_on_windows(ca_cert_file: str, log_func: LogFunc = print) -> OperationResult:
-    log_func("正在 Windows 系统中安装 CA 证书...")
+    log_func("Устанавливаем CA-сертификат в системе Windows...")
     cmd = f'certutil -addstore -f "ROOT" "{ca_cert_file}"'
-    log_func(f"执行命令: {cmd}")
+    log_func(f"Выполняем команду: {cmd}")
     return_code, stdout, stderr = run_command(cmd, shell=True)
 
     log_lines(stdout, log_func)
     log_lines(stderr, log_func)
 
     if return_code == 0:
-        log_func("CA 证书安装成功！")
+        log_func("CA-сертификат успешно установлен!")
         return OperationResult.success()
 
-    log_func(f"证书安装失败，返回码: {return_code}")
+    log_func(f"Не удалось установить сертификат, код возврата: {return_code}")
     return OperationResult.failure(
-        "证书安装失败",
+        "Не удалось установить сертификат",
         returncode=return_code,
         stderr=stderr,
         stdout=stdout,
@@ -439,13 +442,14 @@ def _install_ca_on_windows(ca_cert_file: str, log_func: LogFunc = print) -> Oper
 
 
 def _install_ca_on_macos(ca_cert_file: str, log_func: LogFunc = print) -> OperationResult:
-    log_func("正在 macOS 系统中安装 CA 证书...")
+    log_func("Устанавливаем CA-сертификат в системе macOS...")
     session = get_mac_privileged_session(log_func=log_func)
     if not session:
-        log_func("❌ 无法获取管理员权限，证书未安装")
-        return OperationResult.failure("无法获取管理员权限")
+        log_func("❌ Не удалось получить права администратора, сертификат не установлен")
+        return OperationResult.failure("Не удалось получить права администратора")
 
-    log_func("请求以管理员权限将证书安装到系统钥匙串并设为信任...")
+    log_func("Запрашиваем права администратора для установки сертификата в системную связку ключей "
+        "и пометки как доверенного...")
     success, data = session.install_trusted_cert(
         ca_cert_file,
         keychain="/Library/Keychains/System.keychain",
@@ -457,19 +461,22 @@ def _install_ca_on_macos(ca_cert_file: str, log_func: LogFunc = print) -> Operat
     log_lines(stderr, log_func)
 
     if success:
-        log_func("✅ CA 证书已添加到系统钥匙串并设为信任")
+        log_func("✅ CA-сертификат добавлен в системную связку ключей и помечен как доверенный")
         return OperationResult.success()
 
     return_code = data.get("returncode")
     error_msg = ""
     error_msg = stderr or data.get("error") or ""
     log_func(
-        f"❌ 证书安装失败 (返回码: {return_code if return_code is not None else '未知'})"
+        
+            f"❌ Не удалось установить сертификат (код возврата: "
+            f"{return_code if return_code is not None else 'неизвестно'})"
+        
     )
     if error_msg:
-        log_func(f"错误信息: {error_msg}")
+        log_func(f"Сообщение об ошибке: {error_msg}")
     return OperationResult.failure(
-        "证书安装失败",
+        "Не удалось установить сертификат",
         returncode=return_code,
         stderr=stderr,
         stdout=stdout,
@@ -477,37 +484,37 @@ def _install_ca_on_macos(ca_cert_file: str, log_func: LogFunc = print) -> Operat
 
 
 def _install_ca_on_linux(ca_cert_file: str, log_func: LogFunc = print) -> OperationResult:
-    log_func("正在 Linux 系统中安装 CA 证书...")
+    log_func("Устанавливаем CA-сертификат в системе Linux...")
     cmd = f'sudo cp "{ca_cert_file}" /usr/local/share/ca-certificates/'
-    log_func(f"执行命令: {cmd}")
+    log_func(f"Выполняем команду: {cmd}")
     return_code, stdout, stderr = run_command(cmd, shell=True)
 
     log_lines(stdout, log_func)
     log_lines(stderr, log_func)
 
     if return_code != 0:
-        log_func(f"复制证书失败，返回码: {return_code}")
+        log_func(f"Не удалось скопировать сертификат, код возврата: {return_code}")
         return OperationResult.failure(
-            "复制证书失败",
+            "Не удалось скопировать сертификат",
             returncode=return_code,
             stderr=stderr,
             stdout=stdout,
         )
 
     cmd = "sudo update-ca-certificates"
-    log_func(f"执行命令: {cmd}")
+    log_func(f"Выполняем команду: {cmd}")
     return_code, stdout, stderr = run_command(cmd, shell=True)
 
     log_lines(stdout, log_func)
     log_lines(stderr, log_func)
 
     if return_code == 0:
-        log_func("CA 证书安装成功！")
+        log_func("CA-сертификат успешно установлен!")
         return OperationResult.success()
 
-    log_func(f"更新证书失败，返回码: {return_code}")
+    log_func(f"Не удалось обновить сертификаты, код возврата: {return_code}")
     return OperationResult.failure(
-        "更新证书失败",
+        "Не удалось обновить сертификаты",
         returncode=return_code,
         stderr=stderr,
         stdout=stdout,
@@ -515,25 +522,25 @@ def _install_ca_on_linux(ca_cert_file: str, log_func: LogFunc = print) -> Operat
 
 
 def _clear_ca_on_windows(ca_common_name: str, log_func: LogFunc = print) -> OperationResult:
-    log_func("开始清除 Windows 受信任根中的CA证书...")
+    log_func("Начинаем удаление CA-сертификата из доверенных корневых Windows...")
     list_cmd = ["cmd", "/d", "/s", "/c", "certutil -store Root"]
     return_code, stdout, stderr = run_command(list_cmd)
 
     log_lines(stderr, log_func)
     if return_code != 0:
-        log_func(f"❌ 读取证书存储失败 (返回码: {return_code})")
+        log_func(f"❌ Не удалось прочитать хранилище сертификатов (код возврата: {return_code})")
         return OperationResult.failure(
-            "读取证书存储失败",
+            "Не удалось прочитать хранилище сертификатов",
             returncode=return_code,
         )
 
     entries = parse_certutil_store(stdout)
     targets = filter_certs_by_name(entries, ca_common_name)
     if not targets:
-        log_func(f"未找到匹配证书: {ca_common_name}")
+        log_func(f"Совпадающих сертификатов не найдено: {ca_common_name}")
         return OperationResult.success()
 
-    log_func(f"找到 {len(targets)} 个匹配证书，准备删除...")
+    log_func(f"Найдено совпадающих сертификатов: {len(targets)}, готовимся к удалению...")
     any_failed = False
 
     for cert in targets:
@@ -541,7 +548,7 @@ def _clear_ca_on_windows(ca_common_name: str, log_func: LogFunc = print) -> Oper
         subject = cert.get("subject", "")
         if not thumbprint:
             any_failed = True
-            log_func(f"⚠️ 跳过缺少哈希的证书: {subject or '[未知证书]'}")
+            log_func(f"⚠️ Пропускаем сертификат без хеша: {subject or '[неизвестный сертификат]'}")
             continue
 
         log_func(f"Deleting from Root store: {thumbprint}")
@@ -554,23 +561,23 @@ def _clear_ca_on_windows(ca_common_name: str, log_func: LogFunc = print) -> Oper
         log_lines(del_stderr, log_func)
         if rc != 0:
             any_failed = True
-            log_func(f"❌ 删除失败 (返回码: {rc})")
+            log_func(f"❌ Не удалось удалить (код возврата: {rc})")
 
     if any_failed:
-        log_func("❌ CA证书清除失败 (部分证书未能删除)")
-        return OperationResult.failure("部分证书未能删除")
+        log_func("❌ Не удалось удалить CA-сертификат (часть сертификатов не удалена)")
+        return OperationResult.failure("Часть сертификатов не удалена")
 
-    log_func("✅ CA证书清除完成")
+    log_func("✅ Удаление CA-сертификата завершено")
     return OperationResult.success()
 
 
 def _clear_ca_on_macos(ca_common_name: str, log_func: LogFunc = print) -> OperationResult:
     session = get_mac_privileged_session(log_func=log_func)
     if not session:
-        log_func("❌ 无法获取管理员权限，无法清除CA证书")
-        return OperationResult.failure("无法获取管理员权限")
+        log_func("❌ Не удалось получить права администратора, удаление CA-сертификата невозможно")
+        return OperationResult.failure("Не удалось получить права администратора")
 
-    log_func("开始清除系统钥匙串中的CA证书...")
+    log_func("Начинаем удаление CA-сертификата из системной связки ключей...")
     command = (
         f"security find-certificate -a -c {shlex.quote(ca_common_name)} "
         "-Z /Library/Keychains/System.keychain "
@@ -584,14 +591,14 @@ def _clear_ca_on_macos(ca_common_name: str, log_func: LogFunc = print) -> Operat
     log_lines(data.get("stdout"), log_func)
     log_lines(data.get("stderr"), log_func)
     if success:
-        log_func("✅ CA证书清除完成")
+        log_func("✅ Удаление CA-сертификата завершено")
         return OperationResult.success()
 
     return_code = data.get("returncode")
-    rc_text = return_code if return_code is not None else "未知"
-    log_func(f"❌ CA证书清除失败 (返回码: {rc_text})")
+    rc_text = return_code if return_code is not None else "неизвестно"
+    log_func(f"❌ Не удалось удалить CA-сертификат (код возврата: {rc_text})")
     return OperationResult.failure(
-        "CA证书清除失败",
+        "Не удалось удалить CA-сертификат",
         returncode=return_code,
     )
 

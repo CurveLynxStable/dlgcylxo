@@ -1,13 +1,13 @@
-# 默认文本使用 LF，避免跨平台换行差异
+# Текст по умолчанию использует LF во избежание межплатформенных различий переводов строк
 * text eol=lf
 
-# Windows 批处理 / PowerShell 保持 CRLF
+# Пакетные файлы Windows / PowerShell сохраняют CRLF
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 *.psm1 text eol=crlf
 
-# 常见脚本与配置强制 LF
+# Для распространённых скриптов и конфигов принудительно LF
 *.sh text eol=lf
 *.py text eol=lf
 *.pyw text eol=lf
@@ -15,7 +15,7 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 
-# 二进制资产不执行行尾转换
+# Для бинарных файлов преобразование концов строк не выполняется
 *.png binary
 *.jpg binary
 *.jpeg binary

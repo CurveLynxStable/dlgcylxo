@@ -10,7 +10,10 @@ def get_platform() -> str:
     if value in _SUPPORTED:
         return value
     raise RuntimeError(
-        "MTGA_PLATFORM 未设置或非法（仅支持 tauri/legacy），请在入口处注入。"
+        
+            "MTGA_PLATFORM не задана или некорректна (поддерживаются только tauri/legacy); задайте "
+            "её в точке входа."
+        
     )
 
 

@@ -119,7 +119,7 @@ async def _probe_dom(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="通过 CDP 导出当前 Trae workbench 的可见 DOM 探针。"
+        description="Экспортирует через CDP пробу видимого DOM текущего workbench Trae."
     )
     parser.add_argument("--host", default=DEFAULT_REMOTE_DEBUGGING_HOST)
     parser.add_argument("--port", type=int, default=DEFAULT_REMOTE_DEBUGGING_PORT)

@@ -1,6 +1,6 @@
 """
-证书清理模块
-提供跨平台的 CA 证书删除能力，避免在 GUI 中直接嵌入平台脚本。
+Модуль очистки сертификатов
+Кросс-платформенное удаление CA-сертификатов без встраивания платформенных скриптов в GUI.
 """
 
 from __future__ import annotations
@@ -14,12 +14,12 @@ type LogFunc = Callable[[str], None]
 
 
 def clear_ca_cert_result(ca_common_name: str, log_func: LogFunc = print) -> OperationResult:
-    """返回清理结果。"""
+    """Возвращает результат очистки."""
     return clear_ca_cert_store(ca_common_name, log_func=log_func)
 
 
 def clear_ca_cert(ca_common_name: str, log_func: LogFunc = print) -> bool:
-    """根据平台清除系统信任存储中的 CA 证书。"""
+    """Удаляет CA-сертификат из системного хранилища доверия в зависимости от ОС."""
     return clear_ca_cert_result(ca_common_name, log_func=log_func).ok
 
 

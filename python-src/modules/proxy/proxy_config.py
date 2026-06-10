@@ -80,7 +80,7 @@ def _load_global_config_result(
         with open(config_file, encoding="utf-8") as f:
             loaded: Any = yaml.safe_load(f)
     except Exception as exc:
-        log_func(f"加载全局配置失败: {exc}")
+        log_func(f"Не удалось загрузить глобальную конфигурацию: {exc}")
         return GlobalConfigLoadResult(global_config={}, load_failed=True)
 
     if loaded is None:
@@ -91,7 +91,8 @@ def _load_global_config_result(
             load_failed=False,
         )
 
-    log_func("加载全局配置失败: 配置根节点必须是对象")
+    log_func("Не удалось загрузить глобальную конфигурацию: корневой узел конфигурации должен быть "
+        "объектом")
     return GlobalConfigLoadResult(global_config={}, load_failed=True)
 
 
@@ -127,7 +128,7 @@ def _persist_global_config(
                 sort_keys=False,
             )
     except Exception as exc:
-        log_func(f"写入全局配置失败: {exc}")
+        log_func(f"Не удалось записать глобальную конфигурацию: {exc}")
 
 
 def _resolve_prompt_cache_bucket_id(
@@ -144,7 +145,8 @@ def _resolve_prompt_cache_bucket_id(
             return bucket_id
 
     if not allow_persist:
-        log_func("全局配置读取失败，跳过 prompt cache bucket id 自动持久化")
+        log_func("Не удалось прочитать глобальную конфигурацию, пропускаем автосохранение prompt "
+            "cache bucket id")
         return ""
 
     bucket_id = _generate_prompt_cache_bucket_id()
@@ -159,9 +161,11 @@ def _resolve_prompt_cache_bucket_id(
 
 
 def _resolve_custom_model_id(*, global_config: dict[str, Any]) -> str:
-    # 有意不兼容 legacy group 级 mapped_model_id：
-    # 当前版本不会自动迁移或回退读取旧字段，映射模型ID必须只由全局配置提供。
-    # 若全局字段缺失，交给上层全局配置校验链路直接报错，而不是继续兜底启动。
+    # Намеренно несовместимо с legacy mapped_model_id на уровне группы:
+    # текущая версия не мигрирует и не читает старое поле; ID сопоставленной модели берётся только
+    # из глобальной конфигурации.
+    # Если глобальное поле отсутствует, ошибку выдаёт вышестоящая цепочка валидации, а не запуск с
+    # фолбэком.
     global_mapped_model_id = (global_config.get("mapped_model_id") or "").strip()
     return global_mapped_model_id
 
@@ -233,7 +237,7 @@ def build_proxy_config(
 
     target_api_base_url = raw_config.get("api_url", PLACEHOLDER_API_URL)
     if target_api_base_url == PLACEHOLDER_API_URL:
-        log_func("错误: 请在配置中设置正确的 API URL")
+        log_func("Ошибка: укажите корректный API URL в конфигурации")
         return None
 
     custom_model_id = _resolve_custom_model_id(

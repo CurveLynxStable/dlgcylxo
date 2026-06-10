@@ -15,10 +15,10 @@ function run(command, args, { capture = false, check = true } = {}) {
   });
 
   if (result.error) {
-    fail(`执行失败: ${command} ${args.join(" ")} (${result.error.message})`);
+    fail(`Сбой выполнения: ${command} ${args.join(" ")} (${result.error.message})`);
   }
   if (check && (result.status ?? 1) !== 0) {
-    fail(`命令执行失败: ${command} ${args.join(" ")}`, result.status ?? 1);
+    fail(`Команда завершилась с ошибкой: ${command} ${args.join(" ")}`, result.status ?? 1);
   }
   return result;
 }
@@ -33,7 +33,7 @@ function assertGitRepo() {
     check: false,
   });
   if ((result.status ?? 1) !== 0) {
-    fail("当前目录不是 git 仓库（git rev-parse 失败）", 2);
+    fail("Текущий каталог не является git-репозиторием (git rev-parse не удался)", 2);
   }
 }
 
@@ -79,7 +79,7 @@ function setupGitflow() {
     "--tag=true",
   ]);
 
-  console.log("✅ git-flow 配置完成");
+  console.log("✅ Конфигурация git-flow завершена");
 }
 
 function parseFinishArgs(argv) {
@@ -98,7 +98,7 @@ function parseFinishArgs(argv) {
     }
     const next = argv[i + 1];
     if (arg === "-v" || arg === "--version" || arg === "--Version") {
-      if (!next) fail(`参数 ${arg} 缺少值`, 2);
+      if (!next) fail(`У параметра ${arg} отсутствует значение`, 2);
       options.version = next;
       i += 1;
       continue;
@@ -108,7 +108,7 @@ function parseFinishArgs(argv) {
       continue;
     }
     if (arg === "-r" || arg === "--remote" || arg === "--Remote") {
-      if (!next) fail(`参数 ${arg} 缺少值`, 2);
+      if (!next) fail(`У параметра ${arg} отсутствует значение`, 2);
       options.remote = next;
       i += 1;
       continue;
@@ -118,7 +118,7 @@ function parseFinishArgs(argv) {
       continue;
     }
     if (arg === "-m" || arg === "--main-branch" || arg === "--MainBranch") {
-      if (!next) fail(`参数 ${arg} 缺少值`, 2);
+      if (!next) fail(`У параметра ${arg} отсутствует значение`, 2);
       options.mainBranch = next;
       i += 1;
       continue;
@@ -128,7 +128,7 @@ function parseFinishArgs(argv) {
       continue;
     }
     if (arg === "-d" || arg === "--dev-branch" || arg === "--DevBranch") {
-      if (!next) fail(`参数 ${arg} 缺少值`, 2);
+      if (!next) fail(`У параметра ${arg} отсутствует значение`, 2);
       options.devBranch = next;
       i += 1;
       continue;
@@ -137,7 +137,7 @@ function parseFinishArgs(argv) {
       options.devBranch = arg.split("=", 2)[1] ?? "";
       continue;
     }
-    fail(`未知参数 ${arg}`, 2);
+    fail(`Неизвестный параметр ${arg}`, 2);
   }
 
   return options;
@@ -149,17 +149,17 @@ function finishRelease(argv) {
 
   const statusResult = run("git", ["status", "--porcelain"], { capture: true, check: false });
   if ((statusResult.status ?? 1) !== 0) {
-    fail("无法读取 git status", 3);
+    fail("Не удалось прочитать git status", 3);
   }
   const dirty = trimOutput(statusResult.stdout);
   if (dirty) {
     console.error(
-      "当前工作区不干净（git status --porcelain 有输出），请先 commit/stash/clean 后再运行：",
+      "Рабочая копия не чиста (git status --porcelain выводит изменения); сначала выполните commit/stash/clean:",
     );
     for (const line of dirty.split("\n")) {
       if (line.trim()) console.error(`  ${line}`);
     }
-    fail("中断：工作区不干净", 20);
+    fail("Прервано: рабочая копия не чиста", 20);
   }
 
   const branchResult = run("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
@@ -168,21 +168,27 @@ function finishRelease(argv) {
   });
   const branch = trimOutput(branchResult.stdout);
   if ((branchResult.status ?? 1) !== 0 || !branch) {
-    fail("无法获取当前分支名", 4);
+    fail("Не удалось получить имя текущей ветки", 4);
   }
   if (!branch.startsWith(RELEASE_PREFIX)) {
-    fail(`当前分支不是 release/*（现在是 '${branch}'）。请切到 release/<版本> 分支再运行。`, 10);
+    fail(
+      `Текущая ветка не release/* (сейчас '${branch}'). Переключитесь на ветку release/<версия> и запустите снова.`,
+      10,
+    );
   }
 
   const currentVersion = branch.slice(RELEASE_PREFIX.length);
   if (!currentVersion) {
-    fail(`分支名 '${branch}' 无法解析出版本号（预期形如 release/2.0.0-beta.10）`, 11);
+    fail(
+      `Из имени ветки '${branch}' не удалось извлечь версию (ожидается вид release/2.0.0-beta.10)`,
+      11,
+    );
   }
 
   const version = options.version || currentVersion;
   if (options.version && options.version !== currentVersion) {
     fail(
-      `你传入的 -v/-Version 是 '${options.version}'，但当前分支是 '${branch}'（版本 '${currentVersion}'）。两者不一致，已中断。`,
+      `Передан -v/-Version '${options.version}', но текущая ветка '${branch}' (версия '${currentVersion}'). Значения не совпадают, прервано.`,
       12,
     );
   }
@@ -196,12 +202,15 @@ function finishRelease(argv) {
   const localTagStatus = localTagResult.status ?? 1;
   if (localTagStatus === 0) {
     fail(
-      `本地已存在 tag：${expectedTag}（${expectedRef}）。请更换版本号或先删除该 tag 后再试。`,
+      `Локально уже существует tag: ${expectedTag} (${expectedRef}). Смените версию или сначала удалите этот tag.`,
       30,
     );
   }
   if (localTagStatus !== 1) {
-    fail(`本地 tag 检查失败：git show-ref --tags --verify --quiet ${expectedRef}`, 30);
+    fail(
+      `Проверка локального tag не удалась: git show-ref --tags --verify --quiet ${expectedRef}`,
+      30,
+    );
   }
 
   const remoteTagResult = run(
@@ -211,27 +220,27 @@ function finishRelease(argv) {
   );
   if ((remoteTagResult.status ?? 1) !== 0) {
     fail(
-      `无法查询远程 tag：git ls-remote --tags ${options.remote} ...（请检查远程名/网络/权限）`,
+      `Не удалось запросить удалённые tag: git ls-remote --tags ${options.remote} ... (проверьте имя remote/сеть/права)`,
       31,
     );
   }
   if (trimOutput(remoteTagResult.stdout)) {
     fail(
-      `远程 '${options.remote}' 已存在 tag：${expectedTag}。请更换版本号，或在远程删除该 tag 后再试。`,
+      `На remote '${options.remote}' уже существует tag: ${expectedTag}. Смените версию или удалите tag на remote.`,
       32,
     );
   }
 
-  console.log(`▶ 当前分支: ${branch}`);
-  console.log(`▶ 将执行: git-flow release finish ${version}`);
+  console.log(`▶ Текущая ветка: ${branch}`);
+  console.log(`▶ Будет выполнено: git-flow release finish ${version}`);
   console.log(
-    `▶ 完成后推送: ${options.remote} ${options.mainBranch} ${options.devBranch} + (HEAD tag if exists)`,
+    `▶ После завершения push: ${options.remote} ${options.mainBranch} ${options.devBranch} + (HEAD tag if exists)`,
   );
 
   const finishResult = run("git-flow", ["release", "finish", version], { check: false });
   if ((finishResult.status ?? 1) !== 0) {
     const code = finishResult.status ?? 1;
-    fail(`git-flow release finish 失败（exit=${code}）`, code);
+    fail(`git-flow release finish не удался (exit=${code})`, code);
   }
 
   const pushBranchesResult = run(
@@ -242,7 +251,7 @@ function finishRelease(argv) {
   if ((pushBranchesResult.status ?? 1) !== 0) {
     const code = pushBranchesResult.status ?? 1;
     fail(
-      `推送分支失败：git push ${options.remote} ${options.mainBranch} ${options.devBranch}`,
+      `Не удалось отправить ветки: git push ${options.remote} ${options.mainBranch} ${options.devBranch}`,
       code,
     );
   }
@@ -258,21 +267,21 @@ function finishRelease(argv) {
     });
     if ((pushTagResult.status ?? 1) !== 0) {
       const code = pushTagResult.status ?? 1;
-      fail(`推送 tag 失败：git push ${options.remote} refs/tags/${headTag}`, code);
+      fail(`Не удалось отправить tag: git push ${options.remote} refs/tags/${headTag}`, code);
     }
-    console.log(`✅ 已推送 tag: ${headTag}`);
+    console.log(`✅ Tag отправлен: ${headTag}`);
   } else {
-    console.log("ℹ️ HEAD 上没有 tag，跳过 tag push");
+    console.log("ℹ️ На HEAD нет tag, пропускаем push tag");
   }
 
   const checkoutDevResult = run("git", ["checkout", options.devBranch], { check: false });
   if ((checkoutDevResult.status ?? 1) !== 0) {
     const code = checkoutDevResult.status ?? 1;
-    fail(`切回开发分支失败：git checkout ${options.devBranch}`, code);
+    fail(`Не удалось вернуться на ветку разработки: git checkout ${options.devBranch}`, code);
   }
-  console.log(`✅ 已切回分支: ${options.devBranch}`);
+  console.log(`✅ Возврат на ветку: ${options.devBranch}`);
 
-  console.log("✅ 完成");
+  console.log("✅ Готово");
 }
 
 function syncBranches() {
@@ -280,17 +289,17 @@ function syncBranches() {
 
   const statusResult = run("git", ["status", "--porcelain"], { capture: true, check: false });
   if ((statusResult.status ?? 1) !== 0) {
-    fail("无法读取 git status", 3);
+    fail("Не удалось прочитать git status", 3);
   }
   const dirty = trimOutput(statusResult.stdout);
   if (dirty) {
     console.error(
-      "当前工作区不干净（git status --porcelain 有输出），请先 commit/stash/clean 后再运行：",
+      "Рабочая копия не чиста (git status --porcelain выводит изменения); сначала выполните commit/stash/clean:",
     );
     for (const line of dirty.split("\n")) {
       if (line.trim()) console.error(`  ${line}`);
     }
-    fail("中断：工作区不干净", 20);
+    fail("Прервано: рабочая копия не чиста", 20);
   }
 
   const branches = ["dev", "tauri"];
@@ -298,28 +307,28 @@ function syncBranches() {
     const checkoutResult = run("git", ["checkout", branch], { check: false });
     if ((checkoutResult.status ?? 1) !== 0) {
       const code = checkoutResult.status ?? 1;
-      fail(`切换分支失败：git checkout ${branch}`, code);
+      fail(`Не удалось переключить ветку: git checkout ${branch}`, code);
     }
-    console.log(`▶ 已切换分支: ${branch}`);
+    console.log(`▶ Переключено на ветку: ${branch}`);
 
     const pullResult = run("git", ["pull"], { check: false });
     if ((pullResult.status ?? 1) !== 0) {
       const code = pullResult.status ?? 1;
-      fail(`拉取分支失败：git pull (${branch})`, code);
+      fail(`Не удалось выполнить pull ветки: git pull (${branch})`, code);
     }
-    console.log(`✅ 已拉取分支: ${branch}`);
+    console.log(`✅ Ветка обновлена (pull): ${branch}`);
   }
 
   const checkoutDevResult = run("git", ["checkout", "dev"], { check: false });
   if ((checkoutDevResult.status ?? 1) !== 0) {
     const code = checkoutDevResult.status ?? 1;
-    fail("切回开发分支失败：git checkout dev", code);
+    fail("Не удалось вернуться на ветку разработки: git checkout dev", code);
   }
-  console.log("✅ 已切回分支: dev");
+  console.log("✅ Возврат на ветку: dev");
 }
 
 function printUsage() {
-  console.log("用法:");
+  console.log("Использование:");
   console.log("  node ./scripts/gitflow.mjs setup");
   console.log("  node ./scripts/gitflow.mjs finish [-v version] [-r remote] [-m main] [-d dev]");
   console.log("  node ./scripts/gitflow.mjs sync");
@@ -347,4 +356,4 @@ if (command === "sync") {
   process.exit(0);
 }
 
-fail(`未知子命令 ${command}`, 2);
+fail(`Неизвестная подкоманда ${command}`, 2);

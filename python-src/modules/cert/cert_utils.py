@@ -1,6 +1,6 @@
 """
-证书工具函数（跨模块复用）
-用于证书检查/清理等场景的日志输出与 certutil 解析。
+Утилиты для работы с сертификатами (переиспользуются разными модулями)
+Вывод логов и разбор certutil для сценариев проверки/очистки сертификатов.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives import hashes
 type LogFunc = Callable[[str], None]
 
 def log_lines(lines: str | None, log_func: LogFunc = print) -> None:
-    """逐行输出日志，自动跳过空行。"""
+    """Выводит лог построчно, пропуская пустые строки."""
     if not lines:
         return
     for line in lines.splitlines():
@@ -23,14 +23,15 @@ def log_lines(lines: str | None, log_func: LogFunc = print) -> None:
 
 
 def normalize_fingerprint(value: str | None) -> str | None:
-    """规范化证书指纹（去空白/冒号，转小写）。"""
+    """Нормализует отпечаток сертификата (убирает пробелы/двоеточия, приводит к нижнему
+    регистру)."""
     if not value:
         return None
     return value.replace(":", "").replace(" ", "").strip().lower()
 
 
 def parse_openssl_fingerprint(output: str | None) -> str | None:
-    """解析 OpenSSL 指纹输出，返回规范化 SHA1 指纹。"""
+    """Разбирает вывод отпечатка OpenSSL и возвращает нормализованный SHA1-отпечаток."""
     if not output:
         return None
     for line in output.splitlines():
@@ -40,7 +41,7 @@ def parse_openssl_fingerprint(output: str | None) -> str | None:
 
 
 def parse_openssl_enddate_to_unix(output: str | None) -> int | None:
-    """解析 OpenSSL notAfter 输出并转换为 Unix 时间戳（秒）。"""
+    """Разбирает вывод OpenSSL notAfter и преобразует в Unix-время (секунды)."""
     if not output:
         return None
     for line in output.splitlines():
@@ -59,12 +60,12 @@ def parse_openssl_enddate_to_unix(output: str | None) -> int | None:
 
 
 def certificate_fingerprint_sha1(certificate: x509.Certificate) -> str:
-    """提取证书 SHA1 指纹并规范化。"""
+    """Извлекает SHA1-отпечаток сертификата и нормализует его."""
     return normalize_fingerprint(certificate.fingerprint(hashes.SHA1()).hex()) or ""
 
 
 def certificate_not_after_unix(certificate: x509.Certificate) -> int:
-    """将证书到期时间转换为 Unix 时间戳（秒）。"""
+    """Преобразует срок действия сертификата в Unix-время (секунды)."""
     not_after_utc = getattr(certificate, "not_valid_after_utc", None)
     if isinstance(not_after_utc, datetime):
         return int(not_after_utc.timestamp())
@@ -72,12 +73,12 @@ def certificate_not_after_unix(certificate: x509.Certificate) -> int:
 
 
 def certificate_name_to_text(name: x509.Name) -> str:
-    """将 cryptography 的名称对象转换为可读字符串。"""
+    """Преобразует объект имени cryptography в читаемую строку."""
     return name.rfc4514_string()
 
 
 def parse_certutil_store(output: str) -> list[dict[str, str]]:
-    """解析 certutil -store 输出，提取 subject/issuer/thumbprint。"""
+    """Разбирает вывод certutil -store и извлекает subject/issuer/thumbprint."""
     entries: list[dict[str, str]] = []
     current: dict[str, str] = {}
 
@@ -116,7 +117,7 @@ def filter_certs_by_name(
     entries: Iterable[dict[str, str]],
     ca_common_name: str,
 ) -> list[dict[str, str]]:
-    """根据 CA common name 过滤证书条目。"""
+    """Фильтрует записи сертификатов по CA common name."""
     target = ca_common_name.lower()
     matched: list[dict[str, str]] = []
     for entry in entries:

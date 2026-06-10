@@ -35,9 +35,12 @@ class ProxyUiCoordinator:
             load_global_config=self._deps.config_store.load_global_config,
         )
         if not result.ok:
-            missing_display = "、".join(result.missing_fields)
+            missing_display = ", ".join(result.missing_fields)
             self._deps.log(
-                f"⚠️ 全局配置缺失: {missing_display} 不能为空，请在左侧“全局配置”中填写后再试。"
+                
+                    f"⚠️ Отсутствуют поля глобальной конфигурации: {missing_display} не могут быть "
+                    f"пустыми; заполните их в «Глобальной конфигурации» слева и повторите попытку."
+                
             )
             return False
         return True
@@ -57,7 +60,7 @@ class ProxyUiCoordinator:
             ),
         )
         if not config:
-            self._deps.log("❌ 错误: 没有可用的配置组")
+            self._deps.log("❌ Ошибка: Нет доступных групп конфигурации")
             return None
         return config
 
@@ -65,7 +68,7 @@ class ProxyUiCoordinator:
         self,
         config: dict[str, Any],
         *,
-        success_message: str = "✅ 代理服务器启动成功",
+        success_message: str = "✅ Прокси-сервер успешно запущен",
         hosts_modified: bool = False,
     ) -> OperationResult:
         return proxy_orchestration.restart_proxy_result(
@@ -93,7 +96,7 @@ class ProxyUiCoordinator:
     def start_proxy_instance(
         self,
         config: dict[str, Any],
-        success_message: str = "✅ 代理服务器启动成功",
+        success_message: str = "✅ Прокси-сервер успешно запущен",
         *,
         hosts_modified: bool = False,
     ) -> OperationResult:

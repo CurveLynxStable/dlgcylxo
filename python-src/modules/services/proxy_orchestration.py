@@ -44,7 +44,7 @@ def ensure_global_config_ready(
 
     missing_fields: list[str] = []
     if not mapped_model_id:
-        missing_fields.append("映射模型ID")
+        missing_fields.append("ID сопоставленной модели")
 
     return GlobalConfigCheckResult(ok=not missing_fields, missing_fields=missing_fields)
 
@@ -88,16 +88,16 @@ def restart_proxy_result(
     *,
     config: dict[str, Any],
     deps: RestartProxyDeps,
-    success_message: str = "✅ 代理服务器启动成功",
+    success_message: str = "✅ Прокси-сервер успешно запущен",
     hosts_modified: bool = False,
 ) -> OperationResult:
     stream_mode_value = config.get("stream_mode")
     if stream_mode_value is not None:
-        deps.log(f"启用强制流模式: {stream_mode_value}")
+        deps.log(f"Включён принудительный потоковый режим: {stream_mode_value}")
     stop_result = deps.stop_proxy_instance(reason="restart")
     if not stop_result.ok:
-        message = stop_result.message or "旧代理实例停止失败"
-        deps.log(f"❌ {message}，已取消本次重启")
+        message = stop_result.message or "Не удалось остановить старый экземпляр прокси"
+        deps.log(f"❌ {message}, перезапуск отменён")
         return OperationResult.failure(message, code=stop_result.code)
     start_result = deps.start_proxy_instance(
         config,
@@ -107,7 +107,7 @@ def restart_proxy_result(
     if start_result.ok:
         return OperationResult.success()
     return OperationResult.failure(
-        start_result.message or "代理服务器启动失败",
+        start_result.message or "Не удалось запустить прокси-сервер",
         code=start_result.code,
     )
 
@@ -116,7 +116,7 @@ def restart_proxy(
     *,
     config: dict[str, Any],
     deps: RestartProxyDeps,
-    success_message: str = "✅ 代理服务器启动成功",
+    success_message: str = "✅ Прокси-сервер успешно запущен",
     hosts_modified: bool = False,
 ) -> bool:
     return restart_proxy_result(
@@ -139,17 +139,17 @@ def stop_proxy_instance_result(
     if instance:
         if reason == "restart":
             if instance.is_running():
-                log("检测到代理服务器正在运行，正在停止旧实例...")
+                log("Обнаружен работающий прокси-сервер, останавливаем старый экземпляр...")
             else:
-                log("检测到代理实例残留，正在尝试清理...")
+                log("Обнаружен оставшийся экземпляр прокси, пытаемся очистить...")
         else:
-            log("正在停止代理服务器...")
+            log("Останавливаем прокси-сервер...")
         stop_result = _stop_instance_result(instance=instance, log=log)
         if stop_result.ok:
             set_proxy_instance(None)
         return stop_result
     if show_idle_message:
-        log("代理服务器未运行")
+        log("Прокси-сервер не запущен")
     return OperationResult.success()
 
 
@@ -161,16 +161,16 @@ def _stop_instance_result(
     try:
         raw_stop_result = instance.stop()
     except Exception as exc:  # noqa: BLE001
-        log(f"停止代理服务器时出错: {exc}")
-        return OperationResult.failure("停止代理服务器时出错")
+        log(f"Ошибка при остановке прокси-сервера: {exc}")
+        return OperationResult.failure("Ошибка при остановке прокси-сервера")
 
     if not isinstance(raw_stop_result, OperationResult):
-        return OperationResult.failure("停止代理服务器返回结果无效")
+        return OperationResult.failure("Остановка прокси-сервера вернула некорректный результат")
 
     if raw_stop_result.ok:
-        log("✅ 代理服务器已停止")
+        log("✅ Прокси-сервер остановлен")
     else:
-        log(f"⚠️ {raw_stop_result.message or '代理服务器未完全停止'}")
+        log(f"⚠️ {raw_stop_result.message or 'Прокси-сервер остановлен не полностью'}")
     return raw_stop_result
 
 
@@ -195,41 +195,42 @@ def start_proxy_instance_result(
     *,
     config: dict[str, Any],
     deps: StartProxyDeps,
-    success_message: str = "✅ 代理服务器启动成功",
+    success_message: str = "✅ Прокси-сервер успешно запущен",
     hosts_modified: bool = False,
 ) -> OperationResult:
     if deps.network_env_precheck_enabled:
         deps.check_network_environment(log_func=deps.log, emit_logs=True)
 
     if is_port_in_use(443):
-        deps.log("⚠️ 端口 443 已被其他进程占用，代理服务器未启动。请释放该端口后重试。")
-        return OperationResult.failure("端口已被占用", code=ErrorCode.PORT_IN_USE)
+        deps.log("⚠️ Порт 443 занят другим процессом, прокси-сервер не запущен. Освободите порт и "
+            "повторите попытку.")
+        return OperationResult.failure("Порт уже занят", code=ErrorCode.PORT_IN_USE)
 
     if not hosts_modified:
-        deps.log("正在修改hosts文件...")
+        deps.log("Изменяем файл hosts...")
         modify_result = deps.modify_hosts_file(log_func=deps.log)
         if not modify_result.ok:
-            deps.log("❌ 修改hosts文件失败，代理服务器未启动")
+            deps.log("❌ Не удалось изменить файл hosts, прокси-сервер не запущен")
             return OperationResult.failure(
-                modify_result.message or "修改hosts文件失败",
+                modify_result.message or "Не удалось изменить файл hosts",
                 code=modify_result.code,
             )
-    deps.log("开始启动代理服务器...")
+    deps.log("Начинаем запуск прокси-сервера...")
     instance = ProxyServer(config, log_func=deps.log, thread_manager=deps.thread_manager)
     deps.set_proxy_instance(instance)
     if instance.start():
         deps.log(success_message)
         return OperationResult.success()
-    deps.log("❌ 代理服务器启动失败")
+    deps.log("❌ Не удалось запустить прокси-сервер")
     deps.set_proxy_instance(None)
-    return OperationResult.failure("代理服务器启动失败", code=ErrorCode.UNKNOWN)
+    return OperationResult.failure("Не удалось запустить прокси-сервер", code=ErrorCode.UNKNOWN)
 
 
 def start_proxy_instance(
     *,
     config: dict[str, Any],
     deps: StartProxyDeps,
-    success_message: str = "✅ 代理服务器启动成功",
+    success_message: str = "✅ Прокси-сервер успешно запущен",
     hosts_modified: bool = False,
 ) -> bool:
     return start_proxy_instance_result(

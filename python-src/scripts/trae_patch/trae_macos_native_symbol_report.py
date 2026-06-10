@@ -199,17 +199,17 @@ def _resolve_paths(raw_trae_path: str, raw_module_path: str | None) -> dict[str,
     backend = MacOSNativeBackend()
     executable = backend.resolve_trae_executable(raw_trae_path)
     if not executable.is_file():
-        raise RuntimeError(f"Trae 可执行文件不存在: {executable}")
+        raise RuntimeError(f"Исполняемый файл Trae не существует: {executable}")
     app_bundle = _find_app_bundle(executable)
     if app_bundle is None:
-        raise RuntimeError(f"无法从路径推导 Trae.app: {executable}")
+        raise RuntimeError(f"Не удалось вывести Trae.app из пути: {executable}")
 
     if raw_module_path is not None:
         module_path = Path(raw_module_path).expanduser().resolve()
     else:
         module_path = backend.resolve_module_path(executable)
     if not module_path.is_file():
-        raise RuntimeError(f"libai_agent.dylib 不存在: {module_path}")
+        raise RuntimeError(f"libai_agent.dylib не существует: {module_path}")
 
     return {
         "app_bundle": app_bundle,
@@ -221,7 +221,8 @@ def _resolve_paths(raw_trae_path: str, raw_module_path: str | None) -> dict[str,
 def _load_nm_symbols(module_path: Path) -> dict[str, dict[str, Any]]:
     completed = _run_command(["nm", "-a", str(module_path)], timeout=30)
     if completed.returncode != 0:
-        raise RuntimeError(completed.stderr.strip() or completed.stdout.strip() or "nm 执行失败")
+        raise RuntimeError(completed.stderr.strip() or completed.stdout.strip() or "Не удалось "
+            "выполнить nm")
 
     symbols: dict[str, dict[str, Any]] = {}
     for raw_line in completed.stdout.splitlines():
@@ -422,7 +423,9 @@ def _disassemble_symbol(
     if completed.returncode != 0:
         return {
             "ok": False,
-            "error": completed.stderr.strip() or completed.stdout.strip() or "objdump 执行失败",
+            "error": completed.stderr.strip() or completed.stdout.strip() or (
+                "Не удалось выполнить objdump"
+            ),
         }
 
     lines = completed.stdout.splitlines()
@@ -600,33 +603,38 @@ def _build_observations(
         "request_builder_send_closure",
     }.issubset(symbol_labels):
         observations.append(
-            "存在完整的 NetBridgeHttpClient -> RequestBuilder native 调用链，"
-            "macOS 侧应继续把 patch 点收敛在 Rust 请求构造/发送边界，"
-            "而不是 UI/数据库层。"
+            "Существует полная native-цепочка вызовов NetBridgeHttpClient -> RequestBuilder, "
+            "на macOS точки patch следует сводить к границе построения/отправки запросов Rust, "
+            "а не к слою UI/базы данных."
         )
         observations.append(
-            "当前已确认至少存在 DefaultSseProxyHandler 直达 reqwest "
-            "和 NetBridge -> RequestBuilder 两类 native 请求边界；"
-            "primary site 需要优先参考 direct xref，而不是只看局部符号名字。"
+            "Уже подтверждено как минимум две native-границы запросов: DefaultSseProxyHandler "
+            "напрямую в reqwest "
+            "и NetBridge -> RequestBuilder; "
+            "для primary site приоритетно опираться на direct xref, а не только на локальные "
+            "имена символов."
         )
     if "handle_sse_open_closure" in symbol_labels:
         observations.append(
-            "custom_model_proxy_client::handle_sse_open closure 符号可见，"
-            "说明 SSE 打开后的 native 路径仍可作为上游入口锚点。"
+            "Символ closure custom_model_proxy_client::handle_sse_open виден, "
+            "значит native-путь после открытия SSE по-прежнему пригоден как якорь входа апстрима."
         )
     if marker_counts.get("/v1/chat/completions", 0) > 0:
         observations.append(
-            "dylib 内存在 /v1/chat/completions 字符串锚点，"
-            "但是否能直接静态替换仍需结合 RequestBuilder/HttpRequest 布局判断。"
+            "В dylib есть строковый якорь /v1/chat/completions, "
+            "но возможность прямой статической замены нужно оценивать с учётом раскладки "
+            "RequestBuilder/HttpRequest."
         )
     if marker_counts.get("icube_ai_custom_model_request_builder", 0) > 0:
         observations.append(
-            "存在 icube_ai_custom_model_request_builder 埋点字符串，"
-            "可作为后续进一步缩小 request builder 调用区间的辅助锚点。"
+            "Есть трассировочная строка icube_ai_custom_model_request_builder, "
+            "может служить вспомогательным якорем для дальнейшего сужения интервала вызовов "
+            "request builder."
         )
     observations.extend(_build_xref_observations(direct_xrefs))
     if not observations:
-        observations.append("未生成明确结论，请检查符号和 marker 是否因版本变化漂移。")
+        observations.append("Однозначный вывод не сформирован; проверьте, не сместились ли символы "
+            "и маркеры из-за смены версии.")
     return observations
 
 
@@ -642,24 +650,27 @@ def _build_xref_observations(direct_xrefs: list[dict[str, Any]]) -> list[str]:
             for item in callers
         ):
             observations.append(
-                "direct xref 已确认 TunnelManager::handle_http_poll 会直接调用 "
-                "MessageHandler::handle_sse_open；HTTP fallback 的 pending "
-                "sse.open 请求会进入这条消息处理链。"
+                "direct xref подтвердил, что TunnelManager::handle_http_poll напрямую вызывает "
+                "MessageHandler::handle_sse_open; pending-запросы "
+                "sse.open HTTP fallback попадают в эту цепочку обработки сообщений."
             )
 
     if _has_tunnel_http_transport_xref(xref_by_label):
         observations.append(
-            "direct xref 已确认 HTTP fallback 的 GetPending/response/error/delta/end "
-            "回包逻辑停留在 HttpTransport，和 handle_sse_open 之后的上游模型请求"
-            "不是同一批 direct caller。"
+            "direct xref подтвердил, что логика обратных пакетов "
+            "GetPending/response/error/delta/end HTTP fallback "
+            "остаётся в HttpTransport и не относится к тем же direct caller, что запросы "
+            "модели апстрима"
+            " после handle_sse_open."
         )
 
     default_reqwest_methods = _default_handler_reqwest_methods(xref_by_label)
     if default_reqwest_methods:
         observations.append(
-            "direct xref 已确认 DefaultSseProxyHandler 会直接调用 "
-            f"reqwest::Client::{'/'.join(sorted(default_reqwest_methods))}；"
-            "0x5dbd48 不能再被视为覆盖全部 custom-model 上游请求的唯一入口。"
+            "direct xref подтвердил, что DefaultSseProxyHandler напрямую вызывает "
+            f"reqwest::Client::{'/'.join(sorted(default_reqwest_methods))}; "
+            "0x5dbd48 больше нельзя считать единственным входом, покрывающим все custom-model "
+            "запросы апстрима."
         )
 
     net_bridge_send_xref = xref_by_label.get("net_bridge_http_send")
@@ -668,9 +679,9 @@ def _build_xref_observations(direct_xrefs: list[dict[str, Any]]) -> list[str]:
         and int(net_bridge_send_xref.get("caller_count", 0)) == 0
     ):
         observations.append(
-            "direct xref 目前没有发现 NetBridgeHttpClient::send 的直接 caller；"
-            "它更像是某条特定 adapter 路径，而不是所有 custom-model "
-            "handler 的统一出口。"
+            "direct xref пока не нашёл прямых caller у NetBridgeHttpClient::send; "
+            "это скорее отдельный adapter-путь, а не единый выход всех custom-model "
+            "handler."
         )
     return observations
 
@@ -720,21 +731,26 @@ def _layout_hypotheses() -> list[dict[str, str]]:
             "field": "url",
             "offset": "0x88",
             "source_symbol": "net_bridge_http_send_closure",
-            "evidence": "0x5dbd48: ldp x1, x2, [x19, #0x88] 后立即调用 RequestBuilder::new",
+            "evidence": (
+                "0x5dbd48: после ldp x1, x2, [x19, #0x88] сразу вызывается RequestBuilder::new"
+            ),
         },
         {
             "structure": "custom_model_http_request",
             "field": "method_bytes",
             "offset": "0xa0",
             "source_symbol": "net_bridge_http_send_closure",
-            "evidence": "0x5dbcb8: ldp x1, x2, [x19, #0xa0] 后立即调用 http::Method::from_bytes",
+            "evidence": (
+                "0x5dbcb8: после ldp x1, x2, [x19, #0xa0] сразу вызывается http::Method::from_bytes"
+            ),
         },
         {
             "structure": "request_builder",
             "field": "headers_map",
             "offset": "0x18",
             "source_symbol": "request_builder_header / ensure_bridge_transport",
-            "evidence": "header/ensure_bridge_transport 都对 x19 + 0x18 做 HeaderMap 操作",
+            "evidence": "header/ensure_bridge_transport выполняют операции HeaderMap "
+            "над x19 + 0x18",
         },
         {
             "structure": "default_handler_request_args",
@@ -742,9 +758,10 @@ def _layout_hypotheses() -> list[dict[str, str]]:
             "offset": "0x8",
             "source_symbol": "default_handler_handle_sse_closure",
             "evidence": (
-                "0x1204b3c: ldp x3, x4, [x28, #0x8] 后在 0x1204b44 "
-                "调用 reqwest::Client::request；"
-                "reqwest::Client::get/post 包装器会把原始 x2/x3 前移到 x3/x4 再 tailcall request。"
+                "0x1204b3c: после ldp x3, x4, [x28, #0x8] в 0x1204b44 "
+                "вызывается reqwest::Client::request; "
+                "обёртки reqwest::Client::get/post сдвигают исходные x2/x3 в x3/x4 и делают "
+                "tailcall request."
             ),
         },
         {
@@ -753,8 +770,8 @@ def _layout_hypotheses() -> list[dict[str, str]]:
             "offset": "0x80",
             "source_symbol": "reqwest_post_configured_closure",
             "evidence": (
-                "0x1352e60: ldp x3, x4, [x25, #0x80] 后在 0x1352e6c "
-                "调用 reqwest::Client::request"
+                "0x1352e60: после ldp x3, x4, [x25, #0x80] в 0x1352e6c "
+                "вызывается reqwest::Client::request"
             ),
         },
         {
@@ -763,7 +780,7 @@ def _layout_hypotheses() -> list[dict[str, str]]:
             "offset": "0x98",
             "source_symbol": "reqwest_post_configured_closure",
             "evidence": (
-                "0x1352e70: ldp x1, x2, [x25, #0x98] 后转成 Vec 再传给 "
+                "0x1352e70: после ldp x1, x2, [x25, #0x98] преобразуется в Vec и передаётся в "
                 "reqwest::RequestBuilder::body"
             ),
         },
@@ -772,21 +789,24 @@ def _layout_hypotheses() -> list[dict[str, str]]:
             "field": "method_tag",
             "offset": "0xb0",
             "source_symbol": "reqwest_post_configured_closure",
-            "evidence": "0x1352cfc: ldrb w8, [x25, #0xb0] 用于 method 分支选择",
+            "evidence": "0x1352cfc: ldrb w8, [x25, #0xb0] используется для выбора ветки method",
         },
         {
             "structure": "request_builder",
             "field": "method_extension_or_inline_storage",
             "offset": "0xb8",
             "source_symbol": "reqwest_post_configured_closure",
-            "evidence": "0x1352d98: ldp x23, x24, [x25, #0xb8] 用于自定义 method 路径",
+            "evidence": (
+                "0x1352d98: ldp x23, x24, [x25, #0xb8] используется для пути пользовательского "
+                "method"
+            ),
         },
         {
             "structure": "request_builder",
             "field": "reqwest_client_ptr",
             "offset": "0xc8",
             "source_symbol": "reqwest_post_configured_closure",
-            "evidence": "0x1352e5c: ldr x1, [x26]，其中 x26 = x19 + 0xc8",
+            "evidence": "0x1352e5c: ldr x1, [x26], где x26 = x19 + 0xc8",
         },
     ]
 
@@ -798,42 +818,51 @@ def _candidate_patch_sites() -> list[dict[str, str]]:
             "symbol": "default_handler_handle_sse_closure",
             "address": "0x1204b3c",
             "kind": "reqwest_request_url_pair_load",
-            "why": "DefaultSseProxyHandler 在 reqwest::Client::request 前最后一次装入 URL 对。",
+            "why": (
+                "DefaultSseProxyHandler в последний раз загружает пару URL перед "
+                "reqwest::Client::request."
+            ),
         },
         {
             "label": "default_handler_final_request_call",
             "symbol": "default_handler_handle_sse_closure",
             "address": "0x1204b44",
             "kind": "reqwest_request_call",
-            "why": "DefaultSseProxyHandler 直达 reqwest::Client::request 的调用点。",
+            "why": "Точка прямого вызова reqwest::Client::request из DefaultSseProxyHandler.",
         },
         {
             "label": "final_reqwest_url_load",
             "symbol": "reqwest_post_configured_closure",
             "address": "0x1352e60",
             "kind": "url_pair_load",
-            "why": "调用 reqwest::Client::request 前最后一次从 builder 读取 URL 对。",
+            "why": "Последнее чтение пары URL из builder перед вызовом reqwest::Client::request.",
         },
         {
             "label": "final_reqwest_request_call",
             "symbol": "reqwest_post_configured_closure",
             "address": "0x1352e6c",
             "kind": "reqwest_request_call",
-            "why": "最接近 Windows 端最终 URL 进入 reqwest 的 native 调用点。",
+            "why": (
+                "Native-точка вызова, наиболее близкая к попаданию финального URL в reqwest, как "
+                "на Windows."
+            ),
         },
         {
             "label": "http_request_url_to_builder",
             "symbol": "net_bridge_http_send_closure",
             "address": "0x5dbd48",
             "kind": "builder_url_source_load",
-            "why": "custom_model HttpRequest 的 URL 在这里被装入 RequestBuilder::new。",
+            "why": "Здесь URL из custom_model HttpRequest загружается в RequestBuilder::new.",
         },
         {
             "label": "http_request_method_to_builder",
             "symbol": "net_bridge_http_send_closure",
             "address": "0x5dbcb8",
             "kind": "builder_method_source_load",
-            "why": "custom_model HttpRequest 的 method bytes 在这里进入 http::Method::from_bytes。",
+            "why": (
+                "Здесь method bytes из custom_model HttpRequest попадают в "
+                "http::Method::from_bytes."
+            ),
         },
     ]
 
@@ -846,12 +875,18 @@ def _rejected_patch_sites() -> list[dict[str, Any]]:
             "address": "0x13565ec",
             "kind": "shared_constructor_to_vec_call",
             "why_rejected": [
-                "该位点位于共享 RequestBuilder::new 内部，不是 custom-model 专用路径。",
                 (
-                    "它会影响所有进入 RequestBuilder::new 的 URL 拷贝流程，"
-                    "而不是只影响 custom-model 请求。"
+                    "Этот сайт находится внутри общего RequestBuilder::new и не является "
+                    "custom-model-специфичным путём."
                 ),
-                "本地验证里该位点的 patch 已经触发过 AI/服务启动异常，因此只能作为反例保留。",
+                (
+                    "Он затрагивает все потоки копирования URL, входящие в RequestBuilder::new, "
+                    "а не только custom-model запросы."
+                ),
+                (
+                    "В локальной проверке patch этого сайта уже вызывал сбои запуска AI/сервисов, "
+                    "поэтому он сохранён только как контрпример."
+                ),
             ],
             "risk_profile": "high_relative",
         }
@@ -877,22 +912,24 @@ def _site_flow_analysis() -> list[dict[str, Any]]:
             },
             "why_narrow": [
                 (
-                    "位点位于 ai_agent..net_bridge_http_client::NetBridgeHttpClient "
+                    "Сайт находится внутри closure "
+                    "ai_agent..net_bridge_http_client::NetBridgeHttpClient "
                     "as custom_model_proxy_client::http_client::HttpClient::send "
-                    "的 closure 内。"
+                    "."
                 ),
                 (
-                    "同一 closure 紧邻的 0x5dbcb8 还从 x19 + 0xa0 取 method bytes "
-                    "交给 http::Method::from_bytes，说明这里处理的是 "
-                    "custom-model HttpRequest 对象。"
+                    "В том же closure рядом 0x5dbcb8 также берёт method bytes из x19 + 0xa0 "
+                    "и передаёт их в http::Method::from_bytes — значит, здесь обрабатывается "
+                    "объект custom-model HttpRequest."
                 ),
                 (
-                    "该位点只改 RequestBuilder::new 的 URL 入参，不碰共享 "
-                    "RequestBuilder::new 内部实现。"
+                    "Этот сайт меняет только входной URL для RequestBuilder::new и не трогает "
+                    "общую "
+                    "внутреннюю реализацию RequestBuilder::new."
                 ),
             ],
             "expected_patch_effect": (
-                "只覆盖 custom-model HttpRequest -> RequestBuilder 的 URL 装载路径。"
+                "Покрывает только путь загрузки URL custom-model HttpRequest -> RequestBuilder."
             ),
             "risk_profile": "low_relative",
         },
@@ -914,21 +951,23 @@ def _site_flow_analysis() -> list[dict[str, Any]]:
             },
             "why_narrow": [
                 (
-                    "位点位于 DefaultSseProxyHandler 的 handle_sse closure 内，"
-                    "属于 custom-model 默认 handler 的真实上游请求路径。"
+                    "Сайт находится внутри handle_sse closure DefaultSseProxyHandler, "
+                    "это реальный путь запросов апстрима default handler custom-model."
                 ),
                 (
-                    "reqwest::Client::get/post/put 包装器会把原始 x2/x3 前移到 x3/x4，"
-                    "然后 tailcall reqwest::Client::request，说明这里的 x3/x4 就是 URL 对。"
+                    "Обёртки reqwest::Client::get/post/put сдвигают исходные x2/x3 в x3/x4, "
+                    "затем делают tailcall reqwest::Client::request — значит, x3/x4 здесь и "
+                    "есть пара URL."
                 ),
                 (
-                    "相比 NetBridgeHttpClient::send，这个点已有 direct xref 证明会被 "
-                    "DefaultSseProxyHandler 直接命中。"
+                    "В отличие от NetBridgeHttpClient::send, для этой точки direct xref уже "
+                    "доказал прямое попадание из "
+                    "DefaultSseProxyHandler."
                 ),
             ],
             "expected_patch_effect": (
-                "覆盖 DefaultSseProxyHandler 走 reqwest::Client::request 的 "
-                "custom-model URL 装载路径。"
+                "Покрывает путь загрузки URL custom-model через reqwest::Client::request "
+                "из DefaultSseProxyHandler."
             ),
             "risk_profile": "lowest_relative",
         },
@@ -950,16 +989,22 @@ def _site_flow_analysis() -> list[dict[str, Any]]:
                 "field_name": "request_builder.url",
             },
             "why_narrow": [
-                "它确实是最终 URL 进入 reqwest::Client::request 之前的最后一次 builder.url 读取。",
                 (
-                    "但 enclosing symbol 是 net_bridge::http::client::reqwest::"
-                    "BlockingResponseClient::post_configured closure，不是 "
-                    "custom-model 专用实现。"
+                    "Это действительно последнее чтение builder.url перед попаданием финального "
+                    "URL в reqwest::Client::request."
                 ),
-                "这里更贴近 Windows 端最终 reqwest 边界，但覆盖面比 primary 更宽。",
+                (
+                    "Но enclosing symbol — net_bridge::http::client::reqwest::"
+                    "BlockingResponseClient::post_configured closure, а не "
+                    "custom-model-специфичная реализация."
+                ),
+                (
+                    "Это ближе к финальной границе reqwest, как на Windows, но покрытие шире, чем "
+                    "у primary."
+                ),
             ],
             "expected_patch_effect": (
-                "覆盖所有走 post_configured 的 RequestBuilder.url -> reqwest 请求路径。"
+                "Покрывает все пути запросов RequestBuilder.url -> reqwest через post_configured."
             ),
             "risk_profile": "medium_relative",
         },
@@ -1009,37 +1054,48 @@ def _recommended_patch_plan(
         "primary": primary,
         "secondary": secondary,
         "notes": [
-            "第一版更建议从 DefaultSseProxyHandler -> reqwest::Client::request "
-            "前的 URL 装载点入手，静态 patch 只需改 x3/x4。",
-            "final_reqwest_url_load 仍可作为更通用的次选点，用于对齐更宽的 reqwest bridge。",
-            "当前 __TEXT,__text 内存在可达的填充空洞，可直接承载 ARM64 trampoline "
-            "和内联 URL 常量。"
+            "В первой версии рекомендуется начинать с точки загрузки URL перед "
+            "DefaultSseProxyHandler -> reqwest::Client::request"
+            "; статический patch меняет только x3/x4.",
+            (
+                "final_reqwest_url_load остаётся более универсальным запасным вариантом для "
+                "выравнивания более широкого reqwest bridge."
+            ),
+            "В __TEXT,__text есть достижимые заполняющие пустоты, способные напрямую вместить "
+            "ARM64 trampoline "
+            "и инлайновую константу URL."
             if primary is not None and primary.get("trampoline_cave") is not None
-            else "当前报告里还没找到满足长度和分支范围要求的 trampoline 空洞。",
+            else (
+                "В текущем отчёте ещё не найдена trampoline-пустота, удовлетворяющая требованиям "
+                "длины и диапазона ветвления."
+            ),
         ],
     }
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="生成 macOS Trae native Rust 请求链的离线符号与反汇编报告。"
+        description=(
+            "Генерирует офлайн-отчёт по символам и дизассемблированию native Rust цепочки запросов "
+            "Trae на macOS."
+        )
     )
     parser.add_argument(
         "--trae-path",
         default=DEFAULT_TRAE_PATH,
-        help="Trae.app 或其可执行文件路径",
+        help="Путь к Trae.app или его исполняемому файлу",
     )
-    parser.add_argument("--module-path", help="可选：直接指定 libai_agent.dylib 路径")
+    parser.add_argument("--module-path", help="Опционально: прямо указать путь к libai_agent.dylib")
     parser.add_argument("--artifact-root", type=Path, default=DEFAULT_ARTIFACT_ROOT)
     parser.add_argument("--max-disasm-lines", type=int, default=DEFAULT_MAX_DISASM_LINES)
     parser.add_argument("--max-marker-hits", type=int, default=DEFAULT_MAX_MARKER_HITS)
-    parser.add_argument("--json", action="store_true", help="只输出 JSON summary")
+    parser.add_argument("--json", action="store_true", help="Выводить только JSON summary")
     return parser
 
 
 def main() -> int:  # noqa: PLR0912, PLR0915
     if sys.platform != "darwin":
-        raise SystemExit("该脚本仅支持 macOS")
+        raise SystemExit("Скрипт поддерживает только macOS")
 
     args = build_parser().parse_args()
     artifact_root = args.artifact_root.resolve()

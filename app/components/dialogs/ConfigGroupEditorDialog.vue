@@ -127,12 +127,12 @@ const providerOptions: { label: string; value: ProviderId }[] = [
 
 const getModelPlaceholder = (provider: ProviderId) => {
   if (provider === "anthropic") {
-    return "例如：claude-3-7-sonnet-latest";
+    return "Например: claude-3-7-sonnet-latest";
   }
   if (provider === "gemini") {
-    return "例如：gemini-2.5-pro";
+    return "Например: gemini-2.5-pro";
   }
-  return "例如：gpt-5";
+  return "Например: gpt-5";
 };
 </script>
 
@@ -142,25 +142,27 @@ const getModelPlaceholder = (provider: ProviderId) => {
       <div class="flex items-center justify-between gap-3">
         <div>
           <h3 class="text-lg font-semibold text-slate-900">
-            {{ props.mode === "add" ? "新增配置组" : "修改配置组" }}
+            {{
+              props.mode === "add" ? "Новая группа конфигурации" : "Изменение группы конфигурации"
+            }}
           </h3>
-          <p class="text-xs text-slate-500">配置代理目标与鉴权参数</p>
+          <p class="text-xs text-slate-500">Настройка цели прокси и параметров авторизации</p>
         </div>
-        <span class="mtga-chip">配置编辑</span>
+        <span class="mtga-chip">Редактор конфигурации</span>
       </div>
     </template>
 
     <div class="px-6 py-6 space-y-5">
       <MtgaInput
         v-model="nameModel"
-        label="配置组名称"
-        placeholder="例如：我的常用配置"
+        label="Имя группы конфигурации"
+        placeholder="Например: Моя основная конфигурация"
         icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
       />
 
       <MtgaSelect
         v-model="providerModel"
-        label="提供商"
+        label="Провайдер"
         required
         :options="providerOptions"
         class="w-full"
@@ -182,10 +184,12 @@ const getModelPlaceholder = (provider: ProviderId) => {
               type="checkbox"
               class="checkbox checkbox-primary checkbox-xs"
             />
-            <span class="label-text text-xs font-medium text-slate-500">修改中间路由</span>
+            <span class="label-text text-xs font-medium text-slate-500"
+              >Изменить промежуточный маршрут</span
+            >
           </label>
           <span v-if="middleRouteEnabledModel" class="text-[10px] text-slate-400">
-            通常为 {{ props.defaultMiddleRoute }}
+            Обычно {{ props.defaultMiddleRoute }}
           </span>
         </div>
         <MtgaInput
@@ -198,7 +202,7 @@ const getModelPlaceholder = (provider: ProviderId) => {
 
       <MtgaInput
         v-model="modelIdModel"
-        label="实际模型ID"
+        label="Фактический ID модели"
         required
         show-dropdown
         :loading="props.modelLoading"
@@ -223,7 +227,7 @@ const getModelPlaceholder = (provider: ProviderId) => {
           type="checkbox"
           class="checkbox checkbox-primary checkbox-sm"
         />
-        <span class="label-text text-sm font-medium text-slate-700">提示缓存</span>
+        <span class="label-text text-sm font-medium text-slate-700">Кеш промптов</span>
       </label>
 
       <div v-if="props.formError" class="alert alert-error py-2 px-3 rounded-xl">
@@ -245,14 +249,14 @@ const getModelPlaceholder = (provider: ProviderId) => {
     </div>
 
     <template #footer>
-      <button class="mtga-btn-dialog-ghost flex-1" @click="handleCancel">取消</button>
+      <button class="mtga-btn-dialog-ghost flex-1" @click="handleCancel">Отмена</button>
       <button
         class="mtga-btn-dialog-primary flex-1"
         :class="props.saving ? 'loading' : ''"
         :disabled="props.saving"
         @click="handleSave"
       >
-        保存
+        Сохранить
       </button>
     </template>
   </MtgaDialog>

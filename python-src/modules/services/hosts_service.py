@@ -17,13 +17,13 @@ type LogFunc = Callable[[str], None]
 def backup_hosts_file_result(*, log_func: LogFunc = print) -> OperationResult:
     if backup_hosts_file(log_func=log_func):
         return OperationResult.success()
-    return OperationResult.failure("hosts 文件备份失败")
+    return OperationResult.failure("Не удалось создать резервную копию файла hosts")
 
 
 def restore_hosts_file_result(*, log_func: LogFunc = print) -> OperationResult:
     if restore_hosts_file(log_func=log_func):
         return OperationResult.success()
-    return OperationResult.failure("hosts 文件还原失败")
+    return OperationResult.failure("Не удалось восстановить файл hosts")
 
 
 def remove_hosts_entry_result(
@@ -31,7 +31,7 @@ def remove_hosts_entry_result(
 ) -> OperationResult:
     if remove_hosts_entry(domain, log_func=log_func, ip=ip):
         return OperationResult.success()
-    return OperationResult.failure("hosts 条目删除失败")
+    return OperationResult.failure("Не удалось удалить записи hosts")
 
 
 def modify_hosts_file_result(
@@ -43,13 +43,13 @@ def modify_hosts_file_result(
 ) -> OperationResult:
     if modify_hosts_file(domain=domain, action=action, ip=ip, log_func=log_func):
         return OperationResult.success()
-    return OperationResult.failure("hosts 文件修改失败")
+    return OperationResult.failure("Не удалось изменить файл hosts")
 
 
 def open_hosts_file_result(*, log_func: LogFunc = print) -> OperationResult:
     if open_hosts_file(log_func=log_func):
         return OperationResult.success()
-    return OperationResult.failure("打开 hosts 文件失败")
+    return OperationResult.failure("Не удалось открыть файл hosts")
 
 __all__ = [
     "backup_hosts_file",

@@ -10,7 +10,7 @@ from modules.proxy.param_self_heal_signal import (
     extract_mlitellm_unsupported_params_from_message,
 )
 
-TEMPORARY_SELF_HEAL_WARNING_PREFIX = "⚠️ [临时兼容]"
+TEMPORARY_SELF_HEAL_WARNING_PREFIX = "⚠️ [временная совместимость]"
 NON_RETRYABLE_INTERNAL_CALL_KWARGS: frozenset[str] = frozenset(
     {
         "messages",
@@ -57,7 +57,8 @@ class ParamHint:
 
 
 class UpstreamParamSelfHealController:
-    """临时的上游参数自愈逻辑，后续由参数覆盖机制替换。"""
+    """Временная логика самовосстановления параметров апстрима; позже будет заменена механизмом
+    переопределения параметров."""
 
     def __init__(self) -> None:
         self._cache: dict[SelfHealCacheKey, set[UnsupportedParamRule]] = {}

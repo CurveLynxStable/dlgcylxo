@@ -19,22 +19,29 @@ DEFAULT_PORT = 18083
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="启动 Trae custom model 本地 loopback，复用现有 MTGA 代理逻辑"
+        description=(
+            "Запускает локальный loopback Trae custom model, переиспользуя логику прокси MTGA"
+        )
     )
-    parser.add_argument("--host", default=DEFAULT_HOST, help="监听地址，默认 127.0.0.1")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="监听端口，默认 18083")
+    parser.add_argument("--host", default=DEFAULT_HOST, help="Адрес прослушивания, по умолчанию "
+        "127.0.0.1")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Порт прослушивания, по "
+        "умолчанию 18083")
     parser.add_argument(
         "--current-config-index",
         type=int,
-        help="可选：覆盖当前配置组索引；默认读取用户配置中的 current_config_index",
+        help=(
+            "Опционально: переопределить индекс текущей группы конфигурации; по умолчанию читается "
+            "current_config_index из пользовательской конфигурации"
+        ),
     )
-    parser.add_argument("--debug-mode", action="store_true", help="开启详细日志")
+    parser.add_argument("--debug-mode", action="store_true", help="Включить подробное логирование")
     parser.add_argument(
         "--disable-ssl-strict-mode",
         action="store_true",
-        help="关闭上游 SSL 严格校验",
+        help="Отключить строгую проверку SSL апстрима",
     )
-    parser.add_argument("--json", action="store_true", help="输出 JSON 启动摘要")
+    parser.add_argument("--json", action="store_true", help="Вывести стартовую сводку в JSON")
     return parser
 
 
@@ -49,11 +56,11 @@ def _load_runtime_config(args: argparse.Namespace) -> tuple[dict[str, Any], str]
     global_ready = ensure_global_config_ready(load_global_config=config_store.load_global_config)
     if not global_ready.ok:
         missing = "、".join(global_ready.missing_fields)
-        raise RuntimeError(f"全局配置缺失: {missing}")
+        raise RuntimeError(f"Отсутствует глобальная конфигурация: {missing}")
 
     config_groups, current_index = config_store.load_config_groups()
     if not config_groups:
-        raise RuntimeError("没有可用的配置组")
+        raise RuntimeError("Нет доступных групп конфигурации")
 
     selected_index = (
         args.current_config_index
@@ -62,7 +69,10 @@ def _load_runtime_config(args: argparse.Namespace) -> tuple[dict[str, Any], str]
     )
     if not (0 <= selected_index < len(config_groups)):
         raise RuntimeError(
-            f"current_config_index 越界: index={selected_index}, count={len(config_groups)}"
+            
+                f"current_config_index вне диапазона: index={selected_index}, "
+                f"count={len(config_groups)}"
+            
         )
 
     config = dict(config_groups[selected_index])
@@ -75,7 +85,7 @@ def _load_runtime_config(args: argparse.Namespace) -> tuple[dict[str, Any], str]
         stream_mode=None,
     )
     if runtime_config is None:
-        raise RuntimeError("构建代理配置失败")
+        raise RuntimeError("Не удалось построить конфигурацию прокси")
     return runtime_config, resource_manager.get_user_config_file()
 
 
@@ -88,13 +98,13 @@ def _build_proxy_app(args: argparse.Namespace) -> tuple[ProxyApp, dict[str, Any]
         resource_manager=resource_manager,
     )
     if not app.valid or app.app is None:
-        raise RuntimeError("ProxyApp 初始化失败")
+        raise RuntimeError("Не удалось инициализировать ProxyApp")
     return app, runtime_config, config_file
 
 
 def _install_signal_handlers(server: ThreadedWSGIServer, proxy_app: ProxyApp) -> None:
     def _handle_signal(_signum: int, _frame: Any) -> None:
-        _log("收到停止信号，准备关闭 loopback 服务...")
+        _log("Получен сигнал остановки, закрываем loopback-сервис...")
         with_server = getattr(server, "shutdown_signal", None)
         if callable(with_server):
             with_server()

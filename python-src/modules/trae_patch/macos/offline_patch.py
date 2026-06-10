@@ -65,7 +65,7 @@ def _sha256_file(path: Path) -> str:
 def _normalize_hex(value: str) -> bytes:
     normalized = "".join(value.split()).replace("0x", "")
     if len(normalized) % 2 != 0:
-        raise ValueError("hex pattern 长度必须是偶数")
+        raise ValueError("Длина hex pattern должна быть чётной")
     return bytes.fromhex(normalized)
 
 
@@ -76,19 +76,19 @@ def _u32le(value: int) -> bytes:
 def _parse_x_register(register_name: str) -> int:
     normalized = register_name.strip().lower()
     if not normalized.startswith("x"):
-        raise RuntimeError(f"当前仅支持 xN 通用寄存器: {register_name}")
+        raise RuntimeError(f"Поддерживаются только регистры общего назначения xN: {register_name}")
     try:
         register_index = int(normalized[1:], 10)
     except ValueError as exc:
-        raise RuntimeError(f"寄存器格式无效: {register_name}") from exc
+        raise RuntimeError(f"Некорректный формат регистра: {register_name}") from exc
     if not 0 <= register_index <= MAX_GENERAL_REGISTER:
-        raise RuntimeError(f"寄存器编号超出范围: {register_name}")
+        raise RuntimeError(f"Номер регистра вне диапазона: {register_name}")
     return register_index
 
 
 def _encode_adr(register_name: str, imm: int) -> bytes:
     if not -(1 << 20) <= imm < (1 << 20):
-        raise RuntimeError(f"ADR 偏移超出 +/-1MiB: {imm}")
+        raise RuntimeError(f"Смещение ADR превышает +/-1MiB: {imm}")
     immlo = imm & 0x3
     immhi = (imm >> 2) & 0x7FFFF
     instruction = (
@@ -102,7 +102,7 @@ def _encode_adr(register_name: str, imm: int) -> bytes:
 
 def _encode_movz(register_name: str, imm: int) -> bytes:
     if not 0 <= imm <= MAX_MOVZ_IMMEDIATE:
-        raise RuntimeError(f"MOVZ 立即数超出范围: {imm}")
+        raise RuntimeError(f"Непосредственное значение MOVZ вне диапазона: {imm}")
     instruction = ARM64_MOVZ_X_BASE | (imm << 5) | _parse_x_register(register_name)
     return _u32le(instruction)
 
@@ -115,7 +115,8 @@ def _assemble_url_override_trampoline(
 ) -> dict[str, Any]:
     new_url_bytes = new_url.encode("utf-8")
     if len(new_url_bytes) > MAX_MOVZ_IMMEDIATE:
-        raise RuntimeError(f"new_url 长度超出 MOVZ 立即数范围: {len(new_url_bytes)}")
+        raise RuntimeError(f"Длина new_url превышает диапазон непосредственного значения MOVZ: "
+            f"{len(new_url_bytes)}")
     blob = (
         _encode_adr(pointer_register, 16)
         + _encode_movz(length_register, len(new_url_bytes))
@@ -234,24 +235,24 @@ def _apply_replacements(  # noqa: PLR0912, PLR0915
 ) -> list[dict[str, Any]]:
     replacements = recipe.get("replacements")
     if not isinstance(replacements, list):
-        raise RuntimeError("recipe.replacements 必须是数组")
+        raise RuntimeError("recipe.replacements должен быть массивом")
     replacement_list = cast(list[object], replacements)
 
     records: list[dict[str, Any]] = []
     for index, raw_item in enumerate(replacement_list, start=1):
         if not isinstance(raw_item, dict):
-            raise RuntimeError(f"replacement[{index}] 必须是对象")
+            raise RuntimeError(f"replacement[{index}] должен быть объектом")
         item = cast(dict[str, Any], raw_item)
         relative_path = item.get("path")
         if not isinstance(relative_path, str) or not relative_path.strip():
-            raise RuntimeError(f"replacement[{index}].path 缺失")
+            raise RuntimeError(f"replacement[{index}].path отсутствует")
         target_path = app_bundle / relative_path
         if not target_path.is_file():
-            raise RuntimeError(f"replacement[{index}] 目标文件不存在: {target_path}")
+            raise RuntimeError(f"replacement[{index}] целевой файл не существует: {target_path}")
 
         mode = str(item.get("mode") or "").strip()
         if not mode:
-            raise RuntimeError(f"replacement[{index}].mode 缺失")
+            raise RuntimeError(f"replacement[{index}].mode отсутствует")
 
         original = target_path.read_bytes()
         patched = bytearray(original)
@@ -262,7 +263,7 @@ def _apply_replacements(  # noqa: PLR0912, PLR0915
         if mode == "offset_hex":
             raw_offset = item.get("offset")
             if raw_offset is None:
-                raise RuntimeError(f"replacement[{index}].offset 缺失")
+                raise RuntimeError(f"replacement[{index}].offset отсутствует")
             offset = int(raw_offset, 0) if isinstance(raw_offset, str) else int(raw_offset)
             replacement = _normalize_hex(str(item.get("replace") or ""))
             expected = item.get("expected")
@@ -273,7 +274,7 @@ def _apply_replacements(  # noqa: PLR0912, PLR0915
                     already_patched_offsets = [offset]
                 elif actual != expected_bytes:
                     raise RuntimeError(
-                        f"replacement[{index}] 预期字节不匹配: "
+                        f"replacement[{index}] ожидаемые байты не совпадают: "
                         f"offset={hex(offset)} actual={actual.hex(' ')} "
                         f"expected={expected_bytes.hex(' ')}"
                     )
@@ -284,19 +285,21 @@ def _apply_replacements(  # noqa: PLR0912, PLR0915
             needle = _normalize_hex(str(item.get("find") or ""))
             replacement = _normalize_hex(str(item.get("replace") or ""))
             if len(needle) != len(replacement):
-                raise RuntimeError(f"replacement[{index}] find_hex 只支持等长替换")
+                raise RuntimeError(f"replacement[{index}] find_hex поддерживает только замену "
+                    f"равной длины")
             replaced_offsets = _replace_all(patched, needle, replacement)
             expected_count = int(item.get("expect_count", len(replaced_offsets)))
             if len(replaced_offsets) != expected_count:
                 already_patched_offsets = _find_exact_offsets(original, replacement)
                 if len(replaced_offsets) + len(already_patched_offsets) != expected_count:
                     raise RuntimeError(
-                        f"replacement[{index}] 命中次数不符: expect={expected_count} "
+                        f"replacement[{index}] число совпадений не соответствует: "
+                        f"expect={expected_count} "
                         f"actual={len(replaced_offsets)} "
                         f"already_patched={len(already_patched_offsets)}"
                     )
         else:
-            raise RuntimeError(f"replacement[{index}] 不支持的 mode: {mode}")
+            raise RuntimeError(f"replacement[{index}] неподдерживаемый mode: {mode}")
 
         if bytes(patched) != original:
             target_path.write_bytes(bytes(patched))
@@ -430,7 +433,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
 
     codesign_path = shutil.which("codesign")
     if not codesign_path:
-        raise RuntimeError("未找到 codesign")
+        raise RuntimeError("Не найден codesign")
     identity = _pick_codesign_identity()
 
     framework_dirs = sorted(
@@ -480,7 +483,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
             )
             if completed.returncode != 0:
                 raise RuntimeError(
-                    f"codesign leaf 失败: {target} :: "
+                    f"codesign leaf не удался: {target} :: "
                     f"{completed.stderr.strip() or completed.stdout.strip()}"
                 )
 
@@ -504,7 +507,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
             )
             if completed.returncode != 0:
                 raise RuntimeError(
-                    f"codesign framework 失败: {target} :: "
+                    f"codesign framework не удался: {target} :: "
                     f"{completed.stderr.strip() or completed.stdout.strip()}"
                 )
 
@@ -529,7 +532,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
             )
             if completed.returncode != 0:
                 raise RuntimeError(
-                    f"codesign helper 失败: {target} :: "
+                    f"codesign helper не удался: {target} :: "
                     f"{completed.stderr.strip() or completed.stdout.strip()}"
                 )
 
@@ -551,7 +554,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
             }
         )
         if sign.returncode != 0:
-            raise RuntimeError(f"codesign 失败: {sign.stderr.strip() or sign.stdout.strip()}")
+            raise RuntimeError(f"codesign не удался: {sign.stderr.strip() or sign.stdout.strip()}")
 
     verify = _run_command(
         ["codesign", "--verify", "--deep", "--strict", "--verbose=4", str(app_bundle)],
@@ -559,7 +562,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
     )
     if verify.returncode != 0:
         raise RuntimeError(
-            f"codesign verify 失败: {verify.stderr.strip() or verify.stdout.strip()}"
+            f"codesign verify не удался: {verify.stderr.strip() or verify.stdout.strip()}"
         )
 
     return {
@@ -579,17 +582,17 @@ def load_manifest_entry(
     manifest_path: Path = DEFAULT_MANIFEST_PATH,
 ) -> dict[str, Any] | None:
     if not manifest_path.is_file():
-        raise RuntimeError(f"manifest 文件不存在: {manifest_path}")
+        raise RuntimeError(f"Файл manifest не существует: {manifest_path}")
     raw_manifest = cast(
         object,
         json.loads(manifest_path.read_text(encoding="utf-8")),
     )
     if not isinstance(raw_manifest, dict):
-        raise RuntimeError("manifest 根节点不是对象")
+        raise RuntimeError("Корневой узел manifest не является объектом")
     manifest = cast(dict[str, Any], raw_manifest)
     raw_entries = manifest.get("entries")
     if not isinstance(raw_entries, list):
-        raise RuntimeError("manifest entries 不是数组")
+        raise RuntimeError("manifest entries не является массивом")
     entries = cast(list[object], raw_entries)
     module_sha256 = _sha256_file(module_path)
     for raw_entry in entries:
@@ -655,14 +658,14 @@ def build_recipe_from_manifest(
     raw_site = manifest_entry.get("site")
     raw_trampoline = manifest_entry.get("trampoline")
     if not isinstance(raw_site, dict) or not isinstance(raw_trampoline, dict):
-        raise RuntimeError("manifest entry 缺少 site/trampoline")
+        raise RuntimeError("В manifest entry отсутствуют site/trampoline")
     site = cast(dict[str, Any], raw_site)
     trampoline = cast(dict[str, Any], raw_trampoline)
 
     pointer_register = str(site.get("pointer_register") or "")
     length_register = str(site.get("length_register") or "")
     if not pointer_register or not length_register:
-        raise RuntimeError("manifest site 缺少 pointer/length register")
+        raise RuntimeError("В manifest site отсутствуют pointer/length register")
 
     data = module_path.read_bytes()
     layout = parse_macho_layout(data)
@@ -674,7 +677,7 @@ def build_recipe_from_manifest(
                 site_file_offset = section.offset + (site_rva - section.address)
                 break
         if site_file_offset == 0:
-            raise RuntimeError(f"无法根据 RVA 定位 site file offset: {hex(site_rva)}")
+            raise RuntimeError(f"Не удалось определить site file offset по RVA: {hex(site_rva)}")
 
     cave_file_offset = int(str(trampoline.get("file_offset") or "0x0"), 16)
     cave_rva = int(str(trampoline.get("stub_rva") or "0x0"), 16)
@@ -687,16 +690,16 @@ def build_recipe_from_manifest(
     site_expected = data[site_file_offset : site_file_offset + ARM64_INSTRUCTION_SIZE]
     distance = cave_rva - site_rva
     if distance % ARM64_INSTRUCTION_SIZE != 0:
-        raise RuntimeError(f"BL 偏移未按 4 字节对齐: {distance}")
+        raise RuntimeError(f"Смещение BL не выровнено по 4 байтам: {distance}")
     imm26 = (distance >> 2) & 0x03FFFFFF
     branch = _u32le(0x94000000 | imm26)
     cave_expected = data[cave_file_offset : cave_file_offset + len(blob)]
     if len(cave_expected) != len(blob):
-        raise RuntimeError("manifest cave 写入区域越界")
+        raise RuntimeError("Область записи manifest cave выходит за границы")
 
     app_bundle = _find_macos_app_bundle(module_path)
     if app_bundle is None:
-        raise RuntimeError(f"无法从 module_path 推导 app bundle: {module_path}")
+        raise RuntimeError(f"Не удалось вывести app bundle из module_path: {module_path}")
     relative_module_path = str(module_path.relative_to(app_bundle))
     module_sha256 = _sha256_file(module_path)
 
@@ -709,10 +712,10 @@ def build_recipe_from_manifest(
             "new_url": new_url,
             "manifest_path": str(manifest_path),
             "notes": [
-                "primary site/cave 来自已验证通过的 manifest。",
-                "将 primary site 的 URL 装载指令改为 BL trampoline。",
-                f"trampoline 直接设置 {pointer_register}/{length_register}，"
-                f"并返回到 {site.get('return_rva')}.",
+                "primary site/cave взяты из проверенного manifest.",
+                "Инструкция загрузки URL в primary site заменяется на BL trampoline.",
+                f"trampoline напрямую устанавливает {pointer_register}/{length_register}，"
+                f"и возвращается к {site.get('return_rva')}.",
             ],
         },
         "replacements": [
@@ -722,7 +725,9 @@ def build_recipe_from_manifest(
                 "offset": hex(site_file_offset),
                 "expected": site_expected.hex(" "),
                 "replace": branch.hex(" "),
-                "description": "用 BL trampoline 替换 manifest 主位点的 URL 装载指令",
+                "description": (
+                    "Заменяет инструкцию загрузки URL в основном сайте manifest на BL trampoline"
+                ),
             },
             {
                 "path": relative_module_path,
@@ -730,7 +735,9 @@ def build_recipe_from_manifest(
                 "offset": hex(cave_file_offset),
                 "expected": cave_expected.hex(" "),
                 "replace": str(blob_info["blob_hex"]),
-                "description": "向 manifest 指定的 __TEXT,__text cave 注入 URL override trampoline",
+                "description": (
+                    "Внедряет URL override trampoline в указанный manifest __TEXT,__text cave"
+                ),
             },
         ],
         "plan": {
@@ -771,16 +778,16 @@ def prepare_patched_copy(
 ) -> dict[str, Any]:
     source_app = _find_macos_app_bundle(trae_executable)
     if source_app is None:
-        raise RuntimeError(f"无法从路径推导 Trae.app: {trae_executable}")
+        raise RuntimeError(f"Не удалось вывести Trae.app из пути: {trae_executable}")
     source_module_path = source_app / MACOS_AI_AGENT_RELATIVE_PATH
     if not source_module_path.is_file():
-        raise RuntimeError(f"未找到 libai_agent.dylib: {source_module_path}")
+        raise RuntimeError(f"Не найден libai_agent.dylib: {source_module_path}")
     source_module_sha256 = _sha256_file(source_module_path)
 
     manifest_entry = load_manifest_entry(source_module_path, manifest_path=manifest_path)
     if manifest_entry is None:
         raise RuntimeError(
-            "macOS url patch manifest 未命中当前版本: "
+            "macOS url patch manifest не соответствует текущей версии: "
             f"sha={source_module_sha256} "
             f"manifest={manifest_path}"
         )

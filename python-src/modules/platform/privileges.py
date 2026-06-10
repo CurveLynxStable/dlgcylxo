@@ -92,15 +92,15 @@ def run_as_admin() -> None:
                 None, "runas", sys.executable, " ".join(sys.argv), None, 1
             )
         except Exception:
-            print("无法获取 Windows 提权接口。")
+            print("Не удалось обратиться к интерфейсу повышения прав Windows.")
             sys.exit(1)
         sys.exit(0)
     if is_posix():
-        print("此程序需要管理员权限才能运行。")
-        print("请使用以下命令重新运行：")
+        print("Этой программе для работы нужны права администратора.")
+        print("Перезапустите её командой:")
         print(f"sudo {sys.executable} {' '.join(sys.argv)}")
         sys.exit(1)
-    print("不支持的操作系统")
+    print("Неподдерживаемая операционная система")
     sys.exit(1)
 
 

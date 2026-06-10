@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
 /* 
-   合并 daisyUI 配置。
-   在 Tailwind CSS 4 中，只需调用一次 @plugin "daisyui"。
-   通过 themes: light --default 显式指定默认主题，并避免加载默认的 dark 主题颜色。
+   Объединённая конфигурация daisyUI.
+   В Tailwind CSS 4 достаточно одного вызова @plugin "daisyui".
+   themes: light --default явно задаёт тему по умолчанию и не загружает цвета тёмной темы.
 */
 @plugin "daisyui" {
   themes: light --default;
 }
 
 /* 
-   使用 Tailwind CSS 4 的 @theme 块定义主题变量。
-   这里的变量会自动映射为 Tailwind 的实用类（如 bg-primary, text-mtga-accent）。
+   Переменные темы через блок @theme в Tailwind CSS 4.
+   Переменные автоматически становятся утилитарными классами Tailwind (bg-primary, text-mtga-accent).
 */
 @theme {
   /* 
-     在 Tailwind CSS 4 中定义主题颜色。
-     直接使用颜色值，确保 Tailwind 的实用类（如 bg-primary）能正确生成。
+     Цвета темы в Tailwind CSS 4.
+     Используем значения цветов напрямую, чтобы утилитарные классы (bg-primary) генерировались корректно.
   */
   --color-primary: #f0bb32;
   --color-primary-content: #1e293b;
 
-  /* 品牌色变量定义，供 Tailwind 实用类使用（如 text-mtga-accent） */
+  /* Переменные фирменных цветов для утилитарных классов Tailwind (text-mtga-accent) */
   --color-mtga-bg: #f7f8fb;
   --color-mtga-surface: #ffffff;
   --color-mtga-surface-soft: #f3f6fa;
@@ -46,8 +46,8 @@
 
 @layer base {
   /* 
-     仅对输入控件移除默认粗黑外边框 (Focus Outline)
-     保留按钮/链接等元素的可见焦点，避免键盘可访问性回退
+     Убираем толстый чёрный Focus Outline только у полей ввода.
+     Фокус кнопок/ссылок остаётся видимым ради доступности с клавиатуры
   */
   .input:focus,
   .textarea:focus,
@@ -58,15 +58,15 @@
   }
 
   /* 
-     显式覆盖 daisyUI 注入的主题变量。
-     通过 :root 和 [data-theme] 确保在任何模式（浅色/深色）下都能强制生效。
+     Явно переопределяем переменные темы, внедряемые daisyUI.
+     :root и [data-theme] гарантируют приоритет в любом режиме (светлом/тёмном).
   */
   :root,
   [data-theme] {
     --color-primary: #f0bb32 !important;
     --color-primary-content: #1e293b !important;
 
-    /* 同时也定义一份 CSS 变量，供非 Tailwind 样式（如 scrollbar）通过 var() 引用 */
+    /* Дублируем CSS-переменные для стилей вне Tailwind (например, scrollbar) через var() */
     --mtga-bg: #f7f8fb;
     --mtga-surface: #ffffff;
     --mtga-surface-soft: #f3f6fa;
@@ -77,7 +77,7 @@
     --mtga-text: #0f172a;
     --mtga-text-muted: #64748b;
   }
-  /* 自定义全局滚动条样式 */
+  /* Пользовательский глобальный стиль полосы прокрутки */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -88,124 +88,124 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--mtga-border); /* 使用定义的边框颜色作为默认色 */
+    background: var(--mtga-border); /* Цвет рамки как цвет по умолчанию */
     border-radius: 10px;
-    border: 1px solid transparent; /* 增加一点内边距效果 */
+    border: 1px solid transparent; /* Небольшой эффект внутреннего отступа */
     background-clip: padding-box;
     transition: background 0.2s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--mtga-accent); /* 悬停时使用品牌色 */
+    background: var(--mtga-accent); /* Фирменный цвет при наведении */
     border: 1px solid transparent;
     background-clip: padding-box;
   }
 
-  /* 针对 Firefox 的兼容性 */
+  /* Совместимость с Firefox */
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--mtga-border) transparent;
   }
 
-  /* 日志区滚动条在默认态下提高对比度，避免与背景混色 */
+  /* Полоса прокрутки логов: повышенный контраст, чтобы не сливалась с фоном */
   .mtga-log-scroll::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
   .mtga-log-scroll::-webkit-scrollbar-track {
-    /* 隐藏轨道：使用完全透明背景 */
+    /* Скрываем дорожку: полностью прозрачный фон */
     background: transparent;
     border-radius: 9999px;
   }
 
   .mtga-log-scroll::-webkit-scrollbar-thumb {
-    /* 默认态：使用浅灰色（基于文字次要颜色），使其低调不突兀 */
+    /* По умолчанию: светло-серый (на основе вторичного цвета текста), ненавязчивый */
     background: color-mix(in srgb, var(--mtga-text-muted) 30%, transparent);
     border-radius: 9999px;
     border: 1px solid transparent;
   }
 
   .mtga-log-scroll::-webkit-scrollbar-thumb:hover {
-    /* 悬停态：使用 60% 透明度的品牌色，提升活力且保持柔和 */
+    /* При наведении: фирменный цвет с прозрачностью 60% — живо, но мягко */
     background: color-mix(in srgb, var(--mtga-accent) 60%, transparent);
   }
 
   .mtga-log-scroll {
     scrollbar-width: thin;
-    /* 针对 Firefox 的兼容性：同样隐藏轨道 */
+    /* Совместимость с Firefox: также скрываем дорожку */
     scrollbar-color: color-mix(in srgb, var(--mtga-text-muted) 30%, transparent) transparent;
   }
 
   body {
     background-color: var(--mtga-bg);
     background-image:
-      /* 左上角：琥珀金光晕，增强温暖感 */
+      /* Левый верхний угол: янтарное свечение для теплоты */
       radial-gradient(circle at 15% 15%, rgba(251, 191, 36, 0.15), transparent 50%),
-      /* 右下角：极淡的夕阳粉，增加层次感 */
+      /* Правый нижний угол: едва заметный розовый для глубины */
         radial-gradient(circle at 85% 85%, rgba(251, 113, 133, 0.05), transparent 40%),
-      /* 基础线性渐变：以 #fffbeb 为核心的暖色调过渡 */
+      /* Базовый линейный градиент: тёплый переход вокруг #fffbeb */
         linear-gradient(135deg, #fffbeb 0%, #fff9e6 45%, #fff2e0 100%);
     color: var(--mtga-text);
   }
 }
 
 /* 
-     MTGA 通用按钮样式
-     封装了项目中频繁使用的三种按钮规格
+     Общие стили кнопок MTGA
+     Инкапсулируют три часто используемых варианта кнопок
   */
 
-/* 1. 品牌色主按钮 (Primary) */
+/* 1. Основная кнопка фирменного цвета (Primary) */
 @utility mtga-btn-primary {
   @apply btn btn-primary btn-sm w-full rounded-xl shadow-sm;
 }
 
-/* 2. 危险/停止操作按钮 (Error Outline) */
+/* 2. Кнопка опасных действий/остановки (Error Outline) */
 @utility mtga-btn-error {
   @apply btn btn-outline btn-sm rounded-xl border-slate-200 text-error hover:bg-error/10 hover:border-error w-full;
 }
 
-/* 3. 次要/检查操作按钮 (Outline with Amber hover) */
+/* 3. Вторичная кнопка/проверки (Outline with Amber hover) */
 @utility mtga-btn-outline {
   @apply btn btn-outline btn-sm rounded-xl border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 hover:text-amber-600 w-full;
 }
 
-/* 4. NEW 标签样式 (用于版本更新提醒) */
+/* 4. Бейдж NEW (для уведомлений об обновлении версии) */
 @utility mtga-badge-new {
   @apply absolute flex h-3.5 px-1.5 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white shadow-sm ring-1 ring-white animate-bounce-subtle antialiased;
-  /* 使用 tabular-nums 保持字符宽度一致 */
+  /* tabular-nums для одинаковой ширины символов */
   font-variant-numeric: tabular-nums;
-  padding-top: 1px; /* 视觉补偿：解决小字号大写字母偏上的问题 */
+  padding-top: 1px; /* Визуальная компенсация: заглавные буквы мелкого кегля смещены вверх */
 
-  /* 强制硬件加速以减少动画过程中的模糊 */
+  /* Принудительное аппаратное ускорение против размытия при анимации */
   backface-visibility: hidden;
   transform: translateZ(0);
 }
 
-/* 5. 弹窗操作按钮基础样式 (用于 MtgaDialog 页脚) */
+/* 5. Базовый стиль кнопок диалога (для футера MtgaDialog) */
 @utility mtga-btn-dialog {
   @apply btn btn-sm h-10 px-6 rounded-xl transition-all active:scale-[0.98];
 }
 
-/* 品牌色弹窗按钮 */
+/* Кнопка диалога фирменного цвета */
 @utility mtga-btn-dialog-primary {
   @apply mtga-btn-dialog btn-primary font-bold shadow-lg shadow-primary/20;
 }
 
-/* 危险态弹窗按钮 */
+/* Кнопка диалога для опасных действий */
 @utility mtga-btn-dialog-error {
   @apply mtga-btn-dialog btn-error text-white font-bold shadow-lg shadow-error/20;
 }
 
-/* 幽灵态弹窗按钮 (通常用于取消) */
+/* Кнопка-призрак диалога (обычно для отмены) */
 @utility mtga-btn-dialog-ghost {
   @apply mtga-btn-dialog btn-ghost text-slate-500;
 }
 
 @layer components {
   /**
-   * MTGA 标准输入框组件
-   * 默认自带右侧清空按钮的空间，并支持悬停显示清空按钮
+   * Стандартное поле ввода MTGA
+   * По умолчанию резервирует место под кнопку очистки справа, показываемую при наведении
    */
   .mtga-input-wrapper {
     @apply relative w-full flex items-center bg-white/80 rounded-xl transition-all border border-slate-200 overflow-hidden;
@@ -235,7 +235,7 @@
     @apply flex items-center justify-center w-6 h-6 rounded-full hover:bg-slate-200/50 text-slate-400 hover:text-slate-600 opacity-0 transition-all cursor-pointer mr-1;
   }
 
-  /* 使用 mask 将 X 图标集成到 CSS 中 */
+  /* Иконка X встроена в CSS через mask */
   .mtga-input-clear::before {
     content: "";
     @apply w-4 h-4 bg-current;
@@ -245,7 +245,7 @@
     mask-position: center;
   }
 
-  /* 悬停或输入框获得焦点时显示清空按钮 */
+  /* Кнопка очистки показывается при наведении или фокусе поля */
   .mtga-input-wrapper:hover .mtga-input-clear,
   .mtga-input-wrapper:focus-within .mtga-input-clear {
     @apply opacity-100;
@@ -276,8 +276,8 @@
   }
 
   /**
-   * 用于点击的长条形子样式
-   * 继承自 mtga-soft-panel 的基础样式，具有较小的高度和全宽
+   * Кликабельная строка-полоса
+   * Наследует базовые стили mtga-soft-panel: меньшая высота и полная ширина
    */
   .mtga-clickable-row {
     @apply mtga-btn-outline flex h-auto items-center justify-between px-4 py-2 text-sm transition-all active:scale-[0.98];
@@ -289,49 +289,49 @@
   }
 
   /* 
-     mtga-tooltip 基础定义
-     我们保留原生 tooltip 类以支持 daisyUI 的基础样式（如 cursor），
-     但通过全局代理元素来渲染实际的提示框，以逃逸 overflow: hidden。
+     Базовое определение mtga-tooltip
+     Сохраняем нативный класс tooltip ради базовых стилей daisyUI (например cursor),
+     но рендерим саму подсказку через глобальный элемент-прокси, чтобы обойти overflow: hidden.
   */
   .mtga-tooltip {
     position: relative;
     z-index: 30;
   }
 
-  /* 隐藏原生的 daisyUI tooltip 伪元素，改用全局代理 */
+  /* Скрываем нативные псевдоэлементы tooltip daisyUI — используем глобальный прокси */
   .mtga-tooltip::before,
   .mtga-tooltip::after {
     display: none !important;
   }
 
-  /* 全局 Tooltip 代理样式 */
+  /* Стиль глобального прокси-tooltip */
   .mtga-tooltip-proxy {
     position: fixed;
     z-index: 9999;
     pointer-events: none;
 
-    /* 基础视觉样式：匹配按钮悬停态与品牌色 */
+    /* Базовый внешний вид: соответствует hover-состоянию кнопок и фирменным цветам */
     background-color: #fffbeb; /* amber-50 */
     color: var(--mtga-text);
-    border: 1px solid var(--mtga-accent); /* 使用品牌金黄色 */
+    border: 1px solid var(--mtga-accent); /* Фирменный золотистый цвет */
     padding: 0.5rem 0.75rem;
-    border-radius: 0.75rem; /* 匹配按钮的 rounded-xl */
+    border-radius: 0.75rem; /* Соответствует rounded-xl кнопок */
     font-size: 0.75rem;
     font-weight: 500;
     line-height: 1.25rem;
-    box-shadow: 0 10px 15px -3px rgba(240, 187, 50, 0.2); /* 带有品牌色的阴影 */
+    box-shadow: 0 10px 15px -3px rgba(240, 187, 50, 0.2); /* Тень в фирменном цвете */
     white-space: pre-line;
     text-align: left;
     word-break: break-all;
     max-width: var(--mtga-tooltip-max, 280px);
 
-    /* 动画效果 */
+    /* Анимация */
     animation: mtga-tooltip-in 0.15s ease-out forwards;
 
-    /* 居中偏移量 */
+    /* Смещение для центрирования */
     translate: -50% 0;
 
-    /* 锚点定位核心 */
+    /* Основа якорного позиционирования */
     @supports (anchor-name: --test) {
       position-anchor: --mtga-tooltip-anchor;
       bottom: calc(anchor(top) + 10px);
@@ -340,11 +340,11 @@
     }
   }
 
-  /* 代理元素的箭头 */
+  /* Стрелка элемента-прокси */
   .mtga-tooltip-proxy::after {
     content: "";
     position: absolute;
-    bottom: -5px; /* 微调位置以对齐边框 */
+    bottom: -5px; /* Точная подгонка для выравнивания по рамке */
     left: 50%;
     translate: -50% 0;
     width: 8px;
@@ -367,14 +367,14 @@
   }
 
   /**
-   * 标签文本基础样式
+   * Базовый стиль текста меток
    */
   .mtga-label-text {
     @apply text-xs text-slate-500;
   }
 
   /**
-   * 必填项样式：在标签前添加红色星号
+   * Стиль обязательных полей: красная звёздочка перед меткой
    */
   .mtga-label-required::before {
     content: "*";

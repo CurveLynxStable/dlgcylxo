@@ -1,4 +1,4 @@
-"""统一的后台线程管理器，用于跟踪和调度 GUI 中的所有异步任务。"""
+"""Единый менеджер фоновых потоков для отслеживания и планирования всех асинхронных задач GUI."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ Snapshot = dict[str, float | str | None]
 
 @dataclass
 class TaskRecord:
-    """表示一个受管线程任务的运行状态。"""
+    """Состояние выполнения одной управляемой потоковой задачи."""
 
     task_id: str
     name: str
@@ -29,7 +29,7 @@ class TaskRecord:
     done_event: threading.Event = field(default_factory=threading.Event)
 
     def snapshot(self) -> Snapshot:
-        """返回只读快照，便于 UI 查询。"""
+        """Возвращает снимок только для чтения для запросов UI."""
         return {
             "task_id": self.task_id,
             "name": self.name,
@@ -41,7 +41,7 @@ class TaskRecord:
 
 
 class ThreadManager:
-    """集中管理后台线程，避免重复创建和状态混乱。"""
+    """Централизованно управляет фоновыми потоками, избегая дублирования и путаницы состояний."""
 
     def __init__(self, logger: logging.Logger | None = None) -> None:
         self._tasks: dict[str, TaskRecord] = {}
@@ -104,7 +104,7 @@ class ThreadManager:
         allow_parallel: bool = False,
         daemon: bool = True,
     ) -> str:
-        """启动一个后台任务并返回 task_id。"""
+        """Запускает фоновую задачу и возвращает task_id."""
 
         args = args or ()
         kwargs = kwargs or {}
@@ -150,15 +150,16 @@ class ThreadManager:
         except Exception as exc:  # noqa: BLE001
             record.status = "failed"
             record.error = str(exc)
-            self._logger.error("后台任务 %s 失败: %s", record.task_id, exc)
-            self._logger.debug("线程堆栈:\n%s", traceback.format_exc())
+            self._logger.error("Фоновая задача %s завершилась с ошибкой: %s", record.task_id, exc)
+            self._logger.debug("Стек потока:\n%s", traceback.format_exc())
         else:
             record.status = "finished"
         finally:
             record.finished_at = time.time()
 
     def wait(self, task_id: str | None, timeout: float | None = None) -> bool:
-        """等待指定任务完成，若任务不存在则视为已完成。"""
+        """Ожидает завершения указанной задачи; если задача не существует, считает её
+        завершённой."""
         if not task_id:
             return True
         record = self._tasks.get(task_id)
@@ -172,7 +173,7 @@ class ThreadManager:
         task_id: str | None = None,
         name: str | None = None,
     ) -> Snapshot | None:
-        """查询任务状态，可以通过 task_id 或名称获取最新一次运行信息。"""
+        """Запрашивает состояние задачи по task_id или имени (последний запуск)."""
         record = None
         with self._lock:
             if task_id:
@@ -184,7 +185,7 @@ class ThreadManager:
         return record.snapshot() if record else None
 
     def is_running(self, name: str) -> bool:
-        """判断某个逻辑任务是否仍在运行。"""
+        """Проверяет, выполняется ли ещё логическая задача."""
         with self._lock:
             ids = self._tasks_by_name.get(name, [])
             for task_id in reversed(ids):
@@ -194,7 +195,7 @@ class ThreadManager:
         return False
 
     def get_active_tasks(self) -> list[Snapshot]:
-        """返回所有仍在运行的任务快照，便于诊断。"""
+        """Возвращает снимки всех ещё выполняющихся задач для диагностики."""
         snapshots: list[Snapshot] = []
         with self._lock:
             for record in self._tasks.values():
@@ -203,7 +204,7 @@ class ThreadManager:
         return snapshots
 
     def prune_finished(self, *, name: str | None = None) -> int:
-        """回收已结束任务，避免长期累积状态记录。"""
+        """Убирает завершённые задачи, чтобы записи состояний не накапливались."""
         with self._lock:
             return self._prune_finished_locked(name=name)
 

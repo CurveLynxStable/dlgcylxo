@@ -11,18 +11,19 @@ from modules.trae_patch.windows.string_offsets import find_all, parse_pe_layout
 def _normalize_hex(value: str) -> bytes:
     normalized = "".join(value.split()).replace("0x", "")
     if len(normalized) % 2 != 0:
-        raise ValueError("hex pattern 长度必须是偶数")
+        raise ValueError("Длина hex pattern должна быть чётной")
     return bytes.fromhex(normalized)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="在 ai_agent.dll 中搜索十六进制字节模式")
+    parser = argparse.ArgumentParser(description="Поиск шестнадцатеричных байтовых паттернов в "
+        "ai_agent.dll")
     parser.add_argument("--dll-path", type=Path, default=AI_AGENT_DLL)
     parser.add_argument(
         "--pattern",
         action="append",
         required=True,
-        help="hex bytes；可重复。格式示例: '48 8b 52 08'",
+        help="hex bytes; можно указывать несколько раз. Пример формата: '48 8b 52 08'",
     )
     parser.add_argument("--json", action="store_true")
     return parser

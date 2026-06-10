@@ -55,16 +55,16 @@ const MACOS_TRAE_DIALOG_PATH = "/Applications/Trae.app";
 const FRONTEND_LOG_LIMIT = 2000;
 const PROXY_REQUEST_LOG_PATTERN = /^\d{2}:\d{2}:\d{2}\.\d{3} \[[0-9a-f]{6}\] /;
 const PROXY_REQUEST_SUMMARY_MARKERS = [
-  "收到 Chat Completions 请求",
-  "返回流式响应",
-  "返回非流式 JSON 响应",
-  "代理服务未就绪",
-  "解析 JSON 失败",
-  "鉴权失败",
-  "上游响应不是 JSON 对象",
-  "目标 API HTTP 错误",
-  "连接目标 API 时出错",
-  "发生意外错误",
+  "Получен запрос Chat Completions",
+  "Возвращён потоковый ответ",
+  "Возвращён непотоковый JSON-ответ",
+  "Прокси-сервис не готов",
+  "Не удалось разобрать JSON",
+  "Ошибка авторизации",
+  "Ответ апстрима не является JSON-объектом",
+  "HTTP-ошибка целевого API",
+  "Ошибка при подключении к целевому API",
+  "Произошла непредвиденная ошибка",
 ];
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -662,14 +662,15 @@ export const useMtgaStore = () => {
     if (!normalized) {
       return;
     }
-    if (normalized.includes("Trae 路径") || normalized.startsWith("trae_path_")) {
+    if (normalized.includes("Путь к Trae") || normalized.startsWith("trae_path_")) {
       panelNavTarget.value = "settings";
       panelNavSignal.value += 1;
       return;
     }
     if (
-      normalized.includes("模型路由") ||
-      normalized.includes("没有可用的配置组") ||
+      normalized.includes("Маршрутизация моделей") ||
+      normalized.includes("маршрутизации моделей") ||
+      normalized.includes("Нет доступных групп конфигурации") ||
       normalized === "model_routing_missing" ||
       normalized === "global_config_missing" ||
       normalized === "config_group_missing"
@@ -722,7 +723,7 @@ export const useMtgaStore = () => {
 
   const applyInvokeResult = (result: InvokeResult | null, fallbackMessage: string) => {
     if (!result) {
-      appendLog(`${fallbackMessage}失败：无法连接后端`);
+      appendLog(`${fallbackMessage}: сбой — не удалось подключиться к бэкенду`);
       return false;
     }
     if (result.message) {
@@ -975,11 +976,11 @@ export const useMtgaStore = () => {
   } | null> => {
     const result = await api.proxyRuntimeStatus();
     if (!result) {
-      appendLog("读取代理运行状态失败：无法连接后端");
+      appendLog("Не удалось получить состояние прокси: нет соединения с бэкендом");
       return null;
     }
     if (!result.ok) {
-      appendLog(result.message?.trim() || "读取代理运行状态失败");
+      appendLog(result.message?.trim() || "Не удалось получить состояние прокси");
       return null;
     }
     if (!isRecord(result.details)) {
@@ -1024,9 +1025,9 @@ export const useMtgaStore = () => {
     if (envOk) {
       const runtime = coerceText(details["runtime"]);
       if (runtime === "tauri" || runtime === "nuitka") {
-        appendLog("📦 运行在打包环境中");
+        appendLog("📦 Работает в упакованной среде");
       } else {
-        appendLog("🔧 运行在开发环境中");
+        appendLog("🔧 Работает в среде разработки");
       }
     }
 
@@ -1035,44 +1036,47 @@ export const useMtgaStore = () => {
     if (hostsModifyBlocked) {
       const status = coerceText(details["hosts_modify_block_status"]) || "unknown";
       appendLog(
-        `⚠️ 检测到 hosts 文件写入受限（status=${status}），已启用受限 hosts 模式：添加将回退为追加写入（无法保证原子性增删/去重），自动移除/还原将被禁用。`,
+        `⚠️ Обнаружено ограничение записи в файл hosts (status=${status}), включён ограниченный режим hosts: добавление будет выполняться дозаписью (без гарантии атомарности и дедупликации), автоматическое удаление/восстановление отключено.`,
       );
       appendLog(
-        `⚠️ 你可以点击「打开hosts文件」手动修改；或使用启动参数 ${allowFlag} 覆盖此检查以强制尝试原子写入（风险自负）。`,
+        `⚠️ Вы можете нажать «Открыть файл hosts» и изменить его вручную, либо использовать параметр запуска ${allowFlag}, чтобы обойти эту проверку и принудительно попытаться выполнить атомарную запись (на свой риск).`,
       );
     } else {
       const preflightOk = details["hosts_preflight_ok"] === true;
       const preflightStatus = coerceText(details["hosts_preflight_status"]);
       if (preflightStatus && !preflightOk) {
         appendLog(
-          `⚠️ hosts 预检未通过（status=${preflightStatus}），但已使用启动参数 ${allowFlag} 覆盖；后续自动修改可能失败。`,
+          `⚠️ Предварительная проверка hosts не пройдена (status=${preflightStatus}), но она переопределена параметром запуска ${allowFlag}; последующие автоматические изменения могут завершиться неудачей.`,
         );
       }
     }
 
     if (details["explicit_proxy_detected"] === true) {
       appendLog(
-        "⚠️".repeat(21) + "\n检测到显式代理配置：部分应用可能优先走代理，从而绕过 hosts 导流。",
+        "⚠️".repeat(21) +
+          "\nОбнаружена явная конфигурация прокси: некоторые приложения могут идти через прокси и обходить перенаправление через hosts.",
       );
-      appendLog("建议：1. 关闭显式代理（如clash的系统代理），或改用 TUN/VPN");
-      appendLog("      2. 检查 Trae 的代理设置。\n" + "⚠️".repeat(21));
+      appendLog(
+        "Рекомендации: 1. Отключите явный прокси (например, системный прокси clash) или используйте TUN/VPN",
+      );
+      appendLog("      2. Проверьте настройки прокси в Trae.\n" + "⚠️".repeat(21));
     }
 
     if (details["legacy_user_data_dir_detected"] === true) {
       const legacyDir = coerceText(details["legacy_user_data_dir"]);
       appendLog(
-        `⚠️ 检测到旧版用户数据目录${legacyDir ? `：${legacyDir}` : ""}。当前版本已不再使用该目录，如需保留旧配置、证书或备份，请手动迁移到新的用户数据目录。`,
+        `⚠️ Обнаружен каталог пользовательских данных старой версии${legacyDir ? `: ${legacyDir}` : ""}. Текущая версия больше не использует этот каталог; если нужно сохранить старые настройки, сертификаты или резервные копии, перенесите их вручную в новый каталог пользовательских данных.`,
       );
     }
 
-    appendLog("MTGA 已启动");
-    appendLog("请选择操作或直接使用一键启动...");
+    appendLog("MTGA запущен");
+    appendLog("Выберите действие или просто используйте «Запустить всё одной кнопкой»...");
   };
 
   const loadStartupStatus = async () => {
     const result = await api.getStartupStatus();
     if (!result) {
-      appendLog("启动日志加载失败：无法连接后端");
+      appendLog("Не удалось загрузить журнал запуска: нет соединения с бэкендом");
       return false;
     }
     if (isRecord(result.details)) {
@@ -1104,12 +1108,12 @@ export const useMtgaStore = () => {
 
   const runGenerateCertificates = async () => {
     const result = await api.generateCertificates();
-    return applyInvokeResult(result, "生成证书");
+    return applyInvokeResult(result, "Генерация сертификатов");
   };
 
   const runInstallCaCert = async () => {
     const result = await api.installCaCert();
-    return applyInvokeResult(result, "安装 CA 证书");
+    return applyInvokeResult(result, "Установка CA-сертификата");
   };
 
   const runClearCaCert = async (caCommonName?: string) => {
@@ -1117,23 +1121,23 @@ export const useMtgaStore = () => {
     const result = await api.clearCaCert(
       normalizedCaCommonName ? { ca_common_name: normalizedCaCommonName } : {},
     );
-    return applyInvokeResult(result, "清除 CA 证书");
+    return applyInvokeResult(result, "Удаление CA-сертификата");
   };
 
   const runHostsModify = async (mode: "add" | "backup" | "restore" | "remove") => {
     const result = await api.hostsModify({ mode });
-    return applyInvokeResult(result, "hosts 操作");
+    return applyInvokeResult(result, "Операция с hosts");
   };
 
   const runHostsOpen = async () => {
     const result = await api.hostsOpen();
-    return applyInvokeResult(result, "打开 hosts 文件");
+    return applyInvokeResult(result, "Открытие файла hosts");
   };
 
   const runProxyStart = async () => {
     const result = await api.proxyStart(buildProxyPayload());
     navigateProxyMissingConfigPanel(result?.message);
-    const ok = applyInvokeResult(result, "启动代理服务器");
+    const ok = applyInvokeResult(result, "Запуск прокси-сервера");
     if (ok) {
       void fetchProxyRuntimeStatus();
     }
@@ -1144,7 +1148,7 @@ export const useMtgaStore = () => {
     const result = await api.proxyApplyCurrentConfig(buildProxyPayload());
     navigateProxyMissingConfigPanel(result?.message);
     if (!result) {
-      appendLog("应用代理配置失败：无法连接后端");
+      appendLog("Не удалось применить конфигурацию прокси: нет соединения с бэкендом");
       return false;
     }
 
@@ -1153,9 +1157,9 @@ export const useMtgaStore = () => {
 
     if (result.ok) {
       if (applyStatus === "deferred" || message === "proxy_not_running") {
-        appendLog("代理未运行，配置将在下次启动时生效");
+        appendLog("Прокси не запущен, конфигурация вступит в силу при следующем запуске");
       } else {
-        appendLog("已应用模型路由到运行中代理");
+        appendLog("Маршрутизация моделей применена к работающему прокси");
       }
       return true;
     }
@@ -1165,21 +1169,25 @@ export const useMtgaStore = () => {
       message === "global_config_missing" ||
       message === "config_group_missing"
     ) {
-      appendLog("应用代理配置失败：模型路由缺少可用的发布模型或目标");
+      appendLog(
+        "Не удалось применить конфигурацию прокси: в маршрутизации моделей нет доступных публикуемых моделей или целей",
+      );
       return false;
     }
     if (message === "config_invalid") {
-      appendLog("应用代理配置失败：当前模型路由无效");
+      appendLog(
+        "Не удалось применить конфигурацию прокси: текущая маршрутизация моделей недействительна",
+      );
       return false;
     }
 
-    appendLog("应用代理配置失败");
+    appendLog("Не удалось применить конфигурацию прокси");
     return false;
   };
 
   const runProxyStop = async () => {
     const result = await api.proxyStop();
-    const ok = applyInvokeResult(result, "停止代理服务器");
+    const ok = applyInvokeResult(result, "Остановка прокси-сервера");
     if (ok) {
       void fetchProxyRuntimeStatus();
     }
@@ -1188,7 +1196,7 @@ export const useMtgaStore = () => {
 
   const runProxyCheckNetwork = async () => {
     const result = await api.proxyCheckNetwork();
-    return applyInvokeResult(result, "检查网络环境");
+    return applyInvokeResult(result, "Проверка сетевого окружения");
   };
 
   const runProxyStartAll = async () => {
@@ -1198,12 +1206,14 @@ export const useMtgaStore = () => {
         startFromLatest: true,
       });
       if (!ok) {
-        appendLog("⚠️ proxy-step channel 启动失败，回退事件监听自动导航");
+        appendLog(
+          "⚠️ Не удалось запустить proxy-step channel, откат к автонавигации через слушатель событий",
+        );
       }
     }
     const result = await api.proxyStartAll(buildProxyPayload());
     navigateProxyMissingConfigPanel(result?.message);
-    const ok = applyInvokeResult(result, "一键启动全部服务");
+    const ok = applyInvokeResult(result, "Запуск всех сервисов одной кнопкой");
     if (ok) {
       void fetchProxyRuntimeStatus();
     }
@@ -1212,7 +1222,7 @@ export const useMtgaStore = () => {
 
   const runTargetTest = async (targetId: string) => {
     const result = await api.modelRoutingTargetTest({ target_id: targetId });
-    return applyInvokeResult(result, "目标测活");
+    return applyInvokeResult(result, "Проверка доступности цели");
   };
 
   const fetchTargetModels = async (payload: {
@@ -1223,7 +1233,7 @@ export const useMtgaStore = () => {
     model_id?: string;
   }): Promise<TargetModelsResult | null> => {
     const result = await api.modelRoutingTargetModels(payload);
-    const ok = applyInvokeResult(result, "获取模型列表");
+    const ok = applyInvokeResult(result, "Получение списка моделей");
     if (!ok || !result) {
       return null;
     }
@@ -1238,27 +1248,29 @@ export const useMtgaStore = () => {
 
   const runUserDataOpenDir = async () => {
     const result = await api.userDataOpenDir();
-    return applyInvokeResult(result, "打开用户数据目录");
+    return applyInvokeResult(result, "Открытие каталога пользовательских данных");
   };
 
   const runUserDataBackup = async () => {
     const result = await api.userDataBackup();
-    return applyInvokeResult(result, "备份用户数据");
+    return applyInvokeResult(result, "Резервное копирование пользовательских данных");
   };
 
   const runUserDataRestoreLatest = async () => {
     const result = await api.userDataRestoreLatest();
-    return applyInvokeResult(result, "还原用户数据");
+    return applyInvokeResult(result, "Восстановление пользовательских данных");
   };
 
   const runUserDataClear = async () => {
     const result = await api.userDataClear();
-    return applyInvokeResult(result, "清除用户数据");
+    return applyInvokeResult(result, "Очистка пользовательских данных");
   };
 
   const runBrowseTraePath = async () => {
     if (!isTauriRuntime()) {
-      appendLog("浏览 Trae 路径失败：当前运行环境不支持系统文件选择器");
+      appendLog(
+        "Не удалось выбрать путь к Trae: текущая среда не поддерживает системный выбор файлов",
+      );
       return false;
     }
 
@@ -1270,58 +1282,58 @@ export const useMtgaStore = () => {
     const defaultPath = resolvedPath || currentPath || undefined;
 
     try {
-      appendLog("正在使用 Tauri dialog 选择 Trae 路径...");
+      appendLog("Выбор пути к Trae через Tauri dialog...");
       const { open } = await import("@tauri-apps/plugin-dialog");
       const options = {
-        title: "选择 Trae 应用或可执行文件",
+        title: "Выберите приложение или исполняемый файл Trae",
         multiple: false,
         directory: false,
-        filters: [{ name: "Trae 应用", extensions: ["app", "exe"] }],
+        filters: [{ name: "Приложение Trae", extensions: ["app", "exe"] }],
       };
       const selected = await open(defaultPath ? { ...options, defaultPath } : options);
       const selectedPath = typeof selected === "string" ? selected.trim() : "";
       if (!selectedPath) {
-        appendLog("已取消选择 Trae 路径");
+        appendLog("Выбор пути к Trae отменён");
         return false;
       }
 
       traePath.value = selectedPath;
-      appendLog(`已选择 Trae 路径: ${selectedPath}`);
+      appendLog(`Выбран путь к Trae: ${selectedPath}`);
       return true;
     } catch (error) {
       console.warn("[mtga] tauri dialog browse trae path failed", error);
       const errorMessage = formatUnknownError(error);
       appendLog(
         errorMessage
-          ? `Tauri dialog 不可用，回退后端选择器: ${errorMessage}`
-          : "Tauri dialog 不可用，回退后端选择器",
+          ? `Tauri dialog недоступен, откат к выбору через бэкенд: ${errorMessage}`
+          : "Tauri dialog недоступен, откат к выбору через бэкенд",
       );
     }
 
     const result = await api.browseTraePath({ path: currentPath || fallbackPath });
     if (!result) {
-      appendLog("浏览 Trae 路径失败");
+      appendLog("Не удалось выбрать путь к Trae");
       return false;
     }
     const errorMessage = coerceText(result.error).trim();
     if (errorMessage) {
-      appendLog(`浏览 Trae 路径失败: ${errorMessage}`);
+      appendLog(`Не удалось выбрать путь к Trae: ${errorMessage}`);
       return false;
     }
     const selectedPath = coerceText(result.path).trim();
     if (!selectedPath) {
-      appendLog("已取消选择 Trae 路径");
+      appendLog("Выбор пути к Trae отменён");
       return false;
     }
 
     traePath.value = selectedPath;
-    appendLog(`已选择 Trae 路径: ${selectedPath}`);
+    appendLog(`Выбран путь к Trae: ${selectedPath}`);
     return true;
   };
 
   const runCheckUpdates = async () => {
     const result = await api.checkUpdates();
-    const ok = applyInvokeResult(result, "检查更新");
+    const ok = applyInvokeResult(result, "Проверка обновлений");
     if (!result || !isRecord(result.details)) {
       return ok;
     }
@@ -1339,7 +1351,7 @@ export const useMtgaStore = () => {
       hasNewVersion.value = false;
       const latestVersion = coerceText(updateResult["latest_version"]);
       if (latestVersion) {
-        appendLog(`已是最新版本：${latestVersion}`);
+        appendLog(`Установлена последняя версия: ${latestVersion}`);
       }
     }
     return ok;
@@ -1347,7 +1359,7 @@ export const useMtgaStore = () => {
 
   const loadSystemPrompts = async () => {
     const result = await api.systemPromptsList();
-    const ok = applyInvokeResult(result, "加载系统提示词");
+    const ok = applyInvokeResult(result, "Загрузка системных промптов");
     if (!ok) {
       return false;
     }
@@ -1362,7 +1374,7 @@ export const useMtgaStore = () => {
   const loadProxyTraces = async () => {
     const result = await api.proxyTracesList({ limit: 300 });
     if (!result) {
-      appendLog("加载代理日志失败：无法连接后端");
+      appendLog("Не удалось загрузить журнал прокси: нет соединения с бэкендом");
       return false;
     }
     proxyTraces.value = normalizeProxyTraceList(result.items);
@@ -1382,7 +1394,7 @@ export const useMtgaStore = () => {
     const result = await api.proxyTraceDetail({ trace_id: normalizedTraceId });
     const detail = normalizeProxyTraceDetail(result);
     if (!detail) {
-      appendLog("加载代理日志详情失败：记录不存在");
+      appendLog("Не удалось загрузить детали записи журнала прокси: запись не существует");
       selectedProxyTrace.value = null;
       return false;
     }
@@ -1393,15 +1405,15 @@ export const useMtgaStore = () => {
   const clearProxyTraces = async () => {
     const result = await api.proxyTracesClear();
     if (!result) {
-      appendLog("清空代理日志失败：无法连接后端");
+      appendLog("Не удалось очистить журнал прокси: нет соединения с бэкендом");
       return false;
     }
     const deletedCount = Number(result.deleted_count || 0);
     const keptActiveCount = Number(result.kept_active_count || 0);
     appendLog(
       keptActiveCount > 0
-        ? `已清空 ${deletedCount} 条代理日志，保留 ${keptActiveCount} 条进行中记录`
-        : `已清空 ${deletedCount} 条代理日志`,
+        ? `Удалено записей журнала прокси: ${deletedCount}, сохранено активных: ${keptActiveCount}`
+        : `Удалено записей журнала прокси: ${deletedCount}`,
     );
     await loadProxyTraces();
     if (
@@ -1415,7 +1427,7 @@ export const useMtgaStore = () => {
 
   const updateSystemPrompt = async (payload: { hash: string; edited_text: string }) => {
     const result = await api.systemPromptsUpdate(payload);
-    const ok = applyInvokeResult(result, "更新系统提示词");
+    const ok = applyInvokeResult(result, "Обновление системного промпта");
     if (!ok) {
       return false;
     }
@@ -1428,11 +1440,11 @@ export const useMtgaStore = () => {
       .map((hash) => coerceText(hash).trim())
       .filter((hash) => hash.length > 0);
     if (!normalizedHashes.length) {
-      appendLog("删除系统提示词失败：未提供有效 hash");
+      appendLog("Не удалось удалить системные промпты: не передан корректный hash");
       return false;
     }
     const result = await api.systemPromptsDelete({ hashes: normalizedHashes });
-    const ok = applyInvokeResult(result, "删除系统提示词");
+    const ok = applyInvokeResult(result, "Удаление системных промптов");
     if (!ok) {
       return false;
     }
@@ -1464,7 +1476,7 @@ export const useMtgaStore = () => {
         return;
       } catch (error) {
         console.warn("[mtga] open release url failed", error);
-        appendLog("打开发布页失败，请手动复制链接");
+        appendLog("Не удалось открыть страницу релиза, скопируйте ссылку вручную");
         return;
       }
     }
@@ -1475,7 +1487,7 @@ export const useMtgaStore = () => {
   };
 
   const runPlaceholder = (label: string) => {
-    appendLog(`${label}（待接入后端）`);
+    appendLog(`${label} (ожидает подключения к бэкенду)`);
   };
 
   return {

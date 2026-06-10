@@ -1,6 +1,6 @@
 """
-证书安装模块
-处理 CA 证书的系统安装和信任设置
+Модуль установки сертификатов
+Устанавливает CA-сертификат в систему и настраивает доверие
 """
 
 from __future__ import annotations
@@ -16,8 +16,8 @@ type LogFunc = Callable[[str], None]
 
 
 def install_ca_cert_result(log_func: LogFunc = print) -> OperationResult:
-    """根据操作系统安装 CA 证书，返回结果对象。"""
-    log_func("开始安装 CA 证书...")
+    """Устанавливает CA-сертификат в зависимости от ОС и возвращает объект результата."""
+    log_func("Начинаем установку CA-сертификата...")
 
     resource_manager = ResourceManager()
     possible_cert_files = [
@@ -31,22 +31,23 @@ def install_ca_cert_result(log_func: LogFunc = print) -> OperationResult:
     for cert_file in possible_cert_files:
         if os.path.exists(cert_file):
             ca_cert_file = cert_file
-            log_func(f"找到 CA 证书文件: {ca_cert_file}")
+            log_func(f"Найден файл CA-сертификата: {ca_cert_file}")
             break
 
     if ca_cert_file is None:
-        log_func(f"错误: 未找到 CA 证书文件，已检查以下路径: {', '.join(possible_cert_files)}")
-        return OperationResult.failure("未找到 CA 证书文件")
+        log_func(f"Ошибка: файл CA-сертификата не найден, проверены пути: "
+            f"{', '.join(possible_cert_files)}")
+        return OperationResult.failure("Файл CA-сертификата не найден")
 
     try:
         return install_ca_cert_file(ca_cert_file, log_func=log_func)
     except Exception as exc:  # noqa: BLE001
-        log_func(f"安装 CA 证书失败: {exc}")
-        return OperationResult.failure("安装 CA 证书失败")
+        log_func(f"Не удалось установить CA-сертификат: {exc}")
+        return OperationResult.failure("Не удалось установить CA-сертификат")
 
 
 def install_ca_cert(log_func: LogFunc = print) -> bool:
-    """根据操作系统安装 CA 证书，返回是否成功。"""
+    """Устанавливает CA-сертификат в зависимости от ОС и возвращает признак успеха."""
     return install_ca_cert_result(log_func=log_func).ok
 
 

@@ -60,12 +60,12 @@ def check_for_updates(
     except requests.RequestException as exc:
         return UpdateCheckResult(
             status="network_error",
-            error_message=f"检查更新失败：网络异常 {exc}",
+            error_message=f"Проверка обновлений не удалась: сетевая ошибка {exc}",
         )
     except (ValueError, RuntimeError) as exc:
         return UpdateCheckResult(
             status="remote_error",
-            error_message=f"检查更新失败：{exc}",
+            error_message=f"Проверка обновлений не удалась: {exc}",
         )
 
     latest_version = release_info.version_label
@@ -75,7 +75,7 @@ def check_for_updates(
     if not update_checker.is_remote_version_newer(latest_version, app_version):
         return UpdateCheckResult(status="up_to_date", latest_version=latest_version)
 
-    release_notes = release_info.release_notes or "该版本暂无更新说明。"
+    release_notes = release_info.release_notes or "Для этой версии нет описания изменений."
     return UpdateCheckResult(
         status="new_version",
         latest_version=latest_version,
@@ -101,7 +101,7 @@ def check_for_updates_result(
     )
 
     if result.status == "network_error":
-        message = result.error_message or "检查更新失败：网络异常"
+        message = result.error_message or "Проверка обновлений не удалась: сетевая ошибка"
         return OperationResult.failure(
             message,
             code=ErrorCode.NETWORK_ERROR,
@@ -109,7 +109,7 @@ def check_for_updates_result(
             update_result=result,
         )
     if result.status == "remote_error":
-        message = result.error_message or "检查更新失败"
+        message = result.error_message or "Проверка обновлений не удалась"
         return OperationResult.failure(
             message,
             code=ErrorCode.REMOTE_ERROR,
@@ -118,7 +118,7 @@ def check_for_updates_result(
         )
     if result.status == "no_version":
         return OperationResult.failure(
-            "未解析到版本号，请稍后再试。",
+            "Не удалось разобрать номер версии, повторите попытку позже.",
             code=ErrorCode.NO_VERSION,
             status=result.status,
             update_result=result,

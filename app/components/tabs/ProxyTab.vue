@@ -6,11 +6,11 @@ const options = store.runtimeOptions;
 const { runningAction, runAction } = usePendingAction<ProxyAction>();
 
 const debugModeTooltip = [
-  "开启后：",
-  "1) 代理服务器输出更详细的调试日志，便于排查问题；",
-  "2) 启动代理服务器前会额外检查系统/环境变量的显式代理配置",
-  "并提示其可能绕过 hosts 导流。",
-  "（默认不做第 2 项检查，仅在调试模式下启用）",
+  "После включения:",
+  "1) прокси-сервер выводит более подробные отладочные логи для диагностики;",
+  "2) перед запуском прокси дополнительно проверяется явная настройка прокси в системе/переменных окружения",
+  "с предупреждением, что она может обходить перенаправление через hosts.",
+  "(По умолчанию проверка 2 не выполняется — только в режиме отладки)",
 ].join("\n");
 
 const handleStart = async () => {
@@ -29,8 +29,8 @@ const handleCheck = async () => {
 <template>
   <div class="mtga-soft-panel space-y-3 mb-4">
     <div>
-      <div class="text-sm font-semibold text-slate-900">运行时选项</div>
-      <div class="text-xs text-slate-500">控制代理运行行为与调试细节</div>
+      <div class="text-sm font-semibold text-slate-900">Параметры рантайма</div>
+      <div class="text-xs text-slate-500">Управление поведением прокси и отладкой</div>
     </div>
     <div class="space-y-3">
       <label
@@ -39,20 +39,20 @@ const handleCheck = async () => {
         style="--mtga-tooltip-max: 500px"
       >
         <input v-model="options.debugMode" type="checkbox" class="checkbox checkbox-sm" />
-        <span>开启调试模式</span>
+        <span>Режим отладки</span>
       </label>
       <label
         class="flex items-center gap-3 text-sm text-slate-700 cursor-pointer hover:bg-slate-100/50 rounded px-3 py-2 -my-1 transition-colors"
       >
         <input v-model="options.disableSslStrict" type="checkbox" class="checkbox checkbox-sm" />
-        <span>关闭SSL严格模式</span>
+        <span>Отключить строгий режим SSL</span>
       </label>
       <div class="flex flex-wrap items-center gap-1 text-sm text-slate-700">
         <label
           class="flex items-center gap-3 cursor-pointer hover:bg-slate-100/50 rounded px-3 py-2 -my-1 transition-colors"
         >
           <input v-model="options.forceStream" type="checkbox" class="checkbox checkbox-sm" />
-          <span>强制流模式</span>
+          <span>Принудительный потоковый режим</span>
         </label>
         <MtgaSelect
           v-model="options.streamMode"
@@ -67,8 +67,8 @@ const handleCheck = async () => {
 
   <div class="mtga-soft-panel space-y-3">
     <div>
-      <div class="text-sm font-semibold text-slate-900">代理服务</div>
-      <div class="text-xs text-slate-500">启动 / 停止 / 网络检查</div>
+      <div class="text-sm font-semibold text-slate-900">Прокси-сервис</div>
+      <div class="text-xs text-slate-500">Запуск / остановка / проверка сети</div>
     </div>
     <div class="space-y-2">
       <MtgaLoadingButton
@@ -77,7 +77,7 @@ const handleCheck = async () => {
         :disabled="Boolean(runningAction)"
         @click="handleStart"
       >
-        启动代理服务器
+        Запустить прокси-сервер
       </MtgaLoadingButton>
       <MtgaLoadingButton
         class="mtga-btn-error"
@@ -85,7 +85,7 @@ const handleCheck = async () => {
         :disabled="Boolean(runningAction)"
         @click="handleStop"
       >
-        停止代理服务器
+        Остановить прокси-сервер
       </MtgaLoadingButton>
       <MtgaLoadingButton
         class="mtga-btn-outline"
@@ -93,7 +93,7 @@ const handleCheck = async () => {
         :disabled="Boolean(runningAction)"
         @click="handleCheck"
       >
-        检查网络环境
+        Проверить сетевое окружение
       </MtgaLoadingButton>
     </div>
   </div>

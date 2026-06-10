@@ -12,10 +12,10 @@ const showInputError = ref(false);
 const clearCaTooltip = computed(() => {
   const commonName = appInfo.value.ca_common_name || "MTGA_CA";
   return [
-    "macOS: 删除系统钥匙串中匹配的CA证书；",
-    "Windows: 删除本地计算机/Root 中匹配的CA证书",
+    "macOS: удаляет подходящий CA-сертификат из системной связки ключей;",
+    "Windows: удаляет подходящий CA-сертификат из хранилища Локальный компьютер/Root",
     `Common Name: ${commonName}`,
-    "需要管理员权限，建议仅在需要重置证书时使用",
+    "Требуются права администратора; используйте только при сбросе сертификатов",
   ].join("\n");
 });
 
@@ -28,7 +28,7 @@ const handleInstall = async () => {
 };
 
 /**
- * 触发清除系统 CA 证书流程，先打开确认弹窗
+ * Запуск очистки системного CA-сертификата — сначала открываем диалог подтверждения
  */
 const handleClear = () => {
   inputCommonName.value = appInfo.value.ca_common_name || "MTGA_CA";
@@ -37,7 +37,7 @@ const handleClear = () => {
 };
 
 /**
- * 用户确认后的实际清除操作
+ * Фактическая очистка после подтверждения пользователем
  */
 const confirmClear = async () => {
   if (!inputCommonName.value.trim()) {
@@ -58,8 +58,10 @@ watch(inputCommonName, (val) => {
 <template>
   <div class="mtga-soft-panel space-y-3">
     <div>
-      <div class="text-sm font-semibold text-slate-900">证书管理</div>
-      <div class="text-xs text-slate-500">生成、安装与清理本地证书</div>
+      <div class="text-sm font-semibold text-slate-900">Сертификаты</div>
+      <div class="text-xs text-slate-500">
+        Генерация, установка и очистка локальных сертификатов
+      </div>
     </div>
     <div class="space-y-2">
       <MtgaLoadingButton
@@ -68,7 +70,7 @@ watch(inputCommonName, (val) => {
         :disabled="Boolean(runningAction)"
         @click="handleGenerate"
       >
-        生成CA和服务器证书
+        Сгенерировать CA и серверный сертификат
       </MtgaLoadingButton>
       <div class="grid grid-cols-2 gap-2">
         <MtgaLoadingButton
@@ -77,7 +79,7 @@ watch(inputCommonName, (val) => {
           :disabled="Boolean(runningAction)"
           @click="handleInstall"
         >
-          安装CA证书
+          Установить CA-сертификат
         </MtgaLoadingButton>
         <MtgaLoadingButton
           class="mtga-btn-error tooltip mtga-tooltip"
@@ -87,24 +89,24 @@ watch(inputCommonName, (val) => {
           style="--mtga-tooltip-max: 280px"
           @click="handleClear"
         >
-          清除系统CA证书
+          Удалить системный CA-сертификат
         </MtgaLoadingButton>
       </div>
     </div>
   </div>
 
-  <!-- 二次确认弹窗 -->
+  <!-- Диалог подтверждения -->
   <ConfirmDialog
     v-model:open="isConfirmOpen"
     v-model="inputCommonName"
-    title="确认清除 CA 证书"
-    message="将从系统信任存储中删除匹配的 CA 证书，是否继续？"
+    title="Подтвердите удаление CA-сертификата"
+    message="Подходящий CA-сертификат будет удалён из системного хранилища доверия. Продолжить?"
     show-input
     label="Common Name:"
-    placeholder="请输入证书 Common Name"
-    :error="showInputError ? '请输入有效的 Common Name' : ''"
+    placeholder="Введите Common Name сертификата"
+    :error="showInputError ? 'Введите корректный Common Name' : ''"
     input-class="font-mono"
-    confirm-text="确认清除"
+    confirm-text="Удалить"
     type="error"
     @confirm="confirmClear"
   />

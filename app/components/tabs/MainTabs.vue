@@ -2,9 +2,9 @@
 import type { MainTabKey } from "~/composables/mtgaTypes";
 
 const tabs: { key: MainTabKey; label: string }[] = [
-  { key: "cert", label: "证书管理" },
-  { key: "hosts", label: "hosts文件管理" },
-  { key: "proxy", label: "代理服务器操作" },
+  { key: "cert", label: "Сертификаты" },
+  { key: "hosts", label: "Файл hosts" },
+  { key: "proxy", label: "Прокси-сервер" },
 ];
 
 const activeTab = ref<MainTabKey>("cert");
@@ -12,8 +12,8 @@ const direction = ref<"right" | "left">("right");
 const { mainTabTarget, mainTabSignal } = useMtgaStore();
 
 /**
- * 处理标签页切换
- * @param key 目标标签页的键名
+ * Переключение вкладок
+ * @param key Ключ целевой вкладки
  */
 const selectTab = (key: MainTabKey) => {
   const oldIndex = tabs.findIndex((t) => t.key === activeTab.value);
@@ -40,10 +40,10 @@ watch(mainTabSignal, () => applyMainTabTarget(mainTabTarget.value), {
 <template>
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div>
-      <h2 class="mtga-card-title">主要流程</h2>
-      <p class="mtga-card-subtitle">证书 / hosts / 代理</p>
+      <h2 class="mtga-card-title">Основное</h2>
+      <p class="mtga-card-subtitle">Сертификаты / hosts / прокси</p>
     </div>
-    <span class="mtga-chip">工具集</span>
+    <span class="mtga-chip">Инструменты</span>
   </div>
   <div role="tablist" class="mt-4 flex flex-wrap gap-3 border-b border-slate-200/70 pb-2">
     <button

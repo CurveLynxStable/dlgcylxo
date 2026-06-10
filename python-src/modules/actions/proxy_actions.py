@@ -77,53 +77,58 @@ class ProxyTaskRunner:
 
             current_config = self._deps.get_current_config()
             if not current_config:
-                self._log("❌ 错误: 没有可用的配置组")
+                self._log("❌ Ошибка: Нет доступных групп конфигурации")
                 return
 
-            self._log("=== 开始一键启动全部服务 ===")
+            self._log("=== Запуск всех сервисов одной кнопкой ===")
 
-            self._log("步骤 1/4: 生成证书")
+            self._log("Шаг 1/4: генерация сертификатов")
             has_existing_ca = self._deps.has_existing_ca_cert(
                 self._deps.ca_common_name,
                 log_func=self._log,
             )
             if has_existing_ca:
                 self._log(
-                    f"检测到系统已存在 CA 证书 ({self._deps.ca_common_name})，跳过证书生成和安装"
+                    
+                        f"Обнаружен существующий системный CA-сертификат "
+                        f"({self._deps.ca_common_name}), пропускаем генерацию и установку "
+                        f"сертификатов"
+                    
                 )
-                self._log("ℹ️ 如有需要，请手动执行生成和安装")
-                self._log("步骤 2/4: 安装CA证书（已跳过）")
+                self._log("ℹ️ При необходимости выполните генерацию и установку вручную")
+                self._log("Шаг 2/4: установка CA-сертификата (пропущено)")
             else:
                 if not self._deps.generate_certificates(
                     log_func=self._log,
                     ca_common_name=self._deps.ca_common_name,
                 ):
-                    self._log("❌ 生成证书失败，无法继续")
+                    self._log("❌ Не удалось сгенерировать сертификаты, продолжение невозможно")
                     return
 
-                self._log("步骤 2/4: 安装CA证书")
+                self._log("Шаг 2/4: установка CA-сертификата")
                 if not self._deps.install_ca_cert(log_func=self._log):
-                    self._log("❌ 安装CA证书失败，无法继续")
+                    self._log("❌ Не удалось установить CA-сертификат, продолжение невозможно")
                     return
 
-            self._log("步骤 3/4: 修改hosts文件")
+            self._log("Шаг 3/4: изменение файла hosts")
             modify_result = self._deps.modify_hosts_file(log_func=self._log)
             if not modify_result.ok:
-                message = describe_result(modify_result, "修改hosts文件失败，无法继续")
+                message = describe_result(modify_result, "Не удалось изменить файл hosts, "
+                    "продолжение невозможно")
                 self._log(f"❌ {message}")
                 return
 
-            self._log("步骤 4/4: 启动代理服务器")
+            self._log("Шаг 4/4: запуск прокси-сервера")
             config = self._deps.build_proxy_config()
             if not config:
                 return
             restart_result = self._deps.restart_proxy(
                 config,
-                success_message="✅ 全部服务启动成功",
+                success_message="✅ Все сервисы успешно запущены",
                 hosts_modified=modify_result.ok,
             )
             if restart_result.ok:
                 return
-            self._log("❌ 全部服务启动失败：代理服务器未能启动")
+            self._log("❌ Не удалось запустить все сервисы: прокси-сервер не запустился")
 
         return self._thread_manager.run("start_all", task)

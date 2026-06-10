@@ -27,10 +27,10 @@ def handle_window_close(
     state: ShutdownState,
 ) -> None:
     if state.shutdown_task_id:
-        deps.log("⌛ 正在退出程序，请稍候...")
+        deps.log("⌛ Завершаем работу программы, подождите...")
         return
 
-    deps.log("正在退出程序，请稍候...")
+    deps.log("Завершаем работу программы, подождите...")
 
     def cleanup():
         try:
@@ -38,7 +38,7 @@ def handle_window_close(
             deps.thread_manager.wait(deps.proxy_runner.proxy_stop_task_id, timeout=5)
             result = deps.stop_proxy_and_restore(block_hosts_cleanup=True)
             if result.ok:
-                deps.log("代理服务器已停止，程序即将退出")
+                deps.log("Прокси-сервер остановлен, программа сейчас завершится")
         finally:
             state.shutdown_task_id = None
             deps.window.after(0, deps.window.destroy)

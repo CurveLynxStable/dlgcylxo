@@ -67,7 +67,10 @@ class ProxyRuntimeListenerTests(unittest.TestCase):
         self.assertEqual(result.host, "0.0.0.0")
         self.assertEqual(result.fallback_reason, str(dual_stack_error))
         self.assertTrue(
-            any("dual-stack 监听不可用，将回退到 IPv4" in message for message in self.logs)
+            any(
+                "dual-stack прослушивание недоступно, откатываемся на IPv4" in message
+                for message in self.logs
+            )
         )
         self.assertEqual(create_server.call_count, 2)
         first_call = create_server.call_args_list[0]
@@ -103,7 +106,7 @@ class ProxyRuntimeListenerTests(unittest.TestCase):
         with patch(
             "modules.proxy.proxy_runtime.StoppableWSGIServer",
             side_effect=SystemExit(1),
-        ), self.assertRaisesRegex(RuntimeError, r"监听 \[::\]:443 失败"):
+        ), self.assertRaisesRegex(RuntimeError, r"Не удалось начать прослушивание \[::\]:443"):
             self.runtime._create_server_instance(
                 host="::",
                 port=443,
@@ -114,7 +117,7 @@ class ProxyRuntimeListenerTests(unittest.TestCase):
 
 @unittest.skipUnless(
     hasattr(socket, "IPPROTO_IPV6") and hasattr(socket, "IPV6_V6ONLY"),
-    "当前环境缺少 IPv6 socket 常量",
+    "В текущем окружении нет констант IPv6 socket",
 )
 class StoppableWSGIServerBindTests(unittest.TestCase):
     def test_server_bind_enables_dual_stack_before_binding(self) -> None:

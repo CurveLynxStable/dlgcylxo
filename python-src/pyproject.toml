@@ -67,11 +67,11 @@ exclude = [
 line-length = 100
 target-version = "py313"
 
-# 开启常用规则集：E/F 是基础错误；I=imports；B=bugbear；UP=pyupgrade；SIM=简化；
-# PL= Pylint 规则子集（减少你对 Pylint 的依赖）
+# Включены основные наборы правил: E/F — базовые ошибки; I=imports; B=bugbear; UP=pyupgrade; SIM=упрощение;
+# PL = подмножество правил Pylint (уменьшает зависимость от Pylint)
 [tool.ruff.lint]
 select  = ["E", "F", "I", "B", "UP", "SIM", "PL"]
-fixable = ["ALL"]  # 尽可能自动修复
+fixable = ["ALL"]  # Автоисправление где возможно
 
 [tool.ruff.format]
 line-ending = "auto"

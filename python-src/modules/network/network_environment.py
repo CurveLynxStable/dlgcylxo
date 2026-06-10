@@ -1,7 +1,8 @@
 """
-网络环境检查（尽量不依赖特定代理软件）
+Проверка сетевого окружения (по возможности без привязки к конкретному прокси-ПО)
 
-目标：在不主动发起网络请求的前提下，基于系统配置给出“可能绕过 hosts 导流”的提示。
+Цель: не выполняя сетевых запросов, на основе системной конфигурации предупредить
+о возможном обходе перенаправления через hosts.
 """
 
 from __future__ import annotations
@@ -108,7 +109,7 @@ def _read_wininet_proxy_settings(log_func: LogFunc) -> dict[str, object | None]:
             except OSError:
                 values["wininet_proxy_override"] = None
     except OSError as e:
-        log_func(f"⚠️ 读取系统代理（WinINET）失败: {e}")
+        log_func(f"⚠️ Не удалось прочитать системный прокси (WinINET): {e}")
 
     return values
 
@@ -145,7 +146,7 @@ def _read_winhttp_proxy_settings(log_func: LogFunc) -> dict[str, str | None]:
     config = WINHTTP_CURRENT_USER_IE_PROXY_CONFIG()
     if not winhttp.WinHttpGetIEProxyConfigForCurrentUser(ctypes.byref(config)):
         err = ctypes.get_last_error()
-        log_func(f"⚠️ 读取系统代理（WinHTTP）失败: winerror={err}")
+        log_func(f"⚠️ Не удалось прочитать системный прокси (WinHTTP): winerror={err}")
         return {"winhttp_proxy": None, "winhttp_proxy_bypass": None}
 
     def _consume(ptr: Any) -> str | None:
@@ -171,9 +172,11 @@ def check_network_environment(
     emit_logs: bool = False,
 ) -> NetworkEnvironmentReport:
     """
-    检查网络环境，输出“显式代理可能绕过 hosts 导流”的提示。
+    Проверяет сетевое окружение и предупреждает, что явный прокси может обойти
+    перенаправление через hosts.
 
-    注意：该检查只能判断系统/环境变量层面的显式代理配置，无法断言第三方应用是否遵循。
+    Примечание: проверка определяет только явную настройку прокси на уровне
+    системы/переменных окружения и не гарантирует, что сторонние приложения ей следуют.
     """
     env = _read_env_proxy_settings()
     wininet = _read_wininet_proxy_settings(log_func)
@@ -232,24 +235,27 @@ def check_network_environment(
 
 
 def _emit_proxy_warnings(report: NetworkEnvironmentReport, log_func: LogFunc) -> None:
-    log_func("⚠️" * 21 + "\n检测到显式代理配置：部分应用可能优先走代理，从而绕过 hosts 导流。")
+    log_func("⚠️" * 21 + "\nОбнаружена явная настройка прокси: часть приложений может идти через "
+        "прокси и обходить перенаправление через hosts.")
     if report.wininet_proxy_enabled:
         server = report.wininet_proxy_server or "none"
-        log_func(f"ℹ️ 系统代理(WinINET): enabled=True, server={server}")
+        log_func(f"ℹ️ Системный прокси (WinINET): enabled=True, server={server}")
     if report.wininet_auto_config_url:
-        log_func(f"ℹ️ 系统代理(PAC): {report.wininet_auto_config_url}")
+        log_func(f"ℹ️ Системный прокси (PAC): {report.wininet_auto_config_url}")
     if report.winhttp_proxy:
-        log_func(f"ℹ️ WinHTTP 代理: {report.winhttp_proxy}")
+        log_func(f"ℹ️ Прокси WinHTTP: {report.winhttp_proxy}")
     if report.env_http_proxy or report.env_https_proxy or report.env_all_proxy:
         http_proxy = report.env_http_proxy or "none"
         https_proxy = report.env_https_proxy or "none"
         all_proxy = report.env_all_proxy or "none"
         log_func(
-            "ℹ️ 环境变量代理: "
+            "ℹ️ Прокси из переменных окружения: "
             f"HTTP_PROXY={http_proxy}, "
             f"HTTPS_PROXY={https_proxy}, "
             f"ALL_PROXY={all_proxy}"
         )
-    log_func("建议：1. 关闭显式代理（如clash的系统代理），或改用 TUN/VPN")
-    log_func("      2. 检查 Trae 的代理设置。\n")
-    log_func("⚠️ 注意：TUN 通常不影响 hosts，但若应用内配置了代理，仍可能绕过 hosts。")
+    log_func("Рекомендации: 1. Отключите явный прокси (например системный прокси clash) или "
+        "используйте TUN/VPN")
+    log_func("      2. Проверьте настройки прокси в Trae.\n")
+    log_func("⚠️ Внимание: TUN обычно не влияет на hosts, но если прокси настроен внутри "
+        "приложения, hosts всё равно может быть обойдён.")

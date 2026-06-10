@@ -1,15 +1,15 @@
 <script setup lang="ts">
 const REQUEST_BODY_PATCH_TOOLTIP = [
-  "格式：JSON Patch 数组，按从上到下的顺序依次应用。",
-  "path 使用 JSON Pointer：/thinking 表示根对象字段，/tools/0 表示数组第 1 项;",
-  "value 可写字符串、数字、布尔、对象或数组。",
-  "add：新增字段或数组元素。",
-  "remove：删除已有字段或数组元素。",
-  "replace：替换已有字段的值。",
-  "copy：把 from 指向的值复制到 path。",
-  "move：把 from 指向的值移动到 path，原位置会被移除。",
-  "test：断言 path 当前值等于 value；失败时本次参数编辑失败。",
-  "限制：不允许修改 stream。",
+  "Формат: массив JSON Patch, правила применяются сверху вниз.",
+  "path использует JSON Pointer: /thinking — поле корневого объекта, /tools/0 — первый элемент массива;",
+  "value может быть строкой, числом, булевым, объектом или массивом.",
+  "add: добавить поле или элемент массива.",
+  "remove: удалить существующее поле или элемент массива.",
+  "replace: заменить значение существующего поля.",
+  "copy: скопировать значение из from в path.",
+  "move: переместить значение из from в path, исходное место очищается.",
+  "test: проверить, что текущее значение path равно value; при ошибке правка параметров отклоняется.",
+  "Ограничение: изменение stream не допускается.",
 ].join("\n");
 
 const props = withDefaults(
@@ -53,7 +53,7 @@ const updateModelValue = (event: Event) => {
       class="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-slate-700"
     >
       <span class="flex min-w-0 items-center gap-2">
-        <span>参数编辑</span>
+        <span>Правка параметров</span>
       </span>
       <span
         class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500"
@@ -76,7 +76,8 @@ const updateModelValue = (event: Event) => {
         @input="updateModelValue"
       ></textarea>
       <div class="mt-2 text-xs leading-5 text-slate-500">
-        此处优先级高于 provider 适配层，请谨慎使用，任何后果自行承担。
+        Эти правила имеют приоритет над адаптером провайдера — используйте осторожно,
+        ответственность на вас.
       </div>
     </div>
   </details>

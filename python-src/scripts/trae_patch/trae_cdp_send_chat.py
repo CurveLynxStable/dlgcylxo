@@ -721,7 +721,7 @@ class CdpClient:
     async def send(self, method: str, params: Mapping[str, Any] | None = None) -> dict[str, Any]:
         socket = self._socket
         if socket is None:
-            raise RuntimeError("CDP websocket 尚未连接")
+            raise RuntimeError("CDP websocket ещё не подключён")
 
         self._command_id += 1
         command_id = self._command_id
@@ -733,7 +733,7 @@ class CdpClient:
         await socket.send_json(payload)
         response = await future
         if "error" in response:
-            raise RuntimeError(f"CDP {method} 失败: {response['error']}")
+            raise RuntimeError(f"CDP {method} не удался: {response['error']}")
         result = response.get("result", {})
         return result if isinstance(result, dict) else {}
 
@@ -797,11 +797,11 @@ def _pick_target(
         return candidates[0]
     if not candidates:
         raise RuntimeError(
-            "未找到 page target，"
+            "Не найден page target, "
             f"url_substring={url_substring!r}, title_substring={title_substring!r}"
         )
     raise RuntimeError(
-        "page target 匹配到多个候选，请补充 --target-title-substring："
+        "Найдено несколько кандидатов page target, уточните --target-title-substring: "
         + json.dumps(
             [
                 {
@@ -824,7 +824,7 @@ async def _send_message(
     agent_name: str,
 ) -> dict[str, Any]:
     if not target.web_socket_debugger_url:
-        raise RuntimeError(f"target 缺少 websocket: {target.id}")
+        raise RuntimeError(f"У target отсутствует websocket: {target.id}")
 
     async with CdpClient(target.web_socket_debugger_url) as client:
         await client.send("Runtime.enable")
@@ -843,7 +843,7 @@ async def _send_message(
 
     value = _extract_result_value(result)
     if not isinstance(value, dict):
-        raise RuntimeError("CDP send 返回格式无效")
+        raise RuntimeError("CDP send вернул некорректный формат")
     return {
         "target": {
             "id": target.id,
@@ -901,47 +901,50 @@ async def main_async(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "通过 CDP 向当前 Trae chat 输入并发送一条消息。"
-            "默认切到 IDE，并要求 agent 为 Builder。"
+            "Через CDP вводит и отправляет сообщение в текущий чат Trae. "
+            "По умолчанию переключается в IDE и требует agent Builder."
         )
     )
-    parser.add_argument("--message", required=True, help="要发送的消息")
+    parser.add_argument("--message", required=True, help="Сообщение для отправки")
     parser.add_argument("--host", default=DEFAULT_REMOTE_DEBUGGING_HOST, help="CDP host")
     parser.add_argument("--port", type=int, default=DEFAULT_REMOTE_DEBUGGING_PORT, help="CDP port")
     parser.add_argument(
         "--target-url-substring",
         default=DEFAULT_TARGET_URL_SUBSTRING,
-        help="目标 page URL 子串",
+        help="Подстрока URL целевой page",
     )
     parser.add_argument(
         "--target-title-substring",
         default=DEFAULT_TARGET_TITLE_SUBSTRING,
-        help="可选：目标 page 标题子串",
+        help="Опционально: подстрока заголовка целевой page",
     )
     parser.add_argument(
         "--wait-after-send-seconds",
         type=float,
         default=DEFAULT_WAIT_AFTER_SEND_SECONDS,
-        help="发送后额外等待秒数",
+        help="Дополнительное ожидание после отправки, сек",
     )
     parser.add_argument(
         "--target-wait-seconds",
         type=float,
         default=DEFAULT_TARGET_WAIT_SECONDS,
-        help="等待 workbench page target 就绪的秒数",
+        help="Сколько секунд ждать готовности workbench page target",
     )
     parser.add_argument(
         "--mode",
         choices=("ide", "solo", "current"),
         default=DEFAULT_CHAT_MODE,
-        help="发送前优先切换的模式，默认 ide",
+        help="Режим, в который переключиться перед отправкой, по умолчанию ide",
     )
     parser.add_argument(
         "--agent-name",
         default=DEFAULT_AGENT_NAME,
-        help="发送前要求的已选 agent 名称；传 current 可跳过校验，默认 Builder",
+        help=(
+            "Требуемое имя выбранного agent перед отправкой; current — пропустить проверку, по "
+            "умолчанию Builder"
+        ),
     )
-    parser.add_argument("--json", action="store_true", help="输出 JSON")
+    parser.add_argument("--json", action="store_true", help="Вывод в JSON")
     return parser
 
 

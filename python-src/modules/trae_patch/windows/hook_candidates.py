@@ -77,7 +77,7 @@ GROUPS: tuple[CandidateGroup, ...] = (
 def run_strings(dll_path: Path) -> list[str]:
     strings_path = shutil.which(STRINGS_EXE)
     if not strings_path:
-        raise FileNotFoundError(f"未找到 {STRINGS_EXE}")
+        raise FileNotFoundError(f"Не найден {STRINGS_EXE}")
 
     result = subprocess.run(
         [strings_path, "-n", "8", str(dll_path)],
@@ -116,14 +116,15 @@ def analyze_strings(lines: list[str]) -> list[CandidateGroup]:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="提取 Trae ai-agent native hook 候选点")
+    parser = argparse.ArgumentParser(description="Извлечение кандидатов native hook для Trae "
+        "ai-agent")
     parser.add_argument(
         "--dll-path",
         type=Path,
         default=AI_AGENT_DLL,
-        help="ai_agent.dll 路径",
+        help="Путь к ai_agent.dll",
     )
-    parser.add_argument("--json", action="store_true", help="输出 JSON")
+    parser.add_argument("--json", action="store_true", help="Вывод в JSON")
     return parser
 
 

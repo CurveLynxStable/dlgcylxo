@@ -882,7 +882,7 @@ def _wait_for_runtime_module(
             return modules[0], processes, failures, privilege
         if wait_seconds <= 0 or time.monotonic() - started >= wait_seconds:
             diagnostic = _format_snapshot_diagnostic(len(processes), failures, privilege)
-            raise RuntimeError(f"未找到已加载 ai_agent.dll 的 Trae 进程；{diagnostic}")
+            raise RuntimeError(f"Не найден процесс Trae с загруженной ai_agent.dll; {diagnostic}")
         time.sleep(0.5)
 
 
@@ -894,7 +894,7 @@ def _select_target(
     wait_for_module_seconds: int = 0,
 ) -> tuple[int, int]:
     if target not in DEFAULT_RVAS:
-        raise ValueError(f"未知 target: {target}")
+        raise ValueError(f"Неизвестный target: {target}")
     if pid is not None and module_base is not None:
         return pid, module_base + DEFAULT_RVAS[target]
 
@@ -928,17 +928,17 @@ def _select_custom_breakpoint(  # noqa: PLR0913
     wait_for_module_seconds: int = 0,
 ) -> tuple[int, int, str]:
     if address is not None and rva is not None:
-        raise ValueError("--address 与 --rva 只能二选一")
+        raise ValueError("--address и --rva взаимоисключающие")
     if address is None and rva is None:
-        raise ValueError("必须提供 --target 或 --address / --rva")
+        raise ValueError("Необходимо указать --target или --address / --rva")
 
     if address is not None:
         if pid is None:
-            raise ValueError("--address 模式必须同时提供 --pid")
+            raise ValueError("Режим --address требует одновременно --pid")
         return pid, address, "custom_address"
 
     if rva is None:
-        raise ValueError("必须提供 --rva")
+        raise ValueError("Необходимо указать --rva")
 
     if pid is not None and module_base is not None:
         return pid, module_base + rva, "custom_rva"
@@ -983,9 +983,9 @@ def _resolve_profile_breakpoints(
     request: ProbeRequest,
 ) -> tuple[int, list[tuple[str, int]]]:
     if request.profile not in BREAKPOINT_PROFILES:
-        raise ValueError(f"未知 profile: {request.profile}")
+        raise ValueError(f"Неизвестный profile: {request.profile}")
     if request.module_base is not None and pid is None:
-        raise ValueError("--module-base 需要与 --pid 一起使用")
+        raise ValueError("--module-base используется только вместе с --pid")
 
     if pid is not None and request.module_base is not None:
         target_pid = pid
@@ -1011,7 +1011,7 @@ def _resolve_probe_sites(
 ) -> tuple[int, list[tuple[str, int]]]:
     if request.profile is not None:
         if request.target is not None or request.address is not None or request.rva is not None:
-            raise ValueError("--profile 与 --target/--address/--rva 不能混用")
+            raise ValueError("--profile нельзя смешивать с --target/--address/--rva")
         return _resolve_profile_breakpoints(pid, module_path, request)
 
     target_pid, address, target_label = _resolve_probe_breakpoint(
@@ -2543,7 +2543,7 @@ def run_probe(
     for label, address in resolved_sites:
         original = _read_memory(process, address, 1)
         if len(original) != 1:
-            raise RuntimeError(f"读取断点原字节失败: {hex(address)}")
+            raise RuntimeError(f"Не удалось прочитать исходный байт точки останова: {hex(address)}")
         sites.append(
             BreakpointSite(
                 label=label,
@@ -2627,32 +2627,45 @@ def _format_timeout_at(seconds: int) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="attach ai_agent.dll 并等待一个 native 锚点命中。")
-    parser.add_argument("--pid", type=int, help="目标 PID；默认自动选择")
+    parser = argparse.ArgumentParser(description="Подключается к ai_agent.dll и ждёт срабатывания "
+        "одного native-якоря.")
+    parser.add_argument(
+        "--pid", type=int, help="Целевой PID; по умолчанию выбирается автоматически"
+    )
     parser.add_argument(
         "--module-base",
         type=lambda value: int(value, 0),
-        help="已知 ai_agent.dll 运行时基址；与 --pid 一起使用可跳过模块枚举",
+        help=(
+            "Известный базовый адрес ai_agent.dll в рантайме; вместе с --pid пропускает "
+            "перечисление модулей"
+        ),
     )
-    parser.add_argument("--module-path", type=Path, default=AI_AGENT_DLL, help="目标模块")
+    parser.add_argument("--module-path", type=Path, default=AI_AGENT_DLL, help="Целевой модуль")
     parser.add_argument(
         "--target",
         choices=tuple(DEFAULT_RVAS),
-        help="要打的 native 锚点",
+        help="Native-якорь для установки точки останова",
     )
     parser.add_argument(
         "--profile",
         choices=tuple(BREAKPOINT_PROFILES),
-        help="预设的一组断点；命中任意一个即返回",
+        help="Предустановленный набор точек останова; возврат при срабатывании любой",
     )
-    parser.add_argument("--rva", type=lambda value: int(value, 0), help="直接指定模块内 RVA")
-    parser.add_argument("--address", type=lambda value: int(value, 0), help="直接指定绝对 VA")
-    parser.add_argument("--timeout-seconds", type=int, default=120, help="等待秒数")
+    parser.add_argument("--rva", type=lambda value: int(value, 0), help="Прямо указать RVA внутри "
+        "модуля")
+    parser.add_argument("--address", type=lambda value: int(value, 0), help="Прямо указать "
+        "абсолютный VA")
+    parser.add_argument(
+        "--timeout-seconds", type=int, default=120, help="Время ожидания в секундах"
+    )
     parser.add_argument(
         "--wait-for-module-seconds",
         type=int,
         default=0,
-        help="如果 ai_agent.dll 尚未加载，最多等待多少秒后再开始挂断点",
+        help=(
+            "Если ai_agent.dll ещё не загружена, сколько секунд максимум ждать перед установкой "
+            "точек останова"
+        ),
     )
     return parser
 

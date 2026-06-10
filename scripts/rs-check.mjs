@@ -28,7 +28,7 @@ if (mode === "gate") {
       : path.resolve("src-tauri", "pyembed", "python", "bin", "python3");
 
   if (!fs.existsSync(pyembedPython)) {
-    console.error(`pyembed Python 不存在: ${pyembedPython}`);
+    console.error(`pyembed Python не существует: ${pyembedPython}`);
     process.exit(1);
   }
 

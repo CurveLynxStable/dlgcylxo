@@ -257,7 +257,7 @@ def build_upstream_route(
 ) -> UpstreamRoute:
     target_model_id = proxy_config.target_model_id.strip()
     if not target_model_id:
-        raise ValueError("目标模型 ID 不能为空")
+        raise ValueError("ID целевой модели не может быть пустым")
 
     provider = normalize_provider(proxy_config.provider)
     if _uses_openai_compatible_runtime_route(
@@ -368,9 +368,10 @@ def _build_mlitellm_base_url(
     if provider != ANTHROPIC_PROVIDER:
         return chat_base_url
 
-    # 外部语义里，middle_route 表示聊天基路径前缀，`/messages` 由 provider 路由补。
-    # 但 MLiteLLM 的 Anthropic adapter 会自行补 `/v1/messages`，因此内部基路径不能
-    # 直接带尾部 `/v1`，否则会变成 `/v1/v1/messages`。
+    # Во внешней семантике middle_route — это префикс базового пути чата, а `/messages` добавляет
+    # маршрут провайдера.
+    # Но Anthropic-адаптер MLiteLLM сам добавляет `/v1/messages`, поэтому внутренний базовый путь
+    # не должен оканчиваться на `/v1`, иначе получится `/v1/v1/messages`.
     if middle_route == DEFAULT_MIDDLE_ROUTE:
         return target_api_base_url.rstrip("/")
     if middle_route.endswith(DEFAULT_MIDDLE_ROUTE):
@@ -421,7 +422,7 @@ def normalize_upstream_error(exc: Exception) -> UpstreamErrorInfo:
         return UpstreamErrorInfo(
             status_code=503,
             response_body={"error": f"Error contacting target API: {detail}"},
-            log_message=f"连接目标 API 时出错: {detail}",
+            log_message=f"Ошибка при подключении к целевому API: {detail}",
             detail_text=detail,
             raw_response_text=raw_response_text,
             parsed_response_body=parsed_response_body,
@@ -440,7 +441,7 @@ def normalize_upstream_error(exc: Exception) -> UpstreamErrorInfo:
                 "error": f"Target API error: {status_code}",
                 "details": detail,
             },
-            log_message=f"目标 API HTTP 错误: {status_code} - {detail}",
+            log_message=f"HTTP-ошибка целевого API: {status_code} - {detail}",
             detail_text=detail,
             raw_response_text=raw_response_text,
             parsed_response_body=parsed_response_body,
@@ -449,7 +450,7 @@ def normalize_upstream_error(exc: Exception) -> UpstreamErrorInfo:
     return UpstreamErrorInfo(
         status_code=500,
         response_body={"error": "An internal server error occurred"},
-        log_message=f"发生意外错误: {detail}",
+        log_message=f"Произошла непредвиденная ошибка: {detail}",
         detail_text=detail,
         raw_response_text=raw_response_text,
         parsed_response_body=parsed_response_body,
@@ -457,7 +458,7 @@ def normalize_upstream_error(exc: Exception) -> UpstreamErrorInfo:
 
 
 class MLiteLLMUpstreamAdapter:
-    """把 MTGA 运行时配置编译成 MLiteLLM 调用。"""
+    """Компилирует конфигурацию рантайма MTGA в вызовы MLiteLLM."""
 
     def __init__(
         self,
@@ -535,7 +536,7 @@ class MLiteLLMUpstreamAdapter:
         route: UpstreamRoute,
         request_data: dict[str, Any],
     ) -> dict[str, Any]:
-        """按 provider 清洗 chat/completions 请求参数。"""
+        """Очищает параметры запроса chat/completions в зависимости от провайдера."""
         if route.provider in OPENAI_PROVIDER_IDS:
             return self._normalize_openai_compatible_request(
                 route=route,
@@ -570,7 +571,10 @@ class MLiteLLMUpstreamAdapter:
         if dropped_params:
             dropped_list = ", ".join(sorted(dropped_params))
             self._log(
-                f"{self._format_route_log_context(route)} 已忽略不兼容参数: {dropped_list}"
+                
+                    f"{self._format_route_log_context(route)} Проигнорированы несовместимые "
+                    f"параметры: {dropped_list}"
+                
             )
 
     @staticmethod
@@ -629,20 +633,25 @@ class MLiteLLMUpstreamAdapter:
         total_attempts = MLITELLM_CONNECT_RETRY_COUNT + 1
         for attempt in range(1, total_attempts + 1):
             try:
-                # 这里只覆盖拿到上游响应对象前、且异常链明确表明卡在建连阶段的失败，
-                # 避免把可能已被上游受理的 POST 请求透明重放。
+                # Покрываем только сбои до получения объекта ответа апстрима, когда цепочка
+                # исключений
+                # явно указывает на этап установления соединения, чтобы не переигрывать
+                # POST-запросы,
+                # которые апстрим, возможно, уже принял.
                 return completion_func(**call_kwargs)
             except Exception as exc:  # noqa: BLE001
                 if not self._is_connect_stage_retryable(exc):
                     raise
                 if attempt >= total_attempts:
                     self._log(
-                        f"{route_log_context} 建连阶段故障重试已耗尽: "
+                        f"{route_log_context} Повторные попытки при сбое установления "
+                        f"соединения исчерпаны: "
                         f"attempt={attempt}/{total_attempts} error={exc}"
                     )
                     raise
                 self._log(
-                    f"{route_log_context} 遇到建连阶段故障，准备重试: "
+                    f"{route_log_context} Сбой на этапе установления соединения, готовимся к "
+                    f"повтору: "
                     f"attempt={attempt + 1}/{total_attempts} error={exc}"
                 )
 
@@ -669,7 +678,8 @@ class MLiteLLMUpstreamAdapter:
             cached_rule_labels = ", ".join(rule.label for rule in cached_rules)
             self._log(
                 f"{TEMPORARY_SELF_HEAL_WARNING_PREFIX} "
-                f"{route_log_context} 命中上游不兼容参数缓存，已跳过: "
+                f"{route_log_context} Совпадение с кэшем несовместимых параметров апстрима, "
+                f"пропущены: "
                 f"{cached_rule_labels}"
             )
 
@@ -707,9 +717,11 @@ class MLiteLLMUpstreamAdapter:
                 if selection.cacheable:
                     learned_rules.add(selection.rule)
                 retry_action = (
-                    "上游拒绝参数，自动剔除后重试"
+                    "Апстрим отклонил параметр, автоматически удаляем и повторяем"
                     if selection.cacheable
-                    else "根据上游报错临时剔除参数后重试（本次不缓存）"
+                    else (
+                        "По ошибке апстрима временно удаляем параметр и повторяем (без кэширования)"
+                    )
                 )
                 self._log(
                     f"{TEMPORARY_SELF_HEAL_WARNING_PREFIX} "
@@ -769,7 +781,10 @@ class MLiteLLMUpstreamAdapter:
                 model=provider_model,
             )
             self._log(
-                f"{route_log_context} 获取支持参数失败，保留原请求: {exc}"
+                
+                    f"{route_log_context} Не удалось получить поддерживаемые параметры, оставляем "
+                    f"исходный запрос: {exc}"
+                
             )
             return None
         if not isinstance(supported_params, list):
@@ -793,7 +808,7 @@ class MLiteLLMUpstreamAdapter:
         *,
         url_kwarg: Literal["api_base", "base_url"],
     ) -> dict[str, Any]:
-        """按 MLiteLLM 目标接口构造共享鉴权与地址参数。"""
+        """Собирает общие параметры авторизации и адреса для целевого интерфейса MLiteLLM."""
         shared_kwargs: dict[str, Any] = {
             url_kwarg: route.mlitellm_base_url or route.base_url
         }
@@ -819,7 +834,7 @@ class MLiteLLMUpstreamAdapter:
         route: UpstreamRoute,
         call_kwargs: dict[str, Any],
     ) -> dict[str, Any]:
-        """为兼容代理补充 provider 级别的额外请求头。"""
+        """Добавляет дополнительные заголовки уровня провайдера для совместимых прокси."""
         auth_header = MLiteLLMUpstreamAdapter._resolve_gemini_auth_header(route)
         if auth_header is None:
             return call_kwargs
@@ -889,7 +904,8 @@ class MLiteLLMUpstreamAdapter:
             call_kwargs["request_body_patch"] = [
                 dict(operation) for operation in route.request_body_patch
             ]
-        # 关闭 MLiteLLM / OpenAI SDK 内层默认重试，避免和外层建连重试叠加。
+        # Отключаем внутренние ретраи MLiteLLM / OpenAI SDK, чтобы они не накладывались на внешние
+        # ретраи соединения.
         call_kwargs["max_retries"] = 0
         call_kwargs["num_retries"] = 0
         mlitellm_sdk = cast(Any, mlitellm)

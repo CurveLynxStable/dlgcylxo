@@ -167,7 +167,7 @@ class MacOSNativeBackend:
     name: str = "macos"
     rewriter_module: str = MACOS_REWRITER_MODULE
     module_display_name: str = "libai_agent.dylib"
-    path_prompt_name: str = "Trae.app 或 Trae 可执行文件"
+    path_prompt_name: str = "Trae.app или исполняемый файл Trae"
 
     def resolve_trae_executable(self, raw_path: str) -> Path:
         path = _expand_user_path(raw_path)
@@ -252,7 +252,7 @@ class MacOSNativeBackend:
         )
         prepared_executable = Path(str(summary.get("prepared_executable") or "")).resolve()
         if not prepared_executable.is_file():
-            raise RuntimeError(f"patched copy 可执行文件不存在: {prepared_executable}")
+            raise RuntimeError(f"Исполняемый файл patched copy не найден: {prepared_executable}")
         return LaunchPreparationResult(
             trae_executable=prepared_executable,
             requires_runtime_rewriter=False,

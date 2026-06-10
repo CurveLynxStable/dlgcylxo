@@ -37,7 +37,7 @@ DEFAULT_TARGET_URL_SUBSTRING = "workbench/workbench.html"
 DEFAULT_TARGET_TITLE_SUBSTRING = ""
 DEFAULT_CDP_MODE = "current"
 DEFAULT_CDP_AGENT_NAME = "current"
-DEFAULT_TEST_MESSAGE = "请只回复：mtga-macos-offline-patch-smoke"
+DEFAULT_TEST_MESSAGE = "Ответь только: mtga-macos-offline-patch-smoke"
 DEFAULT_MARKER_WINDOW_BYTES = 48
 DEFAULT_ARTIFACT_ROOT = Path("python-src/artifacts/trae_macos_offline_patch_session")
 DEFAULT_CLONE_ROOT = Path("/tmp/mtga-trae-offline-patch")
@@ -88,7 +88,7 @@ def _sha256_file(path: Path) -> str:
 def _normalize_hex(value: str) -> bytes:
     normalized = "".join(value.split()).replace("0x", "")
     if len(normalized) % 2 != 0:
-        raise ValueError("hex pattern 长度必须是偶数")
+        raise ValueError("Длина hex pattern должна быть чётной")
     return bytes.fromhex(normalized)
 
 
@@ -116,7 +116,7 @@ def _relative_to(path: Path, root: Path) -> str:
 def _load_json(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
-        raise RuntimeError(f"JSON 根节点必须是对象: {path}")
+        raise RuntimeError(f"Корневой узел JSON должен быть объектом: {path}")
     return payload
 
 
@@ -124,13 +124,13 @@ def _resolve_paths(trae_path: str) -> dict[str, Path]:
     backend = MacOSNativeBackend()
     executable = backend.resolve_trae_executable(trae_path)
     if not executable.is_file():
-        raise RuntimeError(f"Trae 路径无效: {executable}")
+        raise RuntimeError(f"Некорректный путь к Trae: {executable}")
     app_bundle = _find_app_bundle(executable)
     if app_bundle is None:
-        raise RuntimeError(f"无法从路径推导 Trae.app: {executable}")
+        raise RuntimeError(f"Не удалось вывести Trae.app из пути: {executable}")
     module_path = backend.resolve_module_path(executable)
     if not module_path.is_file():
-        raise RuntimeError(f"未找到 libai_agent.dylib: {module_path}")
+        raise RuntimeError(f"Не найден libai_agent.dylib: {module_path}")
     return {
         "app_bundle": app_bundle,
         "executable": executable,
@@ -220,7 +220,7 @@ def _clone_app_bundle(source: Path, destination: Path) -> dict[str, Any]:
 
 def _reuse_existing_app_bundle(source: Path, destination: Path) -> dict[str, Any]:
     if not destination.is_dir():
-        raise RuntimeError(f"--reuse-clone 指定的副本不存在: {destination}")
+        raise RuntimeError(f"Указанная в --reuse-clone копия не существует: {destination}")
     return {
         "mode": "reuse_existing",
         "source": str(source),
@@ -234,7 +234,7 @@ def _read_recipe(path: Path) -> dict[str, Any]:
     recipe = _load_json(path)
     replacements = recipe.get("replacements")
     if not isinstance(replacements, list):
-        raise RuntimeError("recipe.replacements 必须是数组")
+        raise RuntimeError("recipe.replacements должен быть массивом")
     return recipe
 
 
@@ -259,14 +259,16 @@ def _generate_url_patch_recipe(
     completed = _run_command(command, timeout=120)
     if completed.returncode != 0:
         raise RuntimeError(
-            completed.stderr.strip() or completed.stdout.strip() or "自动生成 recipe 失败"
+            completed.stderr.strip() or completed.stdout.strip() or (
+                "Не удалось автоматически сгенерировать recipe"
+            )
         )
     payload = json.loads(completed.stdout or "{}")
     if not isinstance(payload, dict):
-        raise RuntimeError("自动生成 recipe 返回格式无效")
+        raise RuntimeError("Автогенерация recipe вернула некорректный формат")
     recipe_path = payload.get("recipe_path")
     if not isinstance(recipe_path, str) or not recipe_path.strip():
-        raise RuntimeError("自动生成 recipe 未返回 recipe_path")
+        raise RuntimeError("Автогенерация recipe не вернула recipe_path")
     return {
         "recipe_path": recipe_path,
         "report_root": str(report_root),
@@ -304,23 +306,23 @@ def _apply_replacements(  # noqa: PLR0912, PLR0915
 ) -> list[dict[str, Any]]:
     replacements = recipe.get("replacements")
     if not isinstance(replacements, list):
-        raise RuntimeError("recipe.replacements 必须是数组")
+        raise RuntimeError("recipe.replacements должен быть массивом")
 
     records: list[dict[str, Any]] = []
     for index, raw_item in enumerate(replacements, start=1):
         if not isinstance(raw_item, dict):
-            raise RuntimeError(f"replacement[{index}] 必须是对象")
+            raise RuntimeError(f"replacement[{index}] должен быть объектом")
         item = raw_item
         relative_path = item.get("path")
         if not isinstance(relative_path, str) or not relative_path.strip():
-            raise RuntimeError(f"replacement[{index}].path 缺失")
+            raise RuntimeError(f"replacement[{index}].path отсутствует")
         target_path = app_bundle / relative_path
         if not target_path.is_file():
-            raise RuntimeError(f"replacement[{index}] 目标文件不存在: {target_path}")
+            raise RuntimeError(f"replacement[{index}] целевой файл не существует: {target_path}")
 
         mode = str(item.get("mode") or "").strip()
         if not mode:
-            raise RuntimeError(f"replacement[{index}].mode 缺失")
+            raise RuntimeError(f"replacement[{index}].mode отсутствует")
 
         original = target_path.read_bytes()
         patched = bytearray(original)
@@ -332,7 +334,8 @@ def _apply_replacements(  # noqa: PLR0912, PLR0915
             needle = _normalize_hex(str(item.get("find") or ""))
             replacement = _normalize_hex(str(item.get("replace") or ""))
             if len(needle) != len(replacement):
-                raise RuntimeError(f"replacement[{index}] find_hex 只支持等长替换")
+                raise RuntimeError(f"replacement[{index}] find_hex поддерживает только замену "
+                    f"равной длины")
             replaced_offsets = _replace_all(patched, needle, replacement)
             expect_count = item.get("expect_count")
             if expect_count is not None:
@@ -342,7 +345,7 @@ def _apply_replacements(  # noqa: PLR0912, PLR0915
                     if len(replaced_offsets) + len(already_patched_offsets) != expected_count:
                         raise RuntimeError(
                             "replacement["
-                            f"{index}] 命中次数不符: expect={expected_count} "
+                            f"{index}] число совпадений не соответствует: expect={expected_count} "
                             f"actual={len(replaced_offsets)} "
                             f"already_patched={len(already_patched_offsets)}"
                         )
@@ -352,7 +355,8 @@ def _apply_replacements(  # noqa: PLR0912, PLR0915
             needle = needle_text.encode("utf-8")
             replacement = replacement_text.encode("utf-8")
             if len(needle) != len(replacement):
-                raise RuntimeError(f"replacement[{index}] find_text 只支持等长替换")
+                raise RuntimeError(f"replacement[{index}] find_text поддерживает только замену "
+                    f"равной длины")
             replaced_offsets = _replace_all(patched, needle, replacement)
             expect_count = item.get("expect_count")
             if expect_count is not None:
@@ -362,14 +366,14 @@ def _apply_replacements(  # noqa: PLR0912, PLR0915
                     if len(replaced_offsets) + len(already_patched_offsets) != expected_count:
                         raise RuntimeError(
                             "replacement["
-                            f"{index}] 命中次数不符: expect={expected_count} "
+                            f"{index}] число совпадений не соответствует: expect={expected_count} "
                             f"actual={len(replaced_offsets)} "
                             f"already_patched={len(already_patched_offsets)}"
                         )
         elif mode == "offset_hex":
             raw_offset = item.get("offset")
             if raw_offset is None:
-                raise RuntimeError(f"replacement[{index}].offset 缺失")
+                raise RuntimeError(f"replacement[{index}].offset отсутствует")
             offset = int(raw_offset, 0) if isinstance(raw_offset, str) else int(raw_offset)
             replacement = _normalize_hex(str(item.get("replace") or ""))
             expected = item.get("expected")
@@ -380,7 +384,7 @@ def _apply_replacements(  # noqa: PLR0912, PLR0915
                     already_patched_offsets = [offset]
                 elif actual != expected_bytes:
                     raise RuntimeError(
-                        f"replacement[{index}] 预期字节不匹配: "
+                        f"replacement[{index}] ожидаемые байты не совпадают: "
                         f"offset={hex(offset)} actual={actual.hex(' ')} "
                         f"expected={expected_bytes.hex(' ')}"
                     )
@@ -388,7 +392,7 @@ def _apply_replacements(  # noqa: PLR0912, PLR0915
                 patched[offset : offset + len(replacement)] = replacement
                 replaced_offsets = [offset]
         else:
-            raise RuntimeError(f"replacement[{index}] 不支持的 mode: {mode}")
+            raise RuntimeError(f"replacement[{index}] неподдерживаемый mode: {mode}")
 
         if bytes(patched) != original:
             target_path.write_bytes(bytes(patched))
@@ -533,7 +537,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
 
     codesign_path = shutil.which("codesign")
     if not codesign_path:
-        raise RuntimeError("未找到 codesign")
+        raise RuntimeError("Не найден codesign")
     identity = _pick_codesign_identity()
 
     framework_dirs = sorted(
@@ -583,7 +587,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
             )
             if completed.returncode != 0:
                 raise RuntimeError(
-                    "codesign leaf 失败: "
+                    "codesign leaf не удался: "
                     f"{target} :: {completed.stderr.strip() or completed.stdout.strip()}"
                 )
 
@@ -607,7 +611,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
             )
             if completed.returncode != 0:
                 raise RuntimeError(
-                    "codesign framework 失败: "
+                    "codesign framework не удался: "
                     f"{target} :: {completed.stderr.strip() or completed.stdout.strip()}"
                 )
 
@@ -632,7 +636,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
             )
             if completed.returncode != 0:
                 raise RuntimeError(
-                    "codesign helper 失败: "
+                    "codesign helper не удался: "
                     f"{target} :: {completed.stderr.strip() or completed.stdout.strip()}"
                 )
 
@@ -654,7 +658,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
             }
         )
         if sign.returncode != 0:
-            raise RuntimeError(f"codesign 失败: {sign.stderr.strip() or sign.stdout.strip()}")
+            raise RuntimeError(f"codesign не удался: {sign.stderr.strip() or sign.stdout.strip()}")
 
     verify = _run_command(
         [codesign_path, "--verify", "--deep", "--strict", "--verbose=4", str(app_bundle)],
@@ -662,7 +666,7 @@ def _codesign_app_bundle(app_bundle: Path) -> dict[str, Any]:
     )
     if verify.returncode != 0:
         raise RuntimeError(
-            "codesign verify 失败: "
+            "codesign verify не удался: "
             f"{verify.stderr.strip() or verify.stdout.strip()}"
         )
 
@@ -731,7 +735,7 @@ def _start_loopback(  # noqa: PLR0913
         with contextlib.suppress(subprocess.TimeoutExpired):
             process.wait(timeout=3)
         log_fp.close()
-        raise RuntimeError(f"loopback 未在 {DEFAULT_LOOPBACK_WAIT_SECONDS}s 内就绪: {log_path}")
+        raise RuntimeError(f"loopback не готов за {DEFAULT_LOOPBACK_WAIT_SECONDS}s: {log_path}")
     return process, log_fp
 
 
@@ -808,13 +812,13 @@ def _run_cdp_send_chat(  # noqa: PLR0913
         if output_text:
             output_text += "\n"
         output_text += (
-            "error: CDP 发消息超时 "
+            "error: тайм-аут отправки сообщения через CDP "
             f"(timeout={timeout_seconds}s, target_wait={target_wait_seconds}s)"
         )
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_text(output_text, encoding="utf-8")
         raise RuntimeError(
-            "CDP 发消息超时: "
+            "Тайм-аут отправки сообщения через CDP: "
             f"timeout={timeout_seconds}s "
             f"target_wait={target_wait_seconds}s "
             f"log={log_path}"
@@ -827,11 +831,13 @@ def _run_cdp_send_chat(  # noqa: PLR0913
     log_path.write_text(output_text, encoding="utf-8")
     if completed.returncode != 0:
         raise RuntimeError(
-            completed.stderr.strip() or completed.stdout.strip() or "CDP 发消息失败"
+            completed.stderr.strip() or completed.stdout.strip() or (
+                "Не удалось отправить сообщение через CDP"
+            )
         )
     payload = json.loads(completed.stdout or "{}")
     if not isinstance(payload, dict):
-        raise RuntimeError("CDP 返回格式无效")
+        raise RuntimeError("CDP вернул некорректный формат")
     return payload
 
 
@@ -898,34 +904,42 @@ def _summary_paths(root: Path) -> dict[str, Path]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="macOS 离线 patch + clone + launch + CDP smoke 自动化会话脚本。"
+        description=(
+            "Скрипт автоматизированной сессии macOS: офлайн patch + clone + launch + CDP smoke."
+        )
     )
-    parser.add_argument("--trae-path", required=True, help="官方 Trae.app 路径")
+    parser.add_argument("--trae-path", required=True, help="Путь к официальному Trae.app")
     parser.add_argument("--artifact-root", type=Path, default=DEFAULT_ARTIFACT_ROOT)
     parser.add_argument("--clone-app", type=Path, default=DEFAULT_CLONE_APP)
-    parser.add_argument("--recipe", type=Path, help="离线 patch recipe JSON")
+    parser.add_argument("--recipe", type=Path, help="JSON офлайн patch recipe")
     parser.add_argument(
         "--auto-url-patch-recipe",
         action="store_true",
-        help="自动生成 macOS native URL override recipe 并应用到 clone 副本",
+        help=(
+            "Автоматически сгенерировать macOS native URL override recipe и применить к clone-копии"
+        ),
     )
     parser.add_argument(
         "--skip-clone",
         action="store_true",
-        help="直接使用官方 Trae，不复制副本",
+        help="Использовать официальный Trae напрямую, без создания копии",
     )
     parser.add_argument(
         "--reuse-clone",
         action="store_true",
-        help="复用现有 clone 副本；适合固定副本反复 patch/smoke，避免重新复制",
+        help=(
+            "Переиспользовать существующую clone-копию; удобно для повторных patch/smoke без "
+            "повторного копирования"
+        ),
     )
-    parser.add_argument("--skip-sign", action="store_true", help="跳过副本 codesign")
+    parser.add_argument("--skip-sign", action="store_true", help="Пропустить codesign копии")
     parser.add_argument(
         "--smoke",
         action="store_true",
-        help="准备后自动启动 loopback/Trae/CDP smoke",
+        help="После подготовки автоматически запустить loopback/Trae/CDP smoke",
     )
-    parser.add_argument("--keep-running", action="store_true", help="smoke 后保留 Trae 运行")
+    parser.add_argument("--keep-running", action="store_true", help="Оставить Trae запущенным "
+        "после smoke")
     parser.add_argument("--loopback-host", default=DEFAULT_HOST)
     parser.add_argument("--loopback-port", type=int, default=DEFAULT_LOOPBACK_PORT)
     parser.add_argument("--cdp-host", default=DEFAULT_HOST)
@@ -955,12 +969,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--cdp-mode",
         choices=("ide", "solo", "current"),
         default=DEFAULT_CDP_MODE,
-        help="CDP 发消息前优先切换的模式；主线默认保持 current",
+        help="Режим, в который переключиться перед отправкой через CDP; по умолчанию current",
     )
     parser.add_argument(
         "--cdp-agent-name",
         default=DEFAULT_CDP_AGENT_NAME,
-        help="CDP 发消息前要求的已选 agent；传 current 跳过校验",
+        help="Требуемый выбранный agent перед отправкой через CDP; current — пропустить проверку",
     )
     parser.add_argument(
         "--wait-after-send-seconds",
@@ -977,13 +991,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:  # noqa: PLR0912, PLR0915
     if sys.platform != "darwin":
-        raise SystemExit("该脚本仅支持 macOS")
+        raise SystemExit("Скрипт поддерживает только macOS")
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
 
     args = build_parser().parse_args()
     if args.recipe is not None and args.auto_url_patch_recipe:
-        raise RuntimeError("--recipe 与 --auto-url-patch-recipe 不能同时使用")
+        raise RuntimeError("--recipe и --auto-url-patch-recipe нельзя использовать одновременно")
     artifact_root = args.artifact_root.resolve()
     artifact_root.mkdir(parents=True, exist_ok=True)
     paths = _summary_paths(artifact_root)
@@ -1021,7 +1035,7 @@ def main() -> int:  # noqa: PLR0912, PLR0915
     prepared_executable = source_paths["executable"]
     prepared_module_path = source_paths["module_path"]
     if args.skip_clone and args.reuse_clone:
-        raise RuntimeError("--skip-clone 与 --reuse-clone 不能同时使用")
+        raise RuntimeError("--skip-clone и --reuse-clone нельзя использовать одновременно")
     if not args.skip_clone:
         clone_destination = args.clone_app.resolve()
         clone_record = (
@@ -1073,7 +1087,10 @@ def main() -> int:  # noqa: PLR0912, PLR0915
         if args.smoke:
             if _is_port_open(args.cdp_host, args.cdp_port):
                 raise RuntimeError(
-                    f"CDP 端口已被占用: {args.cdp_host}:{args.cdp_port}；请先关闭现有 Trae"
+                    
+                        f"Порт CDP уже занят: {args.cdp_host}:{args.cdp_port}; сначала закройте "
+                        f"запущенный Trae"
+                    
                 )
             loopback_process, loopback_log_fp = _start_loopback(
                 host=args.loopback_host,
@@ -1086,7 +1103,7 @@ def main() -> int:  # noqa: PLR0912, PLR0915
             trae_process = _launch_trae(prepared_executable, cdp_port=args.cdp_port)
             if not _wait_port(args.cdp_host, args.cdp_port, args.cdp_wait_seconds):
                 raise RuntimeError(
-                    f"Trae 未在 {args.cdp_wait_seconds}s 内开放 CDP: "
+                    f"Trae не открыл CDP за {args.cdp_wait_seconds}s: "
                     f"{args.cdp_host}:{args.cdp_port}"
                 )
             cdp_send = _run_cdp_send_chat(

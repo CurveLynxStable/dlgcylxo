@@ -36,11 +36,11 @@ def _open_directory(path: str, *, log_func: LogFunc) -> OperationResult:
             subprocess.run(["open", path], check=True)
         else:
             subprocess.run(["xdg-open", path], check=True)
-        log_func(f"已打开目录: {path}")
+        log_func(f"Каталог открыт: {path}")
         return OperationResult.success()
     except Exception as exc:
-        log_func(f"打开目录失败: {exc}")
-        return OperationResult.failure(f"打开目录失败: {exc}")
+        log_func(f"Не удалось открыть каталог: {exc}")
+        return OperationResult.failure(f"Не удалось открыть каталог: {exc}")
 
 
 def register_user_data_commands(commands: Commands) -> None:
@@ -49,7 +49,8 @@ def register_user_data_commands(commands: Commands) -> None:
         logs, log_func = collect_logs()
         user_dir = _get_resource_manager().user_data_dir
         result = _open_directory(user_dir, log_func=log_func)
-        return build_result_payload(result, logs, "打开用户数据目录完成")
+        return build_result_payload(result, logs, "Открытие каталога пользовательских данных "
+            "завершено")
 
     @register_command(commands)
     async def user_data_backup() -> dict[str, Any]:
@@ -59,14 +60,17 @@ def register_user_data_commands(commands: Commands) -> None:
             user_dir,
             error_log_filename=DEFAULT_METADATA.error_log_filename,
         )
-        return build_result_payload(result, logs, "用户数据备份完成")
+        return build_result_payload(result, logs, "Резервное копирование пользовательских данных "
+            "завершено")
 
     @register_command(commands)
     async def user_data_restore_latest() -> dict[str, Any]:
         logs, _ = collect_logs()
         user_dir = _get_resource_manager().user_data_dir
         result = restore_latest_backup_result(user_dir)
-        return build_result_payload(result, logs, "用户数据还原完成")
+        return build_result_payload(
+            result, logs, "Восстановление пользовательских данных завершено"
+        )
 
     @register_command(commands)
     async def user_data_clear() -> dict[str, Any]:
@@ -77,6 +81,6 @@ def register_user_data_commands(commands: Commands) -> None:
             error_log_filename=DEFAULT_METADATA.error_log_filename,
             copy_template_files_fn=copy_template_files,
         )
-        return build_result_payload(result, logs, "用户数据清除完成")
+        return build_result_payload(result, logs, "Очистка пользовательских данных завершена")
 
     _ = (user_data_open_dir, user_data_backup, user_data_restore_latest, user_data_clear)

@@ -14,7 +14,7 @@ _APP_STATE: dict[str, str | None] = {"version": None}
 
 
 def set_app_version(value: str | None) -> None:
-    """由宿主（Tauri）注入版本号，避免读取构建期文件。"""
+    """Версия внедряется хостом (Tauri), чтобы не читать файлы этапа сборки."""
 
     def normalize_version(raw_value: str | None) -> str | None:
         if not raw_value:
@@ -28,7 +28,7 @@ def set_app_version(value: str | None) -> None:
 
 
 def resolve_app_version(*, project_root: Path) -> str:
-    """从宿主注入/环境变量/pyproject.toml 解析应用版本。"""
+    """Определяет версию приложения из внедрения хоста/переменных окружения/pyproject.toml."""
 
     def normalize_version(raw_value: str | None) -> str | None:
         if not raw_value:

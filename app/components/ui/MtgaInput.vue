@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * MTGA 标准输入框组件
- * 采用 daisyUI 5 和 Tailwind CSS 4 规范实现
- * 支持尺寸、颜色状态、加载中、图标、清空及下拉功能
+ * Стандартный компонент поля ввода MTGA
+ * Реализован по спецификациям daisyUI 5 и Tailwind CSS 4
+ * Поддерживает размеры, цветовые состояния, загрузку, иконки, очистку и выпадающий список
  */
 
 interface MtgaInputOption {
@@ -32,35 +32,35 @@ interface Props {
   disabled?: boolean;
   loading?: boolean;
   readonly?: boolean;
-  /** 尺寸: 'xs' | 'sm' | 'md' | 'lg' */
+  /** Размер: 'xs' | 'sm' | 'md' | 'lg' */
   size?: "xs" | "sm" | "md" | "lg";
-  /** 颜色状态: 'primary' | 'success' | 'warning' | 'error' | 'neutral' */
+  /** Цветовое состояние: 'primary' | 'success' | 'warning' | 'error' | 'neutral' */
   color?: "primary" | "success" | "warning" | "error" | "neutral";
-  /** 左侧图标路径 (SVG path d) */
+  /** Путь левой иконки (SVG path d) */
   icon?: string;
-  /** 右侧图标路径 (SVG path d) */
+  /** Путь правой иконки (SVG path d) */
   trailingIcon?: string;
-  /** 是否显示下拉按钮 (模拟 Select) */
+  /** Показывать ли кнопку выпадающего списка (имитация Select) */
   showDropdown?: boolean;
-  /** 下拉选项 */
+  /** Пункты выпадающего списка */
   options?: Array<string | MtgaInputOption>;
-  /** 下拉顶部固定添加区内容 */
+  /** Содержимое закреплённой области добавления вверху списка */
   addOptionValue?: string;
-  /** 下拉顶部固定添加区右侧提示 */
+  /** Подсказка справа в области добавления */
   addOptionHint?: string;
-  /** 是否显示下拉顶部固定添加区 */
+  /** Показывать ли область добавления вверху списка */
   showAddOption?: boolean;
-  /** 下拉顶部固定添加区是否禁用 */
+  /** Отключена ли область добавления */
   addOptionDisabled?: boolean;
-  /** 下拉选项是否按多选模式处理 */
+  /** Обрабатывать ли пункты в режиме множественного выбора */
   multiSelect?: boolean;
-  /** 多选模式下的已选中选项 */
+  /** Выбранные пункты в режиме множественного выбора */
   selectedOptions?: string[];
-  /** 是否可清空 */
+  /** Можно ли очистить */
   clearable?: boolean;
-  /** 错误信息，存在时 color 强制为 error */
+  /** Сообщение об ошибке; если задано, color принудительно error */
   error?: string;
-  /** 传递给 input 元素的类名 */
+  /** Классы, передаваемые элементу input */
   inputClass?: string;
 }
 
@@ -98,23 +98,23 @@ const emit = defineEmits<{
 const dropdownOpen = ref(false);
 const dropdownRef = ref<HTMLElement | null>(null);
 const isPositioned = ref(false);
-const isFiltering = ref(false); // 标记是否正在过滤（仅在展开后有输入才为 true）
+const isFiltering = ref(false); // Признак фильтрации (true только при вводе после открытия списка)
 const slots = useSlots();
 
-// 下拉菜单定位样式
+// Стили позиционирования выпадающего меню
 const dropdownStyle = ref<Record<string, string | number>>({});
 
 /**
- * 更新下拉菜单的定位
- * 通过 getBoundingClientRect 实时计算输入框位置
+ * Обновление позиции выпадающего меню
+ * Позиция поля вычисляется через getBoundingClientRect
  */
 const updateDropdownPosition = () => {
   if (!dropdownRef.value || !dropdownOpen.value) return;
 
   const rect = dropdownRef.value.getBoundingClientRect();
-  // 检查下方是否有足够空间，否则向上弹出 (简单实现)
+  // Если снизу недостаточно места — открываем вверх (простая реализация)
   const spaceBelow = window.innerHeight - rect.bottom;
-  const hasSpaceBelow = spaceBelow > 250; // 下拉框最大高度约 240px
+  const hasSpaceBelow = spaceBelow > 250; // Максимальная высота списка ≈ 240px
 
   dropdownStyle.value = {
     position: "fixed",
@@ -125,18 +125,18 @@ const updateDropdownPosition = () => {
     zIndex: 9999,
   };
 
-  // 延迟一帧设置定位完成状态，确保样式已应用到 DOM
+  // Откладываем на кадр, чтобы стили успели примениться к DOM
   requestAnimationFrame(() => {
     isPositioned.value = true;
   });
 };
 
-// 监听窗口事件以同步位置
+// Слушаем события окна для синхронизации позиции
 watch(dropdownOpen, async (val) => {
   if (val) {
     isPositioned.value = false;
-    isFiltering.value = false; // 展开时重置过滤状态，显示完整列表
-    dropdownStyle.value = {}; // 重置样式
+    isFiltering.value = false; // При открытии сбрасываем фильтр и показываем полный список
+    dropdownStyle.value = {}; // Сброс стилей
     await nextTick();
     updateDropdownPosition();
     window.addEventListener("scroll", updateDropdownPosition, true);
@@ -149,7 +149,7 @@ watch(dropdownOpen, async (val) => {
   }
 });
 
-// 样式映射
+// Соответствие стилей
 const inputSizeClass = computed(() => {
   const sizes = {
     xs: "px-2 py-1",
@@ -192,7 +192,7 @@ const isOptionSelected = (option: string) => {
   return props.modelValue === option;
 };
 
-// 计算后缀区宽度以动态调整输入框内边距
+// Расчёт ширины суффиксной зоны для динамических отступов поля
 const suffixPaddingClass = computed(() => {
   let actionCount = 0;
   if (props.loading) actionCount++;
@@ -201,17 +201,17 @@ const suffixPaddingClass = computed(() => {
 
   const hasClear = props.clearable && props.modelValue && !props.disabled && !props.readonly;
 
-  // 只有 actionCount > 0 时才会有分割线和后缀按钮区
+  // Разделитель и суффиксные кнопки есть только при actionCount > 0
   if (actionCount > 0) {
-    if (hasClear) return "pr-24"; // 清空按钮 + 分割线 + 后缀按钮
-    return "pr-16"; // 分割线 + 后缀按钮
+    if (hasClear) return "pr-24"; // Кнопка очистки + разделитель + суффиксные кнопки
+    return "pr-16"; // Разделитель + суффиксные кнопки
   }
 
-  if (hasClear) return "pr-10"; // 仅清空按钮
-  return "pr-3.5"; // 默认
+  if (hasClear) return "pr-10"; // Только кнопка очистки
+  return "pr-3.5"; // По умолчанию
 });
 
-// 点击外部关闭下拉菜单
+// Закрытие списка по клику снаружи
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target;
   if (dropdownRef.value && target instanceof Node && !dropdownRef.value.contains(target)) {
@@ -273,18 +273,18 @@ const handleInput = (e: Event) => {
     const val = e.target.value;
     emit("update:modelValue", val);
 
-    // 如果 Popover 已经打开，且有选项，则在输入时保持打开并允许过滤
+    // Если Popover открыт и есть пункты — при вводе держим его открытым и фильтруем
     if (props.showDropdown && (normalizedOptions.value.length > 0 || props.showAddOption)) {
       dropdownOpen.value = true;
-      isFiltering.value = true; // 标记开始过滤
+      isFiltering.value = true; // Началась фильтрация
     }
   }
 };
 
-// 过滤后的选项
+// Отфильтрованные пункты
 const filteredOptions = computed(() => {
   if (!normalizedOptions.value.length) return [];
-  // 如果当前不是过滤模式（即刚打开），显示完整列表
+  // Если фильтрация не активна (список только открыт) — показываем всё
   if (!isFiltering.value) return normalizedOptions.value;
 
   const search = String(props.modelValue).toLowerCase().trim();
@@ -297,16 +297,16 @@ const filteredOptions = computed(() => {
 });
 
 const handleClear = (e: MouseEvent) => {
-  e.stopPropagation(); // 阻止冒泡，防止触发父级的点击事件导致下拉收起
+  e.stopPropagation(); // Останавливаем всплытие, чтобы клик не закрыл список
   emit("update:modelValue", "");
-  isFiltering.value = true; // 清空也视为一种过滤操作，显示全部
-  // 点击清空时不收起下拉菜单
+  isFiltering.value = true; // Очистка считается фильтрацией — показываем все пункты
+  // При очистке список не закрывается
 };
 </script>
 
 <template>
   <div class="form-control w-full">
-    <!-- 顶部标签区域 -->
+    <!-- Область верхней метки -->
     <div v-if="label" class="label py-1">
       <span
         class="label-text font-medium flex items-center gap-0.5"
@@ -317,7 +317,7 @@ const handleClear = (e: MouseEvent) => {
       </span>
     </div>
 
-    <!-- 输入框包装器 -->
+    <!-- Обёртка поля ввода -->
     <div
       ref="dropdownRef"
       class="relative flex items-center group transition-all duration-150 ease-out border rounded-xl shadow-sm"
@@ -330,7 +330,7 @@ const handleClear = (e: MouseEvent) => {
           : 'hover:border-primary/40 hover:bg-white',
       ]"
     >
-      <!-- 前缀插槽 / 图标 -->
+      <!-- Префиксный слот / иконка -->
       <div
         v-if="$slots.leading || icon"
         class="absolute left-3 flex items-center justify-center pointer-events-none transition-colors duration-150"
@@ -357,7 +357,7 @@ const handleClear = (e: MouseEvent) => {
         </slot>
       </div>
 
-      <!-- 输入框主体 -->
+      <!-- Основное поле ввода -->
       <input
         :value="modelValue"
         :type="type"
@@ -378,13 +378,13 @@ const handleClear = (e: MouseEvent) => {
         @blur="emit('blur')"
       />
 
-      <!-- 清空按钮 (独立于操作区，在分割线左侧) -->
+      <!-- Кнопка очистки (отдельно от зоны действий, слева от разделителя) -->
       <button
         v-if="clearable && modelValue && !disabled && !readonly"
         type="button"
         class="absolute btn btn-ghost btn-circle btn-xs text-slate-400 hover:text-error hover:bg-error/10 transition-all duration-200 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
         :class="[hasActionArea ? 'right-11' : 'right-2.5']"
-        title="清空"
+        title="Очистить"
         @click="handleClear"
       >
         <svg
@@ -403,15 +403,15 @@ const handleClear = (e: MouseEvent) => {
         </svg>
       </button>
 
-      <!-- 后缀功能区 (带分割线) -->
+      <!-- Суффиксная зона действий (с разделителем) -->
       <div v-if="hasActionArea" class="absolute right-0 top-0 bottom-0 flex items-center pr-2">
-        <!-- 分割线 -->
+        <!-- Разделитель -->
         <div
           class="h-1/2 w-px bg-slate-200 mx-1 group-hover:bg-primary/20 group-focus-within:bg-primary/30 transition-colors"
         ></div>
 
         <div class="flex items-center gap-1">
-          <!-- 下拉按钮 (模拟 Select) -->
+          <!-- Кнопка выпадающего списка (имитация Select) -->
           <button
             v-if="showDropdown"
             type="button"
@@ -435,7 +435,7 @@ const handleClear = (e: MouseEvent) => {
             </svg>
           </button>
 
-          <!-- 自定义后缀插槽 / 图标 -->
+          <!-- Пользовательский суффиксный слот / иконка -->
           <div
             v-if="$slots.trailing || trailingIcon"
             class="flex items-center justify-center transition-colors px-1"
@@ -462,7 +462,7 @@ const handleClear = (e: MouseEvent) => {
         </div>
       </div>
 
-      <!-- 下拉面板 (使用 Teleport 实现 Portal 功能，解决父级 overflow 遮挡问题) -->
+      <!-- Панель списка (Teleport как Portal — решает проблему overflow родителя) -->
       <Teleport to="body">
         <div
           v-if="showDropdown && dropdownOpen && isPositioned"
@@ -470,14 +470,14 @@ const handleClear = (e: MouseEvent) => {
           class="bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-300 origin-top"
           @click.stop
         >
-          <!-- Loading 遮罩层 (居中动画 + 毛玻璃) -->
+          <!-- Оверлей загрузки (центрированная анимация + размытие) -->
           <div
             v-if="loading"
             class="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[2px] transition-all duration-300"
           >
             <div class="flex flex-col items-center gap-2">
               <span class="loading loading-spinner loading-md text-primary"></span>
-              <span class="text-[10px] text-slate-500 font-medium">加载中...</span>
+              <span class="text-[10px] text-slate-500 font-medium">Загрузка...</span>
             </div>
           </div>
 
@@ -485,7 +485,7 @@ const handleClear = (e: MouseEvent) => {
             v-if="!showAddOption && (!filteredOptions || filteredOptions.length === 0)"
             class="px-4 py-6 text-center"
           >
-            <p class="text-slate-400 text-xs">暂无匹配数据</p>
+            <p class="text-slate-400 text-xs">Нет совпадений</p>
           </div>
 
           <ul
@@ -503,13 +503,13 @@ const handleClear = (e: MouseEvent) => {
                   {{ addOptionValue }}
                 </span>
                 <span class="w-24 shrink-0 text-right text-xs text-slate-400">
-                  {{ addOptionHint || "点击以添加id" }}
+                  {{ addOptionHint || "Нажмите, чтобы добавить ID" }}
                 </span>
               </button>
             </li>
 
             <li v-if="filteredOptions.length === 0 && !showAddOption" class="px-4 py-6 text-center">
-              <p class="text-slate-400 text-xs">暂无匹配数据</p>
+              <p class="text-slate-400 text-xs">Нет совпадений</p>
             </li>
 
             <li v-for="opt in filteredOptions" :key="`${opt.value}:${opt.tag || 'api'}`">
@@ -557,7 +557,7 @@ const handleClear = (e: MouseEvent) => {
       </Teleport>
     </div>
 
-    <!-- 底部描述/错误信息 -->
+    <!-- Описание / сообщение об ошибке -->
     <div v-if="description || error" class="label py-1 min-h-[24px]">
       <span
         class="label-text-alt transition-all duration-300 ease-out flex items-center gap-1"

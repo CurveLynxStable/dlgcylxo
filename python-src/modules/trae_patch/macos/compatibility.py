@@ -145,21 +145,21 @@ def _read_c_string(data: bytes, offset: int, size: int) -> str:
 
 def parse_macho_layout(data: bytes) -> MachOLayout:
     if len(data) < MACHO_HEADER_SIZE:
-        raise ValueError("Mach-O 文件过小")
+        raise ValueError("Файл Mach-O слишком мал")
     magic, cpu_type, _cpu_subtype, _file_type, command_count, _command_size, _flags, _reserved = (
         struct.unpack_from("<IIIIIIII", data, 0)
     )
     if magic != MACHO_MAGIC_64_LE:
-        raise ValueError(f"不支持的 Mach-O magic: {hex(magic)}")
+        raise ValueError(f"Неподдерживаемый Mach-O magic: {hex(magic)}")
 
     sections: list[MachOSection] = []
     offset = MACHO_HEADER_SIZE
     for _index in range(command_count):
         if offset + MACHO_LOAD_COMMAND_HEADER_SIZE > len(data):
-            raise ValueError("Mach-O load command 越界")
+            raise ValueError("Mach-O load command выходит за границы")
         command, command_size = struct.unpack_from("<II", data, offset)
         if command_size < MACHO_LOAD_COMMAND_HEADER_SIZE or offset + command_size > len(data):
-            raise ValueError("Mach-O load command size 异常")
+            raise ValueError("Некорректный размер Mach-O load command")
         if command == LC_SEGMENT_64:
             segment = _read_c_string(data, offset + 8, 16)
             section_count = struct.unpack_from("<I", data, offset + 64)[0]
@@ -167,7 +167,7 @@ def parse_macho_layout(data: bytes) -> MachOLayout:
             for section_index in range(section_count):
                 item_offset = section_offset + section_index * 80
                 if item_offset + 80 > offset + command_size:
-                    raise ValueError("Mach-O section 越界")
+                    raise ValueError("Mach-O section выходит за границы")
                 section = _read_c_string(data, item_offset, 16)
                 section_segment = _read_c_string(data, item_offset + 16, 16) or segment
                 address, size = struct.unpack_from("<QQ", data, item_offset + 32)
@@ -389,22 +389,22 @@ def diagnose_lldb_attach_failure(
         signals.append("debugserver_attach_denied")
 
     reason = "attach_diagnostics_collected"
-    hint = "已采集 LLDB attach 失败诊断。"
+    hint = "Собрана диагностика сбоя LLDB attach."
     if (
         "task_for_pid_denied" in signals
         and "target_hardened_runtime_without_get_task_allow" in signals
     ):
         reason = "likely_hardened_runtime_attach_denied"
         hint = (
-            "目标进程启用了 hardened runtime 且未授予 get-task-allow，"
-            "debugserver/task_for_pid 很可能被 macOS 直接拒绝。"
+            "Целевой процесс использует hardened runtime без get-task-allow, "
+            "debugserver/task_for_pid скорее всего отклонён macOS напрямую."
         )
     elif "task_for_pid_denied" in signals and "developer_mode_disabled" in signals:
         reason = "likely_developer_mode_disabled"
-        hint = "本机 Developer Mode 处于 disabled，先启用后再重试 LLDB attach。"
+        hint = "Developer Mode на этой машине отключён; включите его и повторите LLDB attach."
     elif "task_for_pid_denied" in signals or "debugserver_attach_denied" in signals:
         reason = "attach_denied_by_macos"
-        hint = "macOS 已拒绝本次 debugserver/task_for_pid attach 请求。"
+        hint = "macOS отклонила этот запрос attach debugserver/task_for_pid."
 
     return {
         "reason": reason,

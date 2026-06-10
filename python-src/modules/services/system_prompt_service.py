@@ -43,7 +43,7 @@ def _empty_data() -> SystemPromptData:
 
 
 class SystemPromptStore:
-    """系统提示词持久化与增量覆盖管理。"""
+    """Хранение системных промптов и управление инкрементными переопределениями."""
 
     def __init__(self, resource_manager: ResourceManager) -> None:
         self._path = Path(resource_manager.user_data_dir) / SYSTEM_PROMPTS_FILE_NAME
@@ -75,7 +75,8 @@ class SystemPromptStore:
         self,
         entries: list[tuple[str, str]],
     ) -> tuple[list[str], dict[str, str]]:
-        """写入新增 hash，并返回存在增量修改的 hash -> edited_text 映射。"""
+        """Записывает новые hash и возвращает отображение hash -> edited_text для изменённых
+        записей."""
         if not entries:
             return [], {}
 
@@ -127,7 +128,7 @@ class SystemPromptStore:
     ) -> OperationResult:
         normalized_hash = hash_value.strip()
         if not normalized_hash:
-            return OperationResult.failure("hash 不能为空")
+            return OperationResult.failure("hash не может быть пустым")
 
         with self._lock:
             data = self._load_unlocked()
@@ -138,7 +139,7 @@ class SystemPromptStore:
                     target_index = index
 
             if target_index < 0:
-                return OperationResult.failure("未找到对应的系统提示词")
+                return OperationResult.failure("Соответствующий системный промпт не найден")
 
             now = _now_iso()
             current_item = items[target_index]
@@ -161,13 +162,13 @@ class SystemPromptStore:
             self._save_unlocked(data)
 
             return OperationResult.success(
-                "系统提示词增量已更新",
+                "Инкремент системного промпта обновлён",
                 item=self._normalize_item(item),
             )
 
     def delete_items(self, hashes: list[str]) -> OperationResult:
         if not hashes:
-            return OperationResult.failure("至少提供一条待删除记录")
+            return OperationResult.failure("Укажите хотя бы одну запись для удаления")
 
         normalized_hashes: list[str] = []
         seen_hashes: set[str] = set()
@@ -179,7 +180,7 @@ class SystemPromptStore:
             normalized_hashes.append(hash_value)
 
         if not normalized_hashes:
-            return OperationResult.failure("至少提供一条有效 hash")
+            return OperationResult.failure("Укажите хотя бы один корректный hash")
 
         with self._lock:
             data = self._load_unlocked()
@@ -197,7 +198,7 @@ class SystemPromptStore:
             deleted_count = len(deleted_hashes)
             if deleted_count == 0:
                 return OperationResult.success(
-                    "未找到可删除的系统提示词",
+                    "Системные промпты для удаления не найдены",
                     requested_count=len(normalized_hashes),
                     deleted_count=0,
                     deleted_hashes=[],
@@ -208,7 +209,7 @@ class SystemPromptStore:
             self._save_unlocked(data)
 
             return OperationResult.success(
-                "系统提示词记录已删除",
+                "Записи системных промптов удалены",
                 requested_count=len(normalized_hashes),
                 deleted_count=deleted_count,
                 deleted_hashes=deleted_hashes,

@@ -27,15 +27,21 @@ class HostsTaskRunner:
 
     def modify_hosts(self, action: str = "add", *, block: bool = False) -> str | None:
         def task() -> None:
-            action_names = {"add": "修改", "remove": "移除", "backup": "备份", "restore": "还原"}
+            action_names = {
+                "add": "изменение",
+                "remove": "удаление записей",
+                "backup": "резервное копирование",
+                "restore": "восстановление",
+            }
             action_name = action_names.get(action, action)
-            self._log(f"开始{action_name} hosts文件...")
+            self._log(f"Начинаем операцию с файлом hosts: {action_name}...")
             ip_tuple: tuple[str, str] = ("127.0.0.1", "::1")
             result = self._modify_hosts_file(action=action, ip=ip_tuple, log_func=self._log)
             if result.ok:
-                self._log(f"✅ hosts文件{action_name}完成")
+                self._log(f"✅ Операция с файлом hosts завершена: {action_name}")
             else:
-                message = describe_result(result, f"hosts文件{action_name}失败")
+                message = describe_result(result, f"Операция с файлом hosts не удалась: "
+                    f"{action_name}")
                 self._log(f"❌ {message}")
 
         if block:
@@ -54,12 +60,12 @@ class HostsTaskRunner:
 
     def open_hosts(self) -> None:
         def task() -> None:
-            self._log("正在打开hosts文件...")
+            self._log("Открываем файл hosts...")
             result = self._open_hosts_file(log_func=self._log)
             if result.ok:
-                self._log("✅ hosts文件已打开")
+                self._log("✅ Файл hosts открыт")
             else:
-                message = describe_result(result, "打开hosts文件失败")
+                message = describe_result(result, "Не удалось открыть файл hosts")
                 self._log(f"❌ {message}")
 
         self._thread_manager.run("hosts_open", task)

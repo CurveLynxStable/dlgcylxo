@@ -37,24 +37,24 @@ def register_hosts_commands(commands: Commands) -> None:
                 ip=ip,
                 log_func=log_func,
             )
-            return build_result_payload(result, logs, "hosts 修改完成")
+            return build_result_payload(result, logs, "Изменение hosts завершено")
         if mode == "remove":
             result = remove_hosts_entry_result(
                 domain=domain_value,
                 ip=ip,
                 log_func=log_func,
             )
-            return build_result_payload(result, logs, "hosts 删除完成")
+            return build_result_payload(result, logs, "Удаление записей hosts завершено")
         if mode == "backup":
             result = backup_hosts_file_result(log_func=log_func)
-            return build_result_payload(result, logs, "hosts 备份完成")
+            return build_result_payload(result, logs, "Резервное копирование hosts завершено")
         if mode == "restore":
             result = restore_hosts_file_result(log_func=log_func)
-            return build_result_payload(result, logs, "hosts 还原完成")
+            return build_result_payload(result, logs, "Восстановление hosts завершено")
 
         return {
             "ok": False,
-            "message": f"不支持的 hosts 操作: {mode}",
+            "message": f"Неподдерживаемая операция hosts: {mode}",
             "code": None,
             "details": {},
             "logs": logs,
@@ -64,6 +64,6 @@ def register_hosts_commands(commands: Commands) -> None:
     async def hosts_open() -> dict[str, Any]:
         logs, log_func = collect_logs()
         result = open_hosts_file_result(log_func=log_func)
-        return build_result_payload(result, logs, "hosts 打开完成")
+        return build_result_payload(result, logs, "Открытие hosts завершено")
 
     _ = (hosts_modify, hosts_open)

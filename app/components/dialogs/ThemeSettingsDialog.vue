@@ -79,12 +79,12 @@ const dedupeAndSortFontFamilies = (value: string[]) => {
 
 const fontInputDescription = computed(() => {
   if (fontListLoading.value) {
-    return "正在读取系统字体列表...";
+    return "Чтение списка системных шрифтов...";
   }
   if (fontFamilies.value.length === 0) {
-    return "未读取到系统字体，可手动输入并保存（不做系统校验）";
+    return "Системные шрифты не прочитаны; можно ввести вручную и сохранить (без системной проверки)";
   }
-  return `共 ${fontFamilies.value.length} 个系统字体，可输入关键字过滤`;
+  return `Системных шрифтов: ${fontFamilies.value.length}; введите ключевое слово для фильтрации`;
 });
 
 const findMatchedSystemFont = (value: string) => {
@@ -168,7 +168,7 @@ const buildThemeConfigForSave = (): { payload: ThemeConfig | null; error: string
     if (!parsed) {
       return {
         payload: null,
-        error: `${field.label} 必须是 6 位或 8 位十六进制颜色值`,
+        error: `${field.label} должен быть 6- или 8-значным шестнадцатеричным значением цвета`,
       };
     }
     payload[key] = parsed;
@@ -203,7 +203,7 @@ const onThemeColorInputBlur = (key: ThemeColorKey) => {
     themeError.value = "";
     return;
   }
-  themeError.value = `${getFieldLabel(key)} 必须是 6 位或 8 位十六进制颜色值`;
+  themeError.value = `${getFieldLabel(key)} должен быть 6- или 8-значным шестнадцатеричным значением цвета`;
 };
 
 const onThemeColorPickerInput = (key: ThemeColorKey, event: Event) => {
@@ -262,7 +262,7 @@ const handleSave = async () => {
     if (fontFamilies.value.length > 0) {
       const matched = findMatchedSystemFont(normalizedFont);
       if (!matched) {
-        themeError.value = "字体必须从系统字体列表中选择";
+        themeError.value = "Шрифт нужно выбрать из списка системных шрифтов";
         return;
       }
       themeDraft.fontFamily = matched;
@@ -307,11 +307,11 @@ const handleBackgroundFileChange = (event: Event) => {
     return;
   }
   if (!file.type.startsWith("image/")) {
-    themeError.value = "仅支持图片文件";
+    themeError.value = "Поддерживаются только файлы изображений";
     return;
   }
   if (file.size > MAX_BACKGROUND_SIZE) {
-    themeError.value = "背景图片不能超过 2MB";
+    themeError.value = "Фоновое изображение не должно превышать 2 МБ";
     return;
   }
   const reader = new FileReader();
@@ -322,7 +322,7 @@ const handleBackgroundFileChange = (event: Event) => {
     }
   };
   reader.onerror = () => {
-    themeError.value = "读取背景图片失败，请重试";
+    themeError.value = "Не удалось прочитать фоновое изображение, попробуйте ещё раз";
   };
   reader.readAsDataURL(file);
 };
@@ -333,14 +333,16 @@ const handleBackgroundFileChange = (event: Event) => {
     <template #header>
       <div class="flex items-start justify-between gap-3">
         <div class="space-y-1">
-          <h3 class="text-lg font-semibold text-slate-900">主题配置</h3>
-          <p class="text-xs text-slate-500">保存后会立即应用到当前界面，并持久化到本地。</p>
+          <h3 class="text-lg font-semibold text-slate-900">Настройка темы</h3>
+          <p class="text-xs text-slate-500">
+            После сохранения сразу применяется к интерфейсу и сохраняется локально.
+          </p>
         </div>
         <button
           class="btn btn-xs h-7 rounded-lg border-slate-200 bg-white px-3 font-medium text-slate-600 hover:border-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all"
           @click="handleReset"
         >
-          重置
+          Сбросить
         </button>
       </div>
     </template>
@@ -352,7 +354,7 @@ const handleBackgroundFileChange = (event: Event) => {
           :key="field.key"
           class="group flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/50 p-2 transition-all hover:border-amber-200 hover:bg-white hover:shadow-sm"
         >
-          <!-- 标签 -->
+          <!-- Метка -->
           <span
             class="text-sm font-semibold text-slate-500 min-w-[80px] pl-1 group-hover:text-amber-600 transition-colors"
           >
@@ -360,7 +362,7 @@ const handleBackgroundFileChange = (event: Event) => {
           </span>
 
           <div class="flex flex-1 items-center justify-end gap-2">
-            <!-- 颜色预览和选择器 -->
+            <!-- Предпросмотр и выбор цвета -->
             <div
               class="relative h-7 w-9 shrink-0 overflow-hidden rounded-md border border-slate-200 shadow-sm transition-transform active:scale-95"
             >
@@ -376,7 +378,7 @@ const handleBackgroundFileChange = (event: Event) => {
               ></div>
             </div>
 
-            <!-- 十六进制输入框 -->
+            <!-- Поле ввода hex-значения -->
             <MtgaInput
               v-model="colorInput[field.key]"
               class="w-22! shrink-0"
@@ -393,7 +395,7 @@ const handleBackgroundFileChange = (event: Event) => {
       <div
         class="rounded-2xl border border-slate-200/60 bg-white/50 p-4 transition-all hover:border-amber-200 hover:bg-white hover:shadow-sm"
       >
-        <label class="mb-2 block text-sm font-semibold text-slate-500">字体</label>
+        <label class="mb-2 block text-sm font-semibold text-slate-500">Шрифт</label>
         <MtgaInput
           v-model="themeDraft.fontFamily"
           class="w-full"
@@ -401,7 +403,7 @@ const handleBackgroundFileChange = (event: Event) => {
           :options="fontFamilies"
           :show-dropdown="fontFamilies.length > 0"
           :loading="fontListLoading"
-          placeholder="输入关键词过滤系统字体；留空跟随系统默认"
+          placeholder="Введите ключевое слово для фильтрации; оставьте пустым для системного шрифта"
           :description="fontInputDescription"
           description-class="text-sm"
           @dropdown="void loadSystemFontFamilies()"
@@ -413,21 +415,21 @@ const handleBackgroundFileChange = (event: Event) => {
       >
         <div class="flex items-center justify-between gap-3">
           <div>
-            <div class="text-sm font-semibold text-slate-500">背景</div>
+            <div class="text-sm font-semibold text-slate-500">Фон</div>
           </div>
           <div class="flex items-center gap-2">
             <button
               class="btn btn-xs h-7 rounded-lg border-slate-200 bg-white px-3 font-medium text-slate-600 hover:border-amber-500 hover:bg-amber-50 hover:text-amber-600 transition-all"
               @click="openBackgroundPicker"
             >
-              上传图片
+              Загрузить изображение
             </button>
             <button
               class="btn btn-xs h-7 rounded-lg border-slate-200 bg-white px-3 font-medium text-slate-600 hover:border-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all"
               :disabled="!themeDraft.backgroundImage"
               @click="clearBackground"
             >
-              清除
+              Убрать
             </button>
           </div>
         </div>
@@ -446,11 +448,11 @@ const handleBackgroundFileChange = (event: Event) => {
           <img
             v-if="themeDraft.backgroundImage"
             :src="themeDraft.backgroundImage"
-            alt="背景预览"
+            alt="Предпросмотр фона"
             class="h-full w-full object-cover"
           />
           <div v-else class="flex h-full items-center justify-center text-xs text-slate-400">
-            未设置背景图片，将使用默认渐变背景
+            Фоновое изображение не задано — будет использован градиент по умолчанию
           </div>
         </div>
       </div>
@@ -464,8 +466,8 @@ const handleBackgroundFileChange = (event: Event) => {
     </div>
 
     <template #footer>
-      <button class="mtga-btn-dialog-ghost flex-1" @click="handleCancel">取消</button>
-      <button class="mtga-btn-dialog-primary flex-1" @click="handleSave">保存</button>
+      <button class="mtga-btn-dialog-ghost flex-1" @click="handleCancel">Отмена</button>
+      <button class="mtga-btn-dialog-primary flex-1" @click="handleSave">Сохранить</button>
     </template>
   </MtgaDialog>
 </template>

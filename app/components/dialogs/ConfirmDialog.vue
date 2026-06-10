@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 通用确认对话框（支持可选输入框）
+ * Общий диалог подтверждения (с опциональным полем ввода)
  */
 const props = withDefaults(
   defineProps<{
@@ -19,8 +19,8 @@ const props = withDefaults(
   }>(),
   {
     open: false,
-    title: "确认操作",
-    message: "请确认是否继续该操作。",
+    title: "Подтвердите действие",
+    message: "Подтвердите, что хотите продолжить.",
     type: "info",
     showInput: false,
     modelValue: "",
@@ -28,8 +28,8 @@ const props = withDefaults(
     placeholder: "",
     error: "",
     inputClass: "",
-    confirmText: "确认",
-    cancelText: "取消",
+    confirmText: "Подтвердить",
+    cancelText: "Отмена",
   },
 );
 

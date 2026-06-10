@@ -1,4 +1,4 @@
-"""封装 GitHub 最新版本查询与版本号比较逻辑。"""
+"""Обёртка над запросом последней версии с GitHub и логикой сравнения версий."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ class HtmlFontOptions:
 
 @dataclass(slots=True)
 class ReleaseInfo:
-    """GitHub 最新发行版的核心信息。"""
+    """Основная информация о последнем релизе GitHub."""
 
     version_label: str | None
     release_notes: str
@@ -46,12 +46,14 @@ def render_markdown_via_github_api(
     user_agent: str | None = None,
     font: HtmlFontOptions | None = None,
 ) -> str:
-    """调用 GitHub /markdown API 渲染 Markdown 为 HTML。
+    """Вызывает GitHub /markdown API для рендеринга Markdown в HTML.
 
-    说明：
-    - 该接口返回的是 HTML 片段；这里会包装成一个完整 HTML 文档，便于 GUI 直接 load_html。
-    - 可选注入仅与字体相关的最小 CSS（用于沿用 GUI 的全局字体设置）。
-    - 渲染失败时会降级为 <pre> 纯文本。
+    Примечания:
+    - API возвращает HTML-фрагмент; здесь он оборачивается в полный HTML-документ
+      для прямого load_html в GUI.
+    - Опционально внедряется минимальный CSS только для шрифтов
+      (чтобы использовать глобальные настройки шрифта GUI).
+    - При сбое рендеринга выполняется откат к простому тексту в <pre>.
     """
     safe_source = _replace_emoji_shortcodes_with_img(
         markdown_text or "",
@@ -125,7 +127,7 @@ def render_markdown_via_github_api(
 
 
 def _replace_g_emoji_with_img(rendered_html: str) -> str:
-    """将 GitHub 的 <g-emoji> 转为 <img>，避免字体缺失导致空白。"""
+    """Преобразует GitHub <g-emoji> в <img>, чтобы избежать пустых мест из-за отсутствия шрифта."""
 
     def _extract_attr(attrs: str, name: str) -> str | None:
         match = re.search(rf'{name}=(["\'])(?P<value>.*?)\1', attrs, re.IGNORECASE)
@@ -147,7 +149,7 @@ def _replace_g_emoji_with_img(rendered_html: str) -> str:
 
 
 def _style_emoji_images(rendered_html: str) -> str:
-    """为 emoji 图片补齐尺寸与对齐样式，保持与 GitHub 接近的显示效果。"""
+    """Добавляет emoji-изображениям размеры и выравнивание, приближая отображение к GitHub."""
 
     def _extract_attr(attrs: str, name: str) -> str | None:
         match = re.search(rf'{name}=(["\'])(?P<value>.*?)\1', attrs, re.IGNORECASE)
@@ -202,7 +204,7 @@ def _replace_emoji_shortcodes_with_img(
     timeout: int,
     user_agent: str | None,
 ) -> str:
-    """将 :shortcode: 替换为 <img>，避免 emoji 字体缺失。"""
+    """Заменяет :shortcode: на <img>, чтобы избежать отсутствия emoji-шрифта."""
     emoji_urls = _get_emoji_urls(timeout=timeout, user_agent=user_agent)
     if not emoji_urls:
         return markdown_text
@@ -242,7 +244,7 @@ def _get_emoji_urls(*, timeout: int, user_agent: str | None) -> dict[str, str]:
 
 
 def _normalize_version_tuple(version_text: str | None) -> tuple[int, ...]:
-    """Convert 版本字符串为整数元组，便于比较。"""
+    """Преобразует строку версии в кортеж целых чисел для сравнения."""
     if not version_text:
         return ()
     match = _SEMVER_PATTERN.search(version_text.strip())
@@ -259,7 +261,7 @@ def _normalize_version_tuple(version_text: str | None) -> tuple[int, ...]:
 
 
 def _parse_prerelease(version_text: str | None) -> tuple[int | str, ...] | None:
-    """解析 semver 的 prerelease 标识，返回用于比较的 token 列表。"""
+    """Разбирает prerelease-идентификатор semver и возвращает список токенов для сравнения."""
     if not version_text:
         return None
     match = _SEMVER_PATTERN.search(version_text.strip())
@@ -282,7 +284,7 @@ def _compare_prerelease(
     remote_prerelease: tuple[int | str, ...],
     local_prerelease: tuple[int | str, ...],
 ) -> int:
-    """按 SemVer 规则比较 prerelease，返回 1/0/-1。"""
+    """Сравнивает prerelease по правилам SemVer, возвращает 1/0/-1."""
     for remote_token, local_token in zip(remote_prerelease, local_prerelease, strict=False):
         if remote_token == local_token:
             continue
@@ -292,7 +294,7 @@ def _compare_prerelease(
         if remote_is_num and local_is_num:
             return 1 if remote_token > local_token else -1
         if remote_is_num != local_is_num:
-            # SemVer: 数字标识优先级低于非数字标识。
+            # SemVer: числовые идентификаторы имеют меньший приоритет, чем нечисловые.
             return -1 if remote_is_num else 1
 
         remote_text = str(remote_token)
@@ -305,7 +307,7 @@ def _compare_prerelease(
 
 
 def extract_version_label(text: str | None) -> str | None:
-    """从标题或标签中抓取形如 vX.Y.Z 的片段。"""
+    """Извлекает фрагмент вида vX.Y.Z из заголовка или тега."""
     if not text:
         return None
     match = _SEMVER_PATTERN.search(text.strip())
@@ -318,7 +320,7 @@ def extract_version_label(text: str | None) -> str | None:
 
 
 def is_remote_version_newer(remote_version: str | None, local_version: str | None) -> bool:
-    """比较远程与本地版本号，支持 prerelease（例如 -beta.1）。"""
+    """Сравнивает удалённую и локальную версии, поддерживает prerelease (например -beta.1)."""
     remote_tuple = _normalize_version_tuple(remote_version)
     local_tuple = _normalize_version_tuple(local_version)
     if not remote_tuple:
@@ -333,7 +335,7 @@ def is_remote_version_newer(remote_version: str | None, local_version: str | Non
 
     remote_prerelease = _parse_prerelease(remote_version)
     local_prerelease = _parse_prerelease(local_version)
-    # 同数字版本：正式版 > prerelease。
+    # При одинаковой числовой версии: релиз > prerelease.
     if remote_prerelease is None or local_prerelease is None:
         return remote_prerelease is None and local_prerelease is not None
     return _compare_prerelease(remote_prerelease, local_prerelease) > 0
@@ -346,9 +348,9 @@ def fetch_latest_release(
     user_agent: str | None = None,
     font: HtmlFontOptions | None = None,
 ) -> ReleaseInfo:
-    """从 GitHub API 获取 latest 发行版信息。"""
+    """Получает информацию о последнем релизе через GitHub API."""
     if not repo:
-        raise ValueError("repo 不能为空")
+        raise ValueError("repo не может быть пустым")
     api_url = f"https://api.github.com/repos/{repo}/releases/latest"
     headers = {"Accept": "application/vnd.github+json"}
     if user_agent:
@@ -356,7 +358,7 @@ def fetch_latest_release(
 
     response = requests.get(api_url, timeout=timeout, headers=headers)
     if response.status_code != requests.codes.ok:  # type: ignore[attr-defined]
-        raise RuntimeError(f"GitHub 返回 {response.status_code}")
+        raise RuntimeError(f"GitHub вернул {response.status_code}")
 
     data = response.json()
     version_label = extract_version_label(data.get("name")) or extract_version_label(

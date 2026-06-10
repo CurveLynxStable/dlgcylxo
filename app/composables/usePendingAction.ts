@@ -1,6 +1,6 @@
 /**
- * 通用异步动作 pending 管理。
- * 同一时间只允许一个动作执行，用于按钮 loading / disabled 状态控制。
+ * Общее управление pending-состоянием асинхронных действий.
+ * Одновременно выполняется только одно действие — для состояний loading / disabled кнопок.
  */
 export const usePendingAction = <T extends string>() => {
   const runningAction = ref<T | null>(null);

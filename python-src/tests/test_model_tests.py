@@ -94,7 +94,7 @@ class GenerationTestViaMLiteLLMTests(unittest.TestCase):
                     },
                 )
                 self.assertTrue(any(f"provider={provider}" in item for item in logs))
-                self.assertTrue(any("✅ 模型测活成功" in item for item in logs))
+                self.assertTrue(any("✅ Проверка модели успешна" in item for item in logs))
                 adapter.close.assert_called_once()
 
     def test_gemini_generation_test_preserves_cached_model_discovery_strategy(self) -> None:
@@ -182,7 +182,7 @@ class ModelDiscoveryTests(unittest.TestCase):
             },
             timeout=10,
         )
-        self.assertTrue(any("✅ 模型列表获取成功" in item for item in logs))
+        self.assertTrue(any("✅ Список моделей успешно получен" in item for item in logs))
 
     def test_fetch_model_list_falls_back_to_gemini_native_bearer(self) -> None:
         logs: list[str] = []
@@ -233,7 +233,9 @@ class ModelDiscoveryTests(unittest.TestCase):
             second_call.kwargs["headers"],
             {"Authorization": "Bearer test-key"},
         )
-        self.assertTrue(any("尝试降级到下一种模型发现策略" in item for item in logs))
+        self.assertTrue(
+            any("переходим к следующей стратегии обнаружения моделей" in item for item in logs)
+        )
 
     def test_fetch_model_list_continues_after_timeout_to_next_strategy(self) -> None:
         logs: list[str] = []
@@ -259,8 +261,10 @@ class ModelDiscoveryTests(unittest.TestCase):
         self.assertTrue(result.ok)
         self.assertEqual(result.strategy_id, GEMINI_NATIVE_BEARER_MODEL_DISCOVERY)
         self.assertEqual(get_mock.call_count, 2)
-        self.assertTrue(any("模型列表获取超时" in item for item in logs))
-        self.assertTrue(any("尝试降级到下一种模型发现策略" in item for item in logs))
+        self.assertTrue(any("Тайм-аут получения списка моделей" in item for item in logs))
+        self.assertTrue(
+            any("переходим к следующей стратегии обнаружения моделей" in item for item in logs)
+        )
 
     def test_fetch_model_list_continues_after_connection_error_to_next_strategy(self) -> None:
         logs: list[str] = []
@@ -286,8 +290,10 @@ class ModelDiscoveryTests(unittest.TestCase):
         self.assertTrue(result.ok)
         self.assertEqual(result.strategy_id, GEMINI_NATIVE_BEARER_MODEL_DISCOVERY)
         self.assertEqual(get_mock.call_count, 2)
-        self.assertTrue(any("模型列表获取网络错误" in item for item in logs))
-        self.assertTrue(any("尝试降级到下一种模型发现策略" in item for item in logs))
+        self.assertTrue(any("Сетевая ошибка получения списка моделей" in item for item in logs))
+        self.assertTrue(
+            any("переходим к следующей стратегии обнаружения моделей" in item for item in logs)
+        )
 
     def test_fetch_model_list_uses_gemini_v1beta_default_when_middle_route_missing(self) -> None:
         logs: list[str] = []
@@ -364,7 +370,9 @@ class ModelDiscoveryTests(unittest.TestCase):
             get_mock.call_args_list[2].args[0],
             "https://provider.example.com/v1/models",
         )
-        self.assertTrue(any("尝试降级到下一种模型发现策略" in item for item in logs))
+        self.assertTrue(
+            any("переходим к следующей стратегии обнаружения моделей" in item for item in logs)
+        )
 
     def test_fetch_model_list_gemini_openai_fallback_uses_v1_when_middle_route_is_v1beta(
         self,
@@ -542,7 +550,12 @@ class ModelDiscoveryTests(unittest.TestCase):
             headers={"Authorization": "Bearer test-key"},
             timeout=10,
         )
-        self.assertTrue(any("优先使用缓存模型发现策略" in item for item in logs))
+        self.assertTrue(
+            any(
+                "Сначала используем кэшированную стратегию обнаружения моделей" in item
+                for item in logs
+            )
+        )
 
     def test_fetch_model_list_continues_after_5xx_to_openai_compatible(self) -> None:
         logs: list[str] = []
@@ -587,6 +600,6 @@ class ModelDiscoveryTests(unittest.TestCase):
             {"Authorization": "Bearer test-key"},
         )
         self.assertGreaterEqual(
-            sum("尝试降级到下一种模型发现策略" in item for item in logs),
+            sum("переходим к следующей стратегии обнаружения моделей" in item for item in logs),
             2,
         )

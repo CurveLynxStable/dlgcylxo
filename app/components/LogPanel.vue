@@ -6,7 +6,7 @@ const props = withDefaults(
   }>(),
   {
     logs: () => [],
-    emptyText: "日志输出占位",
+    emptyText: "Здесь будут логи",
   },
 );
 
@@ -96,8 +96,8 @@ watch(
 <template>
   <div class="flex items-center justify-between gap-3 shrink-0">
     <div>
-      <h2 class="mtga-card-title">运行日志</h2>
-      <p class="mtga-card-subtitle">实时记录后端与操作状态</p>
+      <h2 class="mtga-card-title">Журнал работы</h2>
+      <p class="mtga-card-subtitle">Состояние бэкенда и операций в реальном времени</p>
     </div>
     <div class="flex items-center gap-2">
       <button
@@ -105,9 +105,9 @@ watch(
         :disabled="logCount === 0"
         @click="requestClearLogs"
       >
-        清空
+        Очистить
       </button>
-      <span class="text-xs text-slate-500">共 {{ logCount }} 条</span>
+      <span class="text-xs text-slate-500">Всего: {{ logCount }}</span>
     </div>
   </div>
   <div
@@ -119,10 +119,10 @@ watch(
 
   <ConfirmDialog
     :open="clearConfirmOpen"
-    title="确认清空日志"
-    message="确定要清空当前日志吗？"
+    title="Подтвердите очистку логов"
+    message="Очистить текущие логи?"
     type="error"
-    confirm-text="清空"
+    confirm-text="Очистить"
     @cancel="cancelClearLogs"
     @confirm="confirmClearLogs"
   />

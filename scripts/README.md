@@ -1,42 +1,42 @@
-# scripts 目录说明
+# Описание каталога scripts
 
-此目录用于仓库维护流程脚本，不面向普通最终用户。
+Каталог скриптов сопровождения репозитория; не предназначен для обычных конечных пользователей.
 
-## 前置依赖
+## Предварительные требования
 
-- Node.js 版本需满足仓库要求（见根目录 `package.json` 的 `engines.node`）。
-- 已安装 `pnpm`。
-- 使用 `gitflow.mjs` 时需安装 [git-flow-next](https://github.com/gittower/git-flow-next) 且 `git-flow` 在 `PATH` 中可用。
-- 使用 `ci-gate.mjs` 的 `py` 目标时需安装 `uv`。
-- 使用 `rs-check.mjs` 时需安装 Rust 工具链（`cargo`）。
+- Версия Node.js должна удовлетворять требованиям репозитория (см. `engines.node` в корневом `package.json`).
+- Установлен `pnpm`.
+- Для `gitflow.mjs` нужен установленный [git-flow-next](https://github.com/gittower/git-flow-next), а `git-flow` должен быть доступен в `PATH`.
+- Для цели `py` в `ci-gate.mjs` нужен `uv`.
+- Для `rs-check.mjs` нужен тулчейн Rust (`cargo`).
 
-## 当前脚本清单
+## Текущий список скриптов
 
 - `ci-gate.mjs`
-  - 统一质量检查入口，支持目标：`app`、`py`、`rs`、`all`。
-  - `app`：执行 `postinstall`、`prettier --check`、`eslint`、`vue-tsc`。
-  - `py`：在 `python-src` 下执行 `uv run pyright` 与 `uv run ruff check .`。
-  - `rs`：调用 `node ./scripts/rs-check.mjs gate`。
+  - Единая точка входа проверок качества, цели: `app`, `py`, `rs`, `all`.
+  - `app`: выполняет `postinstall`, `prettier --check`, `eslint`, `vue-tsc`.
+  - `py`: в `python-src` выполняет `uv run pyright` и `uv run ruff check .`.
+  - `rs`: вызывает `node ./scripts/rs-check.mjs gate`.
 - `gitflow.mjs`
-  - `setup`：清理本地 `gitflow.*` 配置，重新 `git-flow init`，并配置 release 默认打 tag。
-  - `finish`：在 `release/<version>` 分支执行发布收尾，包含工作区、版本、tag 冲突检查，完成后推送分支与 tag，并切回开发分支。
-  - `finish` 参数：
-    - `-v, --version`（兼容 `--Version`）
-    - `-r, --remote`（兼容 `--Remote`）
-    - `-m, --main-branch`（兼容 `--MainBranch`）
-    - `-d, --dev-branch`（兼容 `--DevBranch`）
+  - `setup`: очищает локальную конфигурацию `gitflow.*`, заново выполняет `git-flow init` и настраивает создание tag для release по умолчанию.
+  - `finish`: завершает релиз на ветке `release/<version>`: проверяет рабочую копию, версию и конфликты tag, после завершения пушит ветки и tag и возвращается на ветку разработки.
+  - Параметры `finish`:
+    - `-v, --version` (совместимо с `--Version`)
+    - `-r, --remote` (совместимо с `--Remote`)
+    - `-m, --main-branch` (совместимо с `--MainBranch`)
+    - `-d, --dev-branch` (совместимо с `--DevBranch`)
 - `prettier-check-locations.mjs`
-  - 定位 Prettier 不一致位置，按 `file:line:column: message` 输出，便于编辑器问题匹配器跳转。
+  - Находит места несоответствий Prettier и выводит их в формате `file:line:column: message` для перехода через problem matcher редактора.
 - `prune-pyembed.mjs`
-  - 裁剪 `src-tauri/pyembed/python` 内确定无运行时用途的内容。
-  - 当前会清理：`pip`、CLI 包装脚本、`ensurepip`、`idlelib`、`tkinter/tcl`、`turtledemo`、`__pycache__`、`.pyc/.pyo`、以及 `modules/resources/openssl`。
-  - 支持 `--dry-run` 仅预览待删除项，不写入文件。
+  - Удаляет из `src-tauri/pyembed/python` содержимое, заведомо не нужное во время выполнения.
+  - Сейчас удаляются: `pip`, CLI-обёртки, `ensurepip`, `idlelib`, `tkinter/tcl`, `turtledemo`, `__pycache__`, `.pyc/.pyo`, а также `modules/resources/openssl`.
+  - Поддерживает `--dry-run` — только предпросмотр удаляемого без записи в файлы.
 - `rs-check.mjs`
-  - Rust 检查入口，模式：`dev`（默认）与 `gate`。
-  - `dev`：要求本地 pyembed Python 存在，并设置 `PYO3_PYTHON` 后执行 `cargo fmt` + `cargo check -p mtga-tauri`。
-  - `gate`：执行 `cargo fmt --check` + `cargo check -p mtga-tauri`，并准备 `src-tauri/pyembed/python` 目录。
+  - Точка входа проверок Rust, режимы: `dev` (по умолчанию) и `gate`.
+  - `dev`: требует наличия локального pyembed Python, устанавливает `PYO3_PYTHON` и выполняет `cargo fmt` + `cargo check -p mtga-tauri`.
+  - `gate`: выполняет `cargo fmt --check` + `cargo check -p mtga-tauri` и подготавливает каталог `src-tauri/pyembed/python`.
 
-## package.json 对应入口
+## Соответствующие входные точки package.json
 
 - `pnpm gate -- <app|py|rs|all>`
 - `pnpm app:gate`
@@ -49,9 +49,9 @@
 - `pnpm release:push`
 - `pnpm release:push -- -v 2.0.0-beta.10 -r origin -m tauri -d dev`
 
-## 本地 Tauri 打包
+## Локальная сборка Tauri
 
 - `pnpm tauri:bundle:win`
 - `pnpm tauri:bundle:mac`
 
-以上本地 bundle 脚本会先执行 `pnpm pyembed:prune`，再进入 Tauri 构建；CI 使用的 `*:ci` 脚本当前不受影响。
+Перечисленные локальные bundle-скрипты сначала выполняют `pnpm pyembed:prune`, затем переходят к сборке Tauri; используемые в CI скрипты `*:ci` это не затрагивает.

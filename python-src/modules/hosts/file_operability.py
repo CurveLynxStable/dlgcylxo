@@ -1,7 +1,8 @@
 """
-文件可操作性检查（跨平台，Windows 优先）
+Проверка возможности операций с файлом (кроссплатформенная, в первую очередь Windows)
 
-用于在实际写入前尽量用“可断言的状态码”判断目标文件是否能被当前进程写入。
+Используется перед фактической записью, чтобы по возможности определить по
+«проверяемым кодам состояния», может ли текущий процесс записать в целевой файл.
 """
 
 from __future__ import annotations
@@ -54,7 +55,7 @@ class FileOperabilityReport:
 def _get_windows_file_attributes(
     file_path: str, log_func: LogFunc
 ) -> tuple[int | None, tuple[str, ...]]:
-    """读取 Windows 文件属性位并返回 (attrs, flags)。"""
+    """Читает биты атрибутов файла Windows и возвращает (attrs, flags)."""
     attrs = None
     attr_names: list[str] = []
     try:
@@ -70,12 +71,12 @@ def _get_windows_file_attributes(
             if attrs & flag:
                 attr_names.append(name)
     except OSError as e:
-        log_func(f"⚠️ 读取文件属性失败: {e}")
+        log_func(f"⚠️ Не удалось прочитать атрибуты файла: {e}")
     return attrs, tuple(attr_names)
 
 
 def _windows_probe_open(file_path: str, desired_access: int):
-    """用 CreateFileW 探测句柄是否能打开（不写入、不截断）。"""
+    """Через CreateFileW проверяет, можно ли открыть дескриптор (без записи и усечения)."""
     try:
         kernel32 = _CTYPES.WinDLL("kernel32", use_last_error=True)
     except Exception:
@@ -120,15 +121,16 @@ def _windows_probe_open(file_path: str, desired_access: int):
 
 def check_file_operability(file_path: str, *, log_func: LogFunc = print) -> FileOperabilityReport:
     """
-    检查指定文件在当前环境下是否“可操作”（尽量以可断言的状态码返回）。
+    Проверяет, «доступен ли для операций» указанный файл в текущем окружении
+    (по возможности возвращает проверяемый код состояния).
 
-    主要用于 hosts 文件写入前的预检查：
-    - 收集 is_admin / is_elevated / os.access(W_OK) / attrs 等上下文
-    - 用 WinAPI 探测能否以写入/追加权限打开句柄（非破坏性）
-    - 尝试在同目录创建临时文件（判断目录是否可写）
+    Главным образом используется для предварительной проверки перед записью в файл hosts:
+    - Собирает контекст is_admin / is_elevated / os.access(W_OK) / attrs и т.п.
+    - Через WinAPI проверяет, можно ли открыть дескриптор с правами записи/дозаписи (неразрушающе)
+    - Пытается создать временный файл в том же каталоге (проверка записи в каталог)
     """
     if not os.path.exists(file_path):
-        log_func(f"⚠️ 文件不存在: {file_path}")
+        log_func(f"⚠️ Файл не найден: {file_path}")
         return FileOperabilityReport(status=FileOperabilityStatus.FILE_NOT_FOUND)
 
     if not is_windows():
@@ -151,7 +153,7 @@ def check_file_operability(file_path: str, *, log_func: LogFunc = print) -> File
     attrs, attr_flags = _get_windows_file_attributes(file_path, log_func)
     flags_text = ",".join(attr_flags) if attr_flags else "none"
     log_func(
-        f"ℹ️ 写入前检查: is_admin={is_admin}, is_elevated={elevated}, "
+        f"ℹ️ Проверка перед записью: is_admin={is_admin}, is_elevated={elevated}, "
         f"os.access(W_OK)={writable}, attrs={attrs}, flags={flags_text}"
     )
 
@@ -202,13 +204,14 @@ def check_file_operability(file_path: str, *, log_func: LogFunc = print) -> File
 
 def ensure_windows_file_writable(file_path: str, *, log_func: LogFunc = print) -> None:
     """
-    尝试清理 Windows 文件的只读属性，避免因只读属性导致写入失败。
+    Пытается снять атрибут «только для чтения» у файла Windows,
+    чтобы избежать сбоя записи из-за него.
     """
     if os.name != "nt":
         return
     try:
         os.chmod(file_path, stat.S_IWRITE)
     except PermissionError as e:
-        log_func(f"⚠️ 无法移除文件只读属性: {e}")
+        log_func(f"⚠️ Не удалось снять атрибут «только для чтения»: {e}")
     except OSError as e:
-        log_func(f"⚠️ 调整文件权限时出错: {e}")
+        log_func(f"⚠️ Ошибка при изменении прав файла: {e}")

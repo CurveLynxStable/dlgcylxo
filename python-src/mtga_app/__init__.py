@@ -71,9 +71,9 @@ _install_bootstrap_excepthook()
 _boot_log("mtga_app init start")
 
 
-# 统一 .env 入口（显眼开关）
-# - MTGA_ENV_FILE=... 指定 env 文件路径（默认使用项目根 .env）
-# - 已存在的环境变量优先，不会被 .env 覆盖
+# Единая точка входа .env
+# - MTGA_ENV_FILE=... задаёт путь к env-файлу (по умолчанию .env в корне проекта)
+# - Существующие переменные окружения имеют приоритет и не перезаписываются из .env
 TAURI_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ENV_FILE = Path(os.environ.get("MTGA_ENV_FILE", str(TAURI_PROJECT_ROOT / ".env")))
 
@@ -125,11 +125,11 @@ def _load_tauri_config(path: Path) -> dict[str, Any] | None:
         return None
 
 
-# 当前仓库固定从 python-src/modules 导入 modules 包。
+# В текущем репозитории пакет modules всегда импортируется из python-src/modules.
 LOCAL_ROOT = Path(__file__).resolve().parent.parent
 LOCAL_MODULES = LOCAL_ROOT / "modules"
 if not LOCAL_MODULES.exists():
-    raise RuntimeError("未找到 python-src/modules")
+    raise RuntimeError("Не найден каталог python-src/modules")
 sys.path.insert(0, str(LOCAL_ROOT))
 
 try:
@@ -138,11 +138,11 @@ try:
     get_platform()
 except Exception as exc:
     _boot_log(f"Platform detection failed: {exc}")
-    _try_push_log(f"平台识别失败: {exc}")
+    _try_push_log(f"Не удалось определить платформу: {exc}")
     raise
 
 
-# 仓库根仍用于版本号读取。
+# Корень репозитория по-прежнему используется для чтения номера версии.
 REPO_ROOT = TAURI_PROJECT_ROOT
 
 from anyio import to_thread
@@ -317,12 +317,12 @@ def _browse_trae_path_sync(raw_path: str) -> str:
     try:
         selected = filedialog.askopenfilename(
             parent=root,
-            title="选择 Trae 应用或可执行文件",
+            title="Выберите приложение или исполняемый файл Trae",
             initialdir=initial_dir or None,
             initialfile=initial_file,
             filetypes=(
-                ("Trae 应用", "*.app *.exe"),
-                ("所有文件", "*"),
+                ("Приложение Trae", "*.app *.exe"),
+                ("Все файлы", "*"),
             ),
         )
     finally:
@@ -435,7 +435,7 @@ def main() -> int:
     builder_factory = pytauri_wheel_lib.builder_factory
     context_factory = pytauri_wheel_lib.context_factory
 
-    # 开发期：让 Tauri 加载 Nuxt dev server
+    # В режиме разработки: Tauri загружает Nuxt dev server
     dev_server = os.environ.get("DEV_SERVER")
     src_tauri_dir = os.environ.get("MTGA_SRC_TAURI_DIR")
     src_tauri_path = (
@@ -474,7 +474,7 @@ def main() -> int:
 
     with start_blocking_portal("asyncio") as portal:
         context = context_factory(
-            # ✅ v2：context 根通常用 src-tauri 目录
+            # ✅ v2: корнем context обычно служит каталог src-tauri
             src_tauri_path,
             tauri_config=tauri_config,
         )

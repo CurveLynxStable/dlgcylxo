@@ -37,14 +37,14 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
 };
 
 export const THEME_COLOR_FIELDS: Array<{ key: ThemeColorKey; label: string }> = [
-  { key: "primaryColor", label: "主要颜色" },
-  { key: "secondaryColor", label: "次要颜色" },
-  { key: "textPrimaryColor", label: "文本主要颜色" },
-  { key: "textSecondaryColor", label: "文本次要颜色" },
-  { key: "infoColor", label: "信息颜色" },
-  { key: "warningColor", label: "警告颜色" },
-  { key: "errorColor", label: "错误颜色" },
-  { key: "successColor", label: "成功颜色" },
+  { key: "primaryColor", label: "Основной цвет" },
+  { key: "secondaryColor", label: "Вторичный цвет" },
+  { key: "textPrimaryColor", label: "Цвет текста" },
+  { key: "textSecondaryColor", label: "Вторичный текст" },
+  { key: "infoColor", label: "Цвет инфо" },
+  { key: "warningColor", label: "Цвет предупреждения" },
+  { key: "errorColor", label: "Цвет ошибки" },
+  { key: "successColor", label: "Цвет успеха" },
 ];
 
 const HEX_COLOR_PATTERN = /^#([0-9A-F]{6}|[0-9A-F]{8})$/;
@@ -249,16 +249,19 @@ export const copyThemeConfig = (target: ThemeConfig, source: ThemeConfig) => {
 
 export const saveThemeToStorage = (theme: ThemeConfig) => {
   if (typeof window === "undefined") {
-    return { ok: false, error: "当前环境不支持本地存储" } as const;
+    return { ok: false, error: "Текущее окружение не поддерживает локальное хранилище" } as const;
   }
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(theme));
     return { ok: true } as const;
   } catch (error) {
     if (error instanceof DOMException && error.name === "QuotaExceededError") {
-      return { ok: false, error: "本地存储空间不足，请清理后重试" } as const;
+      return {
+        ok: false,
+        error: "Недостаточно места в локальном хранилище — очистите и повторите",
+      } as const;
     }
-    const message = error instanceof Error ? error.message : "未知错误";
+    const message = error instanceof Error ? error.message : "Неизвестная ошибка";
     return { ok: false, error: message } as const;
   }
 };

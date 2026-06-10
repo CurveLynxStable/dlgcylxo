@@ -47,17 +47,17 @@ def load_ca_info(
 ) -> dict[str, object] | None:
     path = resource_manager.get_ca_info_file()
     if not os.path.exists(path):
-        log_func(f"未找到 CA 元数据文件: {path}")
+        log_func(f"Файл метаданных CA не найден: {path}")
         return None
 
     try:
         with open(path, encoding="utf-8") as handle:
             payload = json.load(handle)
     except Exception as exc:  # noqa: BLE001
-        log_func(f"读取 CA 元数据失败: {exc}")
+        log_func(f"Не удалось прочитать метаданные CA: {exc}")
         return None
     if not isinstance(payload, dict):
-        log_func("CA 元数据格式无效：不是对象")
+        log_func("Некорректный формат метаданных CA: не является объектом")
         return None
     payload_dict = cast(dict[str, Any], payload)
 
@@ -65,7 +65,7 @@ def load_ca_info(
     not_after_unix = _to_unix_int(payload_dict.get("not_after_unix"))
 
     if not fingerprint or not_after_unix is None:
-        log_func("CA 元数据缺少指纹或到期时间")
+        log_func("В метаданных CA отсутствует отпечаток или срок действия")
         return None
 
     return build_ca_info(fingerprint, not_after_unix)
@@ -80,12 +80,12 @@ def save_ca_info(
 ) -> bool:
     normalized = normalize_fingerprint(fingerprint_sha1)
     if not normalized:
-        log_func("CA 元数据写入失败: 指纹为空")
+        log_func("Не удалось записать метаданные CA: пустой отпечаток")
         return False
 
     unix_value = _to_unix_int(not_after_unix)
     if unix_value is None:
-        log_func("CA 元数据写入失败: 到期时间为空")
+        log_func("Не удалось записать метаданные CA: пустой срок действия")
         return False
 
     path = resource_manager.get_ca_info_file()
@@ -96,10 +96,10 @@ def save_ca_info(
         with open(path, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, ensure_ascii=True, indent=2)
     except Exception as exc:  # noqa: BLE001
-        log_func(f"写入 CA 元数据失败: {exc}")
+        log_func(f"Не удалось записать метаданные CA: {exc}")
         return False
 
-    log_func(f"已写入 CA 元数据: {path}")
+    log_func(f"Метаданные CA записаны: {path}")
     return True
 
 
