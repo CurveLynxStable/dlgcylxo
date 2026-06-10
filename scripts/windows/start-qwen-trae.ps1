@@ -1,4 +1,4 @@
-# Быстрый запуск: FreeQwenApi + MTGA + Trae
+﻿# Быстрый запуск: FreeQwenApi + MTGA + Trae
 # Запуск: E:\AI\mtga\scripts\windows\start-qwen-trae.ps1
 
 $FqaDir  = "E:\AI\FreeQwenApi"
