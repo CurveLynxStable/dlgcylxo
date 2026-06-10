@@ -32,10 +32,20 @@ node -v
 if (-not ((node -v) -match '^v24\.')) {
     Write-Host "ВНИМАНИЕ: требуется Node 24.x, у вас $(node -v). Удалите старый Node и запустите скрипт снова." -ForegroundColor Yellow
 }
-if (Get-Command rustup -ErrorAction SilentlyContinue) {
-    rustup default stable | Out-Null
-    rustup update stable | Out-Null
+$cargoBin = Join-Path $env:USERPROFILE ".cargo\bin"
+if (Test-Path $cargoBin) { $env:Path += ";$cargoBin" }
+if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
+    Write-Host "Скачивание rustup-init..." -ForegroundColor Cyan
+    $rustupInit = Join-Path $env:TEMP "rustup-init.exe"
+    Invoke-WebRequest -Uri "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe" -OutFile $rustupInit
+    & $rustupInit -y --default-toolchain stable
+    $env:Path += ";$cargoBin"
 }
+if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+    rustup toolchain install stable
+    rustup default stable
+}
+cargo --version
 
 Write-Host "=== 2/5: pnpm 10.32.1 ===" -ForegroundColor Cyan
 npm install -g pnpm@10.32.1
@@ -77,9 +87,13 @@ Write-Host "Установщик MTGA: $MtgaDir\src-tauri\target\bundle-release\
 Write-Host "=== 5/5: FreeQwenApi ===" -ForegroundColor Cyan
 Set-Location $FqaDir
 npm install
-Write-Host "Сейчас откроется Chromium — войдите в свой аккаунт Qwen Chat (chat.qwen.ai)" -ForegroundColor Yellow
-npm run auth
-npm run models:sync
+if (-not (Test-Path (Join-Path $FqaDir "session\accounts"))) {
+    Write-Host "Сейчас откроется Chromium — войдите в свой аккаунт Qwen Chat (chat.qwen.ai)" -ForegroundColor Yellow
+    npm run auth
+    npm run models:sync
+} else {
+    Write-Host "Аккаунт Qwen уже авторизован — пропускаем." -ForegroundColor Green
+}
 
 Write-Host ""
 Write-Host "Готово! Установите MTGA из папки bundle и запускайте: E:\AI\mtga\scripts\windows\start-qwen-trae.ps1" -ForegroundColor Green
