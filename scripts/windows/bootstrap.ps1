@@ -1,4 +1,4 @@
-﻿# Полностью автоматическая установка MTGA + FreeQwenApi для Trae.
+# Полностью автоматическая установка MTGA + FreeQwenApi для Trae.
 # Запуск одной командой в PowerShell от имени администратора:
 #   irm https://raw.githubusercontent.com/CurveLynxStable/dlgcylxo/mtga-ru/scripts/windows/bootstrap.ps1 | iex
 
