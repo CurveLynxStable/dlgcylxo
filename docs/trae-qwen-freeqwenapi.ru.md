@@ -5,13 +5,16 @@
 
 - **FreeQwenApi** — локальный OpenAI-совместимый прокси к Qwen Chat
   (`http://localhost:3264/api`);
+- **FreeDeepseekAPI** (опционально) — аналогичный прокси к DeepSeek Web Chat
+  (`http://localhost:9655`);
 - **MTGA** — перенаправляет запросы моделей Trae на ваш собственный
   OpenAI-совместимый endpoint (этот репозиторий).
 
 Схема:
 
 ```text
-Trae IDE  →  MTGA (127.0.0.1:18083)  →  FreeQwenApi (127.0.0.1:3264)  →  Qwen Chat
+Trae IDE  →  MTGA (127.0.0.1:18083)  →  FreeQwenApi (127.0.0.1:3264)    →  Qwen Chat
+                                  →  FreeDeepseekAPI (127.0.0.1:9655)  →  DeepSeek Web
 ```
 
 ## 1. Требования (Windows)
@@ -72,12 +75,17 @@ pnpm tauri:bundle:win -- --profile bundle-release
 
 ## 5. Настройка Trae
 
-Используйте режим «официальный Base URL» (по умолчанию):
+В режиме «официальный Base URL» (по умолчанию) модель добавляется в Trae вручную:
 
-1. В MTGA включите перенаправление — Trae будет ходить на
-   `http://127.0.0.1:18083/v1`.
-2. Перезапустите Trae.
-3. В Trae выберите модель, опубликованную в MTGA (например, `qwen3.7-max`).
+1. В MTGA нажмите «Запустить всё одной кнопкой» — поднимется локальный loopback.
+2. В Trae: Настройки → Модели → Добавить пользовательскую модель:
+   - **API Format**: OpenAI Chat Completions;
+   - **Base URL**: `http://127.0.0.1:18083/v1` (обязательно с `/v1` на конце —
+     Trae добавляет только `/chat/completions`);
+   - **Model ID**: имя опубликованной модели (например, `qwen3.7-max`
+     или `deepseek-v4-pro`);
+   - **API Key**: любое значение, например `sk-local`.
+3. Сохраните и выберите эту модель в чате Trae.
 
 Если используется режим Trae native — укажите в настройках MTGA путь к Trae:
 `C:\Users\<вы>\AppData\Local\Programs\Trae`.
@@ -103,3 +111,21 @@ start "FreeQwenApi" cmd /k npm start
 | `❌ Тайм-аут получения списка моделей` в MTGA          | проверьте, запущен ли FreeQwenApi (`http://localhost:3264/api/health`)       |
 | Trae не видит модели                                   | убедитесь, что прокси MTGA запущен и модели опубликованы; перезапустите Trae |
 | Лимиты Qwen                                            | добавьте второй аккаунт: `npm run auth -- --add` (ротация автоматическая)    |
+| 404 при запросе из Trae                               | в Base URL модели Trae должно быть `/v1` на конце: `http://127.0.0.1:18083/v1` |
+| DeepSeek: ConnectionRefused 9655                        | запустите FreeDeepseekAPI: `start-deepseek.bat` или `npm start` в его папке     |
+
+## 8. DeepSeek (FreeDeepseekAPI)
+
+```bat
+cd /d E:\AI
+git clone https://github.com/ForgetMeAI/FreeDeepseekAPI.git
+cd FreeDeepseekAPI
+npm install
+npm run auth -- --login   :: откроется Chrome — войдите в chat.deepseek.com
+npm start
+```
+
+Скрипт `scripts/windows/configure-mtga.ps1` автоматически добавляет цель
+FreeDeepseekAPI (`http://127.0.0.1:9655`) и публикует модели `deepseek-chat`,
+`deepseek-reasoner`, `deepseek-r1`, `deepseek-v4-pro` и др. Для быстрого запуска
+есть `scripts/windows/start-deepseek.bat` (и `start-qwen.bat` для Qwen).
