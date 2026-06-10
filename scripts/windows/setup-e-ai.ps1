@@ -53,6 +53,22 @@ pnpm i
 Set-Location (Join-Path $MtgaDir "python-src")
 uv sync --project .
 Set-Location $MtgaDir
+
+# Скачиваем встраиваемый Python (pyembed), как в CI
+$pyembedExe = Join-Path $MtgaDir "src-tauri\pyembed\python\python.exe"
+if (-not (Test-Path $pyembedExe)) {
+    Write-Host "Скачивание встраиваемого Python 3.13 (python-build-standalone)..." -ForegroundColor Cyan
+    $pyembedDir = Join-Path $MtgaDir "src-tauri\pyembed"
+    New-Item -ItemType Directory -Path $pyembedDir -Force | Out-Null
+    $release = Invoke-RestMethod "https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest"
+    $asset = $release.assets | Where-Object { $_.name -match 'cpython-3\.13\..*\+.*-x86_64-pc-windows-msvc-install_only_stripped\.tar\.gz$' } | Select-Object -First 1
+    if (-not $asset) { throw "Не найден подходящий архив Python 3.13 для Windows" }
+    $archivePath = Join-Path $pyembedDir "python-standalone.tar.gz"
+    Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $archivePath
+    tar -xzf $archivePath -C $pyembedDir
+    Remove-Item $archivePath
+}
+
 pnpm pytauri:install:win
 pnpm tauri:bundle:win -- --profile bundle-release
 Write-Host "Установщик MTGA: $MtgaDir\src-tauri\target\bundle-release\bundle\" -ForegroundColor Green
