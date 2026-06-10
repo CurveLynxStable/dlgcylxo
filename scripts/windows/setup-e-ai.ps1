@@ -80,9 +80,14 @@ if (-not (Test-Path $pyembedExe)) {
     Remove-Item $archivePath
 }
 
+try { Add-MpPreference -ExclusionPath $AiRoot -ErrorAction SilentlyContinue } catch {}
 pnpm pytauri:install:win
 pnpm pyembed:prune
 pnpm tauri:bundle:win:ci
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Сборка установщика не удалась, повторная попытка..." -ForegroundColor Yellow
+    pnpm tauri:bundle:win:ci
+}
 Write-Host "Установщик MTGA: $MtgaDir\src-tauri\target\bundle-release\bundle\" -ForegroundColor Green
 $bundleDir = Join-Path $MtgaDir "src-tauri\target\bundle-release\bundle"
 $installer = Get-ChildItem $bundleDir -Recurse -Filter "*.exe" -ErrorAction SilentlyContinue |
