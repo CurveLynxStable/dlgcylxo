@@ -14,7 +14,7 @@ if (Test-Path $configFile) {
 }
 
 # Список публикуемых моделей Qwen (полный список: http://localhost:3264/api/models)
-$models = @(
+$qwenModels = @(
     "qwen3.7-max",
     "qwen3.7-plus",
     "qwen3.6-plus",
@@ -26,10 +26,27 @@ $models = @(
     "qwq-32b"
 )
 
-$upstreamList  = ($models | ForEach-Object { "  - $_" }) -join "`n"
-$publishedList = ($models | ForEach-Object {
-    "- name: $_`n  enabled: true`n  primary_target_id: freeqwenapi`n  primary_upstream_model: $_"
-}) -join "`n"
+# Список публикуемых моделей DeepSeek (полный список: http://localhost:9655/v1/models)
+$deepseekModels = @(
+    "deepseek-chat",
+    "deepseek-reasoner",
+    "deepseek-r1",
+    "deepseek-chat-search",
+    "deepseek-reasoner-search",
+    "deepseek-expert",
+    "deepseek-v4-pro"
+)
+
+$qwenUpstream      = ($qwenModels | ForEach-Object { "  - $_" }) -join "`n"
+$deepseekUpstream  = ($deepseekModels | ForEach-Object { "  - $_" }) -join "`n"
+$publishedList = (
+    ($qwenModels | ForEach-Object {
+        "- name: $_`n  enabled: true`n  primary_target_id: freeqwenapi`n  primary_upstream_model: $_"
+    }) +
+    ($deepseekModels | ForEach-Object {
+        "- name: $_`n  enabled: true`n  primary_target_id: freedeepseekapi`n  primary_upstream_model: $_"
+    })
+) -join "`n"
 
 $yaml = @"
 schema_version: 3
@@ -40,8 +57,17 @@ targets:
   provider: openai_chat_completion
   api_base: http://127.0.0.1:3264/api
   upstream_models:
-$upstreamList
-  upstream_model: $($models[0])
+$qwenUpstream
+  upstream_model: $($qwenModels[0])
+  api_key: sk-local
+  middle_route: /v1
+- id: freedeepseekapi
+  display_name: FreeDeepseekAPI (DeepSeek)
+  provider: openai_chat_completion
+  api_base: http://127.0.0.1:9655
+  upstream_models:
+$deepseekUpstream
+  upstream_model: $($deepseekModels[0])
   api_key: sk-local
   middle_route: /v1
 failover_pools: []

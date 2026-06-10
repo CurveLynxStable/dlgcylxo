@@ -1,7 +1,8 @@
-﻿# Быстрый запуск: FreeQwenApi + MTGA + Trae
+﻿# Быстрый запуск: FreeQwenApi + FreeDeepseekAPI + MTGA + Trae
 # Запуск: E:\AI\mtga\scripts\windows\start-qwen-trae.ps1
 
 $FqaDir  = "E:\AI\FreeQwenApi"
+$FdsDir  = "E:\AI\FreeDeepseekAPI"
 $TraeExe = "$env:LOCALAPPDATA\Programs\Trae\Trae.exe"
 
 # 1. FreeQwenApi в отдельном окне (если ещё не запущен)
@@ -26,7 +27,25 @@ for ($i = 0; $i -lt 60; $i++) {
     } catch { Start-Sleep -Seconds 2 }
 }
 
-# 3. MTGA (если установлен)
+# 3. FreeDeepseekAPI в отдельном окне (если установлен и ещё не запущен)
+if (Test-Path $FdsDir) {
+    $fdsRunning = $false
+    try {
+        Invoke-RestMethod "http://localhost:9655/health" -TimeoutSec 2 | Out-Null
+        $fdsRunning = $true
+        Write-Host "FreeDeepseekAPI уже запущен." -ForegroundColor Green
+    } catch {}
+    if (-not $fdsRunning) {
+        if (Test-Path (Join-Path $FdsDir "deepseek-auth.json")) {
+            Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$FdsDir'; npm start"
+            Write-Host "FreeDeepseekAPI запускается (http://localhost:9655)..." -ForegroundColor Cyan
+        } else {
+            Write-Host "FreeDeepseekAPI: нет deepseek-auth.json — выполните в $FdsDir команду: npm run auth" -ForegroundColor Yellow
+        }
+    }
+}
+
+# 4. MTGA (если установлен)
 $mtga = $null
 foreach ($dir in @("E:\AI\MTGA", "$env:LOCALAPPDATA\Programs")) {
     if (Test-Path $dir) {
@@ -43,7 +62,7 @@ if ($mtga) {
     Write-Host "MTGA не найден — установите его из E:\AI\mtga\src-tauri\target\bundle-release\bundle\ и запустите вручную." -ForegroundColor Yellow
 }
 
-# 4. Trae
+# 5. Trae
 if (Test-Path $TraeExe) {
     Write-Host "После запуска прокси в MTGA запустите/перезапустите Trae." -ForegroundColor Cyan
     Read-Host "Нажмите Enter, чтобы запустить Trae"

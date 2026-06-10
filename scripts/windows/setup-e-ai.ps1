@@ -1,4 +1,4 @@
-﻿# Установка связки MTGA + FreeQwenApi для Trae (Windows)
+﻿# Установка связки MTGA + FreeQwenApi + FreeDeepseekAPI для Trae (Windows)
 # Запуск: PowerShell от имени администратора:
 #   Set-ExecutionPolicy -Scope Process Bypass -Force
 #   E:\AI\mtga\scripts\windows\setup-e-ai.ps1
@@ -7,6 +7,7 @@ $ErrorActionPreference = "Stop"
 $AiRoot = "E:\AI"
 $MtgaDir = Join-Path $AiRoot "mtga"
 $FqaDir  = Join-Path $AiRoot "FreeQwenApi"
+$FdsDir  = Join-Path $AiRoot "FreeDeepseekAPI"
 
 function Refresh-Path {
     $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
@@ -15,7 +16,7 @@ function Refresh-Path {
                 "$env:USERPROFILE\.cargo\bin"
 }
 
-Write-Host "=== 1/5: Установка инструментов (winget) ===" -ForegroundColor Cyan
+Write-Host "=== 1/6: Установка инструментов (winget) ===" -ForegroundColor Cyan
 $nodeOk = $false
 if (Get-Command node -ErrorAction SilentlyContinue) {
     $nodeOk = (node -v) -match '^v24\.'
@@ -48,17 +49,17 @@ if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
 }
 cargo --version
 
-Write-Host "=== 2/5: pnpm 10.32.1 ===" -ForegroundColor Cyan
+Write-Host "=== 2/6: pnpm 10.32.1 ===" -ForegroundColor Cyan
 npm install -g pnpm@10.32.1
 Refresh-Path
 pnpm --version
 
-Write-Host "=== 3/5: Клонирование MTGA (русская версия) ===" -ForegroundColor Cyan
+Write-Host "=== 3/6: Клонирование MTGA (русская версия) ===" -ForegroundColor Cyan
 if (-not (Test-Path $MtgaDir)) {
     git clone --branch mtga-ru https://github.com/CurveLynxStable/dlgcylxo.git $MtgaDir
 }
 
-Write-Host "=== 4/5: Сборка MTGA ===" -ForegroundColor Cyan
+Write-Host "=== 4/6: Сборка MTGA ===" -ForegroundColor Cyan
 Set-Location $MtgaDir
 pnpm i
 Set-Location (Join-Path $MtgaDir "python-src")
@@ -100,7 +101,7 @@ if ($installer) {
     Write-Host "Установщик MTGA не найден в $bundleDir" -ForegroundColor Yellow
 }
 
-Write-Host "=== 5/5: FreeQwenApi ===" -ForegroundColor Cyan
+Write-Host "=== 5/6: FreeQwenApi ===" -ForegroundColor Cyan
 Set-Location $FqaDir
 npm install
 if (-not (Test-Path (Join-Path $FqaDir "session\accounts"))) {
@@ -109,6 +110,19 @@ if (-not (Test-Path (Join-Path $FqaDir "session\accounts"))) {
     npm run models:sync
 } else {
     Write-Host "Аккаунт Qwen уже авторизован — пропускаем." -ForegroundColor Green
+}
+
+Write-Host "=== 6/6: FreeDeepseekAPI ===" -ForegroundColor Cyan
+if (-not (Test-Path $FdsDir)) {
+    git clone https://github.com/ForgetMeAI/FreeDeepseekAPI.git $FdsDir
+}
+Set-Location $FdsDir
+npm install
+if (-not (Test-Path (Join-Path $FdsDir "deepseek-auth.json"))) {
+    Write-Host "Сейчас откроется Chrome — войдите в свой аккаунт DeepSeek (chat.deepseek.com)" -ForegroundColor Yellow
+    npm run auth -- --login
+} else {
+    Write-Host "Аккаунт DeepSeek уже авторизован — пропускаем." -ForegroundColor Green
 }
 
 Write-Host ""
