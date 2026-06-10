@@ -13,6 +13,24 @@ if (Test-Path $configFile) {
     Write-Host "Старый конфиг сохранён: $configFile.bak" -ForegroundColor Yellow
 }
 
+# Список публикуемых моделей Qwen (полный список: http://localhost:3264/api/models)
+$models = @(
+    "qwen3.7-max",
+    "qwen3.7-plus",
+    "qwen3.6-plus",
+    "qwen3.5-plus",
+    "qwen3.5-flash",
+    "qwen3-max",
+    "qwen3-coder-plus",
+    "qwen3-vl-plus",
+    "qwq-32b"
+)
+
+$upstreamList  = ($models | ForEach-Object { "  - $_" }) -join "`n"
+$publishedList = ($models | ForEach-Object {
+    "- name: $_`n  enabled: true`n  primary_target_id: freeqwenapi`n  primary_upstream_model: $_"
+}) -join "`n"
+
 $yaml = @"
 schema_version: 3
 mtga_auth_key: ''
@@ -22,16 +40,13 @@ targets:
   provider: openai_chat_completion
   api_base: http://127.0.0.1:3264/api
   upstream_models:
-  - qwen3.7-max
-  upstream_model: qwen3.7-max
+$upstreamList
+  upstream_model: $($models[0])
   api_key: sk-local
   middle_route: /v1
 failover_pools: []
 published_models:
-- name: qwen3.7-max
-  enabled: true
-  primary_target_id: freeqwenapi
-  primary_upstream_model: qwen3.7-max
+$publishedList
 "@
 
 [System.IO.File]::WriteAllText($configFile, $yaml, (New-Object System.Text.UTF8Encoding $false))
