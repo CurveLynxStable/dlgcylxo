@@ -11,7 +11,8 @@ $FqaDir  = Join-Path $AiRoot "FreeQwenApi"
 function Refresh-Path {
     $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
                 [Environment]::GetEnvironmentVariable("Path", "User") + ";" +
-                "$env:APPDATA\npm"
+                "$env:APPDATA\npm" + ";" +
+                "$env:USERPROFILE\.cargo\bin"
 }
 
 Write-Host "=== 1/5: Установка инструментов (winget) ===" -ForegroundColor Cyan
