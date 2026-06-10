@@ -70,7 +70,8 @@ if (-not (Test-Path $pyembedExe)) {
 }
 
 pnpm pytauri:install:win
-pnpm tauri:bundle:win -- --profile bundle-release
+pnpm pyembed:prune
+pnpm tauri:bundle:win:ci
 Write-Host "Установщик MTGA: $MtgaDir\src-tauri\target\bundle-release\bundle\" -ForegroundColor Green
 
 Write-Host "=== 5/5: FreeQwenApi ===" -ForegroundColor Cyan
