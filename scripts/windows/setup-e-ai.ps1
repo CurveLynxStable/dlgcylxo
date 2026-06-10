@@ -84,6 +84,16 @@ pnpm pytauri:install:win
 pnpm pyembed:prune
 pnpm tauri:bundle:win:ci
 Write-Host "Установщик MTGA: $MtgaDir\src-tauri\target\bundle-release\bundle\" -ForegroundColor Green
+$bundleDir = Join-Path $MtgaDir "src-tauri\target\bundle-release\bundle"
+$installer = Get-ChildItem $bundleDir -Recurse -Filter "*.exe" -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -match "setup" } | Select-Object -First 1
+if ($installer) {
+    Write-Host "Тихая установка MTGA: $($installer.FullName)" -ForegroundColor Cyan
+    Start-Process $installer.FullName -ArgumentList "/S" -Wait
+    Write-Host "MTGA установлен." -ForegroundColor Green
+} else {
+    Write-Host "Установщик MTGA не найден в $bundleDir" -ForegroundColor Yellow
+}
 
 Write-Host "=== 5/5: FreeQwenApi ===" -ForegroundColor Cyan
 Set-Location $FqaDir
