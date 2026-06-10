@@ -120,12 +120,12 @@ def find_latest_backup(
 ) -> LatestBackupInfo:
     backup_base_dir = os.path.join(user_data_dir, "backups")
     if not os.path.exists(backup_base_dir):
-        raise BackupNotFoundError("未找到备份目录")
+        raise BackupNotFoundError("Каталог резервных копий не найден")
 
     backup_pattern = os.path.join(backup_base_dir, "backup_*")
     backup_folders = glob.glob(backup_pattern)
     if not backup_folders:
-        raise NoBackupsError("未找到任何备份")
+        raise NoBackupsError("Резервные копии не найдены")
 
     latest_backup = max(backup_folders, key=lambda x: os.path.basename(x))
     backup_name = os.path.basename(latest_backup)
@@ -175,7 +175,8 @@ def backup_user_data_result(
         result = backup_user_data(user_data_dir, error_log_filename=error_log_filename)
         return OperationResult.success(backup_result=result)
     except Exception as exc:
-        return OperationResult.failure(f"备份用户数据失败: {exc}")
+        return OperationResult.failure(f"Не удалось создать резервную копию пользовательских "
+            f"данных: {exc}")
 
 
 def clear_user_data_result(
@@ -192,7 +193,7 @@ def clear_user_data_result(
         )
         return OperationResult.success(clear_result=result)
     except Exception as exc:
-        return OperationResult.failure(f"清除用户数据失败: {exc}")
+        return OperationResult.failure(f"Не удалось очистить пользовательские данные: {exc}")
 
 
 def find_latest_backup_result(
@@ -207,7 +208,7 @@ def find_latest_backup_result(
         return OperationResult.failure(str(exc), code=ErrorCode.NO_BACKUPS)
     except Exception as exc:
         return OperationResult.failure(
-            f"读取备份失败: {exc}",
+            f"Не удалось прочитать резервные копии: {exc}",
             code=ErrorCode.UNKNOWN,
         )
 
@@ -221,7 +222,7 @@ def restore_backup_result(
         result = restore_backup(user_data_dir, backup_path=backup_path)
         return OperationResult.success(restore_result=result)
     except Exception as exc:
-        return OperationResult.failure(f"还原数据失败: {exc}")
+        return OperationResult.failure(f"Не удалось восстановить данные: {exc}")
 
 
 def restore_latest_backup_result(
@@ -232,5 +233,5 @@ def restore_latest_backup_result(
         return latest_result
     latest_info = latest_result.details.get("latest_backup")
     if not isinstance(latest_info, LatestBackupInfo):
-        return OperationResult.failure("未找到可用备份")
+        return OperationResult.failure("Доступные резервные копии не найдены")
     return restore_backup_result(user_data_dir, backup_path=latest_info.backup_path)

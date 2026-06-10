@@ -4,142 +4,142 @@
     <img alt="MTGA" src="https://github.com/BiFangKNT/mtga/blob/gui/icons/hero-img_f0bb32.png?raw=true">
 </picture>
 
-[![English](https://img.shields.io/badge/docs-English-purple)](docs/README.en.md) [![简体中文](https://img.shields.io/badge/文档-简体中文-yellow)](README.md) [![日本語](https://img.shields.io/badge/ドキュ-日本語-b7003a)](docs/README.ja.md) [![한국어 문서](https://img.shields.io/badge/docs-한국어-green)](docs/README.ko.md) [![Documentación en Español](https://img.shields.io/badge/docs-Español-orange)](docs/README.es.md) [![Documentation en Français](https://img.shields.io/badge/docs-Français-blue)](docs/README.fr.md) [![Documentação em Português (Brasil)](https://img.shields.io/badge/docs-Português-purple)](docs/README.pt.md) [![Dokumentation auf Deutsch](https://img.shields.io/badge/docs-Deutsch-darkgreen)](docs/README.de.md) [![Документация на русском языке](https://img.shields.io/badge/доки-Русский-darkblue)](docs/README.ru.md)
+[![English](https://img.shields.io/badge/docs-English-purple)](docs/README.en.md) [![Русский](https://img.shields.io/badge/доки-Русский-darkblue)](README.md) [![日本語](https://img.shields.io/badge/ドキュ-日本語-b7003a)](docs/README.ja.md) [![한국어 문서](https://img.shields.io/badge/docs-한국어-green)](docs/README.ko.md) [![Documentación en Español](https://img.shields.io/badge/docs-Español-orange)](docs/README.es.md) [![Documentation en Français](https://img.shields.io/badge/docs-Français-blue)](docs/README.fr.md) [![Documentação em Português (Brasil)](https://img.shields.io/badge/docs-Português-purple)](docs/README.pt.md) [![Dokumentation auf Deutsch](https://img.shields.io/badge/docs-Deutsch-darkgreen)](docs/README.de.md)
 
-## 简介
+## Введение
 
-MTGA 是一个基于本地代理的 IDE 固定模型服务商解决方案，适用于 Windows 和 macOS。
+MTGA — это решение для фиксации провайдера моделей в IDE на основе локального прокси, для Windows и macOS.
 
-**注意：从 `v2.6.0` 起，MTGA 下游统一暴露 OpenAI Chat Completions API；后端通过项目内置的 MLiteLLM 执行层转发到 `openai_chat_completion`、`openai_response`、Anthropic、Gemini 等上游，不需要额外安装第三方转发框架依赖。上游类型通过配置组里的“提供商”字段显式指定；其中 `openai_response` 会由 MTGA 在代理层完成 chat-completions 与 responses 之间的转换。限制见 [docs/provider-support.md](docs/provider-support.md)。**
+**Внимание: начиная с `v2.6.0` MTGA на нижестоящем уровне единообразно предоставляет OpenAI Chat Completions API; бэкенд через встроенный в проект слой исполнения MLiteLLM пересылает запросы в апстримы `openai_chat_completion`, `openai_response`, Anthropic, Gemini и т.д., без установки сторонних фреймворков пересылки. Тип апстрима явно задаётся полем «Провайдер» в группе конфигурации; для `openai_response` MTGA выполняет преобразование между chat-completions и responses на уровне прокси. Ограничения см. в [docs/provider-support.md](docs/provider-support.md).**
 
  <details>
-  <summary>你什么也看不见~~</summary>
+  <summary>Ты ничего не видишь~~</summary>
   <br>
-  <p>MTGA 即 Make Trae Great Again !</p>
+  <p>MTGA расшифровывается как Make Trae Great Again!</p>
  </details>
 
-## 目录
+## Содержание
 
 - [MTGA](#mtga)
-  - [简介](#简介)
-  - [目录](#目录)
-  - [更新日志](#更新日志)
-  - [快速开始](#快速开始)
-    - [安装](#安装)
+  - [Введение](#введение)
+  - [Содержание](#содержание)
+  - [Журнал изменений](#журнал-изменений)
+  - [Быстрый старт](#быстрый-старт)
+    - [Установка](#установка)
       - [Windows](#windows)
       - [macOS](#macos)
-    - [使用](#使用)
-  - [macOS 解决 “包已损坏” 问题](#macos-解决-包已损坏-问题)
-    - [图形化解决方案](#图形化解决方案)
-    - [cli 解决方案](#cli-解决方案)
-  - [trae 端提示 “添加模型失败” 的排查方案](#trae-端提示-添加模型失败-的排查方案)
-  - [配置 Trae IDE](#配置-trae-ide)
-  - [😎 保持更新](#-保持更新)
-  - [贡献](#贡献)
-  - [架构与依赖约束](#架构与依赖约束)
-  - [友链](#友链)
-  - [引用](#引用)
+    - [Использование](#использование)
+  - [macOS: решение проблемы «пакет повреждён»](#macos-решение-проблемы-пакет-повреждён)
+    - [Графическое решение](#графическое-решение)
+    - [Решение через cli](#решение-через-cli)
+  - [Диагностика ошибки «не удалось добавить модель» в Trae](#диагностика-ошибки-не-удалось-добавить-модель-в-trae)
+  - [Настройка Trae IDE](#настройка-trae-ide)
+  - [😎 Будьте в курсе обновлений](#-будьте-в-курсе-обновлений)
+  - [Вклад](#вклад)
+  - [Архитектура и ограничения зависимостей](#архитектура-и-ограничения-зависимостей)
+  - [Дружественные ссылки](#дружественные-ссылки)
+  - [Благодарности](#благодарности)
   - [Star History](#star-history)
 
 ---
 
-## 更新日志
+## Журнал изменений
 
-最新日志详见： [最新发行版](https://github.com/BiFangKNT/mtga/releases/latest)
+Свежий журнал см.: [последний релиз](https://github.com/BiFangKNT/mtga/releases/latest)
 
-历史日志归档： [CHANGELOG.md](CHANGELOG.md)
+Архив истории: [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
-## 快速开始
+## Быстрый старт
 
-### 安装
+### Установка
 
 #### Windows
 
-1. 从 [GitHub Releases](https://github.com/BiFangKNT/mtga/releases) 下载最新版本的 `MTGA_v{version}_windows_x64-setup.exe`
-2. 双击安装
+1. Скачайте последнюю версию `MTGA_v{version}_windows_x64-setup.exe` со страницы [GitHub Releases](https://github.com/BiFangKNT/mtga/releases)
+2. Запустите установку двойным щелчком
 
 #### macOS
 
-1. 从 [GitHub Releases](https://github.com/BiFangKNT/mtga/releases) 下载最新版本的 `MTGA_v{version}_apple_{arch}.dmg`
-   - `{arch}` 为指令集架构：
-     - `x64`：Intel 处理器
-     - `aarch64`：Apple Silicon 处理器（M 系列）
-2. 双击 DMG 文件，系统会自动挂载安装包
-3. 将 `MTGA_GUI.app` 拖拽到 `Applications` 文件夹
+1. Скачайте последнюю версию `MTGA_v{version}_apple_{arch}.dmg` со страницы [GitHub Releases](https://github.com/BiFangKNT/mtga/releases)
+   - `{arch}` — архитектура процессора:
+     - `x64`: процессоры Intel
+     - `aarch64`: процессоры Apple Silicon (серия M)
+2. Откройте DMG-файл двойным щелчком — система автоматически смонтирует установочный образ
+3. Перетащите `MTGA_GUI.app` в папку `Applications`
 
-### 使用
+### Использование
 
-1. 启动 MTGA 应用程序
-2. 添加代理配置组
-   - **API URL 只需要填域名（端口号可选，不懂的就不要填），不需要填后面的路由，例如：`https://your-api.example.com`**
-   - 如果你的接口不是标准 `/v1` 路由，可以自定义中间路由
+1. Запустите приложение MTGA
+2. Добавьте группу конфигурации прокси
+   - **В API URL указывайте только домен (порт опционален; если не уверены — не указывайте), без маршрута в конце, например: `https://your-api.example.com`**
+   - Если ваш интерфейс использует нестандартный маршрут `/v1`, можно задать собственный промежуточный маршрут
      <img width="70%" alt="modify middle route" src="./images/modify-middle-route.png?raw=true" />
-3. 填写全局配置
-   - **如果希望启用多模态能力，可以将模型名映射到内置多模态模型名上：**
+3. Заполните глобальную конфигурацию
+   - **Чтобы включить мультимодальные возможности, можно сопоставить имя модели с одним из встроенных мультимодальных имён:**
      - <div style="display:flex;flex-direction:column;font-size:0">
         <img width="70%" alt="model mapping" src="./images/model-mapping-above.png?raw=true" />
         <img width="70%" alt="model mapping" src="./images/model-mapping-below.png?raw=true" />
        </div>
      - <img width="70%" alt="model mapping effects" src="./images/model-mapping-effects.png?raw=true" />
-4. 点击"一键启动全部服务"按钮（macOS 需要管理员权限）
-5. 等待程序自动完成以下操作：
-   - 生成并安装证书
-   - 修改hosts文件
-   - 启动代理服务器
-6. 完成后，按照[配置 Trae IDE](#配置-trae-ide)进行IDE配置
+4. Нажмите кнопку «Запустить все сервисы одним щелчком» (на macOS нужны права администратора)
+5. Дождитесь, пока программа автоматически выполнит следующие действия:
+   - Создание и установка сертификата
+   - Изменение файла hosts
+   - Запуск прокси-сервера
+6. После завершения настройте IDE согласно разделу [Настройка Trae IDE](#настройка-trae-ide)
 
 > [!NOTE]
 >
-> - 代理配置和生成证书会持久化存储于用户数据目录，见 `设置 - 用户数据`
+> - Конфигурация прокси и сгенерированные сертификаты сохраняются в каталоге пользовательских данных, см. `Настройки - Пользовательские данные`
 
 > [!WARNING]
 >
-> - 需要管理员权限
-> - macOS 端如提示“包已损坏”，请参考 [macOS 解决 “包已损坏” 问题](#macos-解决-包已损坏-问题)
-> - 如 trae 端添加模型失败，请参考 [trae 端提示 “添加模型失败” 的排查方案](#trae-端提示-添加模型失败-的排查方案)
+> - Требуются права администратора
+> - Если на macOS появляется сообщение «пакет повреждён», см. [macOS: решение проблемы «пакет повреждён»](#macos-решение-проблемы-пакет-повреждён)
+> - Если в Trae не удаётся добавить модель, см. [Диагностика ошибки «не удалось добавить модель» в Trae](#диагностика-ошибки-не-удалось-добавить-модель-в-trae)
 
-## macOS 解决 “包已损坏” 问题
+## macOS: решение проблемы «пакет повреждён»
 
-如果启动 `MTGA_GUI.app` 时弹出这样的提示：
+Если при запуске `MTGA_GUI.app` появляется такое сообщение:
 
 <img width="244" height="223" alt="app corrupted" src="./images/app-corrupted.png?raw=true" />
 
-**点击取消**。然后参考以下步骤解决：
+**Нажмите «Отмена»**, затем выполните следующие шаги:
 
-### 图形化解决方案
+### Графическое решение
 
-1. 到 [Sentinel Releases](https://github.com/alienator88/Sentinel/releases/latest) 下载 `Sentinel.dmg`
-2. 双击 `Sentinel.dmg` 文件，将 `Sentinel.app` 拖拽到 `Applications` 文件夹
-3. 从启动台或 Applications 文件夹启动 `Sentinel.app`
-4. 将本项目的 `MTGA_GUI.app` 拖拽到 `Sentinel.app` 的左侧窗口中
+1. Скачайте `Sentinel.dmg` со страницы [Sentinel Releases](https://github.com/alienator88/Sentinel/releases/latest)
+2. Откройте `Sentinel.dmg` двойным щелчком и перетащите `Sentinel.app` в папку `Applications`
+3. Запустите `Sentinel.app` из Launchpad или папки Applications
+4. Перетащите `MTGA_GUI.app` этого проекта в левое окно `Sentinel.app`
    - <img width="355.33" height="373.33" alt="sentinel add app" src="./images/sentinel-add-app.png?raw=true" />
 
-`MTGA_GUI.app` 将被自动处理并启动
+`MTGA_GUI.app` будет автоматически обработан и запущен
 
-### cli 解决方案
+### Решение через cli
 
-1. 找到 `MTGA_GUI.app` 完整路径，如 `/Applications/MTGA_GUI.app`。
-2. 打开终端（Terminal）应用程序。
-3. 执行以下命令签名 `MTGA_GUI.app`：
+1. Найдите полный путь к `MTGA_GUI.app`, например `/Applications/MTGA_GUI.app`.
+2. Откройте приложение «Терминал» (Terminal).
+3. Выполните следующую команду для подписи `MTGA_GUI.app`:
    ```zsh
-   xattr -d com.apple.quarantine <应用完整路径>
+   xattr -d com.apple.quarantine <полный путь к приложению>
    ```
-   这会移除 `MTGA_GUI.app` 中的 `com.apple.quarantine` 扩展属性。
-4. 启动 `MTGA_GUI.app`。
+   Это удалит расширенный атрибут `com.apple.quarantine` у `MTGA_GUI.app`.
+4. Запустите `MTGA_GUI.app`.
 
-## trae 端提示 “添加模型失败” 的排查方案
+## Диагностика ошибки «не удалось добавить модель» в Trae
 
-如果一切顺利，你应该会在日志区看到收到请求的日志：
+Если всё в порядке, в области логов вы увидите записи о получении запроса:
 
 <img width="40%" alt="received list request" src="./images/received-list-request.png?raw=true" />
 
-如无日志，请检查：
+Если логов нет, проверьте:
 
-- **hosts**：确保包含 `127.0.0.1 api.openai.com` 这一行，且未被注释掉（# 开头）。
-- **端口监听**：确保没有其他程序正在使用端口 443（如浏览器、VPN 等）。
-  - 可以使用以下命令检查：
+- **hosts**: убедитесь, что присутствует строка `127.0.0.1 api.openai.com` и она не закомментирована (не начинается с #).
+- **Прослушивание порта**: убедитесь, что порт 443 не занят другой программой (браузер, VPN и т.д.).
+  - Проверить можно следующими командами:
 
     ```
     # windows
@@ -149,69 +149,69 @@ MTGA 是一个基于本地代理的 IDE 固定模型服务商解决方案，适�
     netstat -lnp tcp | grep :443
     ```
 
-  - 如果有进程在监听 443 端口，建议关闭该进程。
+  - Если какой-то процесс слушает порт 443, рекомендуется завершить его.
 
-- **网络代理**：确保没有其他代理软件正在运行，它们可能会干扰 MTGA 的代理功能。
-  - 如需科学上网，请使用 TUN 模式而非系统代理。有条件的请在 **本机之外** 部署其他代理服务。
-  - 如果 DNS 配置错误，也可能导致无法解析。
-  - 不懂的请保持网络环境干净。
-- **证书问题**：如果 Trae 报错 SSL/TLS 相关错误，请检查 CA 证书是否已正确安装到"受信任的根证书颁发机构"。
-- **防火墙**：确保防火墙允许监听 443 端口的入站连接 (尽管是本地连接 `127.0.0.1`，通常不需要特别配置防火墙，但值得检查)。
-- **进阶排查方法**：
-  - MTGA 配置好，`主要流程 - 代理服务器操作 - 勾选 “关闭SSL严格模式”`，启动全部服务。
-  - 安装并打开 [Reqable](https://reqable.com/) 工具，根据其提示安装其证书。
-  - 其启动默认会打开调试，在右上角关闭它：
+- **Сетевой прокси**: убедитесь, что не запущено другое прокси-ПО — оно может мешать работе прокси MTGA.
+  - Если вам нужен обход блокировок, используйте режим TUN вместо системного прокси. По возможности разверните прокси-сервис **вне локальной машины**.
+  - Неправильная конфигурация DNS также может приводить к сбоям разрешения имён.
+  - Если не уверены — держите сетевое окружение «чистым».
+- **Проблемы с сертификатом**: если Trae сообщает об ошибках SSL/TLS, проверьте, что CA-сертификат корректно установлен в «Доверенные корневые центры сертификации».
+- **Брандмауэр**: убедитесь, что брандмауэр разрешает входящие соединения на порт 443 (хотя это локальное соединение `127.0.0.1` и обычно особая настройка не нужна, проверить стоит).
+- **Продвинутая диагностика**:
+  - Настройте MTGA: `Основной поток - Операции прокси-сервера - отметьте «Отключить строгий режим SSL»` и запустите все сервисы.
+  - Установите и откройте инструмент [Reqable](https://reqable.com/), установите его сертификат по подсказкам.
+  - При запуске по умолчанию включается отладка — отключите её в правом верхнем углу:
     <img width="40%" alt="reqable debug mode off" src="./images/reqable-debug-mode-off.png?raw=true" />
-  - 打开一个 http 测试页：
+  - Откройте тестовую страницу http:
     <img width="55%" alt="reqable http create" src="./images/reqable-http-create.png?raw=true" />
-  - 填写 list api 的 url，授权选择 “Bearer Token”，并填写你在 MTGA 全局配置处的 Key：
+  - Укажите url list api, в авторизации выберите «Bearer Token» и введите Key из глобальной конфигурации MTGA:
     <img width="70%" alt="reqable fill in config" src="./images/reqable-fill-in-config.png?raw=true" />
-  - 点击发送并观察响应体。
+  - Нажмите «Отправить» и изучите тело ответа.
 
 ---
 
-## 配置 Trae IDE
+## Настройка Trae IDE
 
-1.  打开并登录 Trae IDE。
-2.  在 AI 对话框中，点击右下角的模型图标，选择末尾的"添加模型"。
-3.  **服务商**：选择 `OpenAI`。
-4.  **模型**：按你在全局配置中填写的模型 ID，如果是 `gpt-5`，则选择 `GPT-5`。
-5.  **API 密钥**：全局配置中填写的 Key。
-6.  点击"添加模型"。
-7.  回到 AI 聊天框，右下角选择你刚刚添加的自定义模型。
+1.  Откройте Trae IDE и войдите в учётную запись.
+2.  В окне AI-диалога нажмите значок модели в правом нижнем углу и выберите в конце списка «Добавить модель».
+3.  **Провайдер**: выберите `OpenAI`.
+4.  **Модель**: согласно ID модели из глобальной конфигурации; если это `gpt-5`, выберите `GPT-5`.
+5.  **API-ключ**: Key из глобальной конфигурации.
+6.  Нажмите «Добавить модель».
+7.  Вернитесь в окно AI-чата и в правом нижнем углу выберите только что добавленную пользовательскую модель.
 
-现在，当你通过 Trae 与这个自定义模型交互时，请求应该会经过你的本地 MTGA 代理，并被转发到你配置的 `API URL`。
+Теперь при взаимодействии с этой пользовательской моделью через Trae запросы будут проходить через ваш локальный прокси MTGA и пересылаться на настроенный `API URL`.
 
 ---
 
-## 😎 保持更新
+## 😎 Будьте в курсе обновлений
 
-点击仓库右上角 Star 和 Watch 按钮，获取最新动态。
+Нажмите кнопки Star и Watch в правом верхнем углу репозитория, чтобы получать новости.
 
 ![star to keep latest](https://github.com/BiFangKNT/mtga/blob/gui/images/star-to-keep-latest.gif?raw=true)
 
 ---
 
-## 贡献
+## Вклад
 
-请查阅 [贡献指南](CONTRIBUTING.md)
+См. [руководство для контрибьюторов](CONTRIBUTING.md)
 
-## 架构与依赖约束
+## Архитектура и ограничения зависимостей
 
-为避免模块耦合失控，项目遵循以下分层与依赖规则：
+Чтобы избежать неконтролируемой связанности модулей, проект следует следующим правилам слоёв и зависимостей:
 
-- UI -> actions -> services -> 领域模块（cert/hosts/network/proxy/update）-> runtime/platform
-- UI 不得直接依赖领域模块，所有操作通过 actions/services 统一编排。
-- 平台相关逻辑放在 `modules/platform`。
-- 多 provider 上游调用由 `python-src/modules/mlitellm` 提供，它是项目内置的精简执行层模块，不作为独立第三方依赖安装。
+- UI -> actions -> services -> доменные модули (cert/hosts/network/proxy/update) -> runtime/platform
+- UI не должен напрямую зависеть от доменных модулей; все операции оркестрируются через actions/services.
+- Платформенно-зависимая логика размещается в `modules/platform`.
+- Вызовы мульти-провайдерных апстримов обеспечивает `python-src/modules/mlitellm` — встроенный в проект облегчённый слой исполнения, не устанавливаемый как отдельная сторонняя зависимость.
 
-## 友链
+## Дружественные ссылки
 
-[![友链 linux.do](https://img.shields.io/badge/LINUX--DO-Community-blue.svg?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI%2BPGNsaXBQYXRoIGlkPSJhIj48Y2lyY2xlIGN4PSI2MCIgY3k9IjYwIiByPSI0NyIvPjwvY2xpcFBhdGg%2BPGNpcmNsZSBmaWxsPSIjZjBmMGYwIiBjeD0iNjAiIGN5PSI2MCIgcj0iNTAiLz48cmVjdCBmaWxsPSIjMWMxYzFlIiBjbGlwLXBhdGg9InVybCgjYSkiIHg9IjEwIiB5PSIxMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIzMCIvPjxyZWN0IGZpbGw9IiNmMGYwZjAiIGNsaXAtcGF0aD0idXJsKCNhKSIgeD0iMTAiIHk9IjQwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjQwIi8%2BPHJlY3QgZmlsbD0iI2ZmYjAwMyIgY2xpcC1wYXRoPSJ1cmwoI2EpIiB4PSIxMCIgeT0iODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMzAiLz48L3N2Zz4%3D&style=flat)](https://linux.do/)
+[![linux.do](https://img.shields.io/badge/LINUX--DO-Community-blue.svg?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI%2BPGNsaXBQYXRoIGlkPSJhIj48Y2lyY2xlIGN4PSI2MCIgY3k9IjYwIiByPSI0NyIvPjwvY2xpcFBhdGg%2BPGNpcmNsZSBmaWxsPSIjZjBmMGYwIiBjeD0iNjAiIGN5PSI2MCIgcj0iNTAiLz48cmVjdCBmaWxsPSIjMWMxYzFlIiBjbGlwLXBhdGg9InVybCgjYSkiIHg9IjEwIiB5PSIxMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIzMCIvPjxyZWN0IGZpbGw9IiNmMGYwZjAiIGNsaXAtcGF0aD0idXJsKCNhKSIgeD0iMTAiIHk9IjQwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjQwIi8%2BPHJlY3QgZmlsbD0iI2ZmYjAwMyIgY2xpcC1wYXRoPSJ1cmwoI2EpIiB4PSIxMCIgeT0iODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMzAiLz48L3N2Zz4%3D&style=flat)](https://linux.do/)
 
-## 引用
+## Благодарности
 
-`ca`目录引用自`wkgcass/vproxy`仓库，感谢大佬！
+Каталог `ca` заимствован из репозитория `wkgcass/vproxy` — спасибо автору!
 
 ## Star History
 

@@ -9,7 +9,7 @@
         "symbol": "default_handler_handle_sse_closure",
         "address": "0x1204b3c",
         "kind": "reqwest_request_url_pair_load",
-        "why": "DefaultSseProxyHandler 在 reqwest::Client::request 前最后一次装入 URL 对。",
+        "why": "DefaultSseProxyHandler в последний раз загружает пару URL перед reqwest::Client::request.",
         "file_offset": "0x1204b3c",
         "expected_bytes": "83 93 40 a9",
         "branch_bytes": "f3 aa 27 94",
@@ -65,8 +65,8 @@
         "launched_executable": "/Users/syxdyi/Applications/Trae-MTGA.app/Contents/MacOS/Electron"
       },
       "notes": [
-        "该 entry 基于固定副本 /Users/syxdyi/Applications/Trae-MTGA.app 的 runtime1 smoke 验证通过。",
-        "当前 manifest 供 macOS runtime patch 与 scripts/trae_patch 共用。"
+        "Этот entry проверен runtime1 smoke на фиксированной копии /Users/syxdyi/Applications/Trae-MTGA.app.",
+        "Текущий manifest используется совместно macOS runtime patch и scripts/trae_patch."
       ]
     }
   ]

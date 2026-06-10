@@ -8,7 +8,7 @@ DEFAULT_HOSTS_IPS: tuple[str, str] = ("127.0.0.1", "::1")
 
 
 def normalize_ip_list(ip: str | Iterable[object] | object | None) -> list[str]:
-    """将 IP 参数转换为去重后的字符串列表。"""
+    """Преобразует параметр IP в список строк без дубликатов."""
     iterable: Iterable[object]
     if ip is None:
         iterable = DEFAULT_HOSTS_IPS
@@ -30,7 +30,7 @@ def normalize_ip_list(ip: str | Iterable[object] | object | None) -> list[str]:
 
 
 def build_hosts_block(domain: object, ip_list: list[str]) -> str:
-    """根据域名与 IP 列表构建统一的 hosts 文本块。"""
+    """Строит единый текстовый блок hosts по домену и списку IP."""
     domain = str(domain).strip()
     valid_ips = [ip for ip in ip_list if ip]
     if not domain or not valid_ips:
@@ -40,7 +40,8 @@ def build_hosts_block(domain: object, ip_list: list[str]) -> str:
 
 
 def append_hosts_block(content: str, hosts_block: str) -> str:
-    """在原有内容后追加 hosts 文本块，并保留一个空行分隔。"""
+    """Дозаписывает текстовый блок hosts после исходного содержимого, сохраняя пустую
+    строку-разделитель."""
     content = content.rstrip("\n")
     if not content:
         return hosts_block
@@ -49,8 +50,9 @@ def append_hosts_block(content: str, hosts_block: str) -> str:
 
 def remove_legacy_hosts_entries(content: str, domain: str) -> tuple[str, int]:
     """
-    移除旧版本逐条写入的 hosts 记录，返回新内容与删除数量。
-    旧格式为一条注释配合单个域名记录。
+    Удаляет записи hosts старого формата (записывались по одной),
+    возвращает новое содержимое и число удалённых.
+    Старый формат — один комментарий с одной записью домена.
     """
     lines = content.splitlines()
     new_lines: list[str] = []
@@ -83,7 +85,8 @@ def remove_legacy_hosts_entries(content: str, domain: str) -> tuple[str, int]:
 def remove_hosts_block_from_content(
     content: str, domain: str, ip_list: str | Iterable[object] | object | None
 ) -> tuple[str, int]:
-    """移除当前版本写入的文本块，并返回新内容和删除的条目数量。"""
+    """Удаляет текстовый блок текущей версии и возвращает новое содержимое и число удалённых
+    записей."""
     normalized_ips = normalize_ip_list(ip_list)
     removed_entries = 0
     block_text = build_hosts_block(domain, normalized_ips)

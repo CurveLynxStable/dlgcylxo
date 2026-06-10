@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * MTGA 标准选择框组件 (升级版)
- * 采用自定义下拉面板实现，以确保在所有平台上拥有统一的圆角、阴影和交互体验
- * 视觉规范严格对齐 MtgaInput
+ * Стандартный компонент выбора MTGA (улучшенная версия)
+ * Использует собственную выпадающую панель для единообразных скруглений, теней и взаимодействия на всех платформах
+ * Визуальный стиль строго соответствует MtgaInput
  */
 
 interface Option {
@@ -17,9 +17,9 @@ interface Props {
   description?: string;
   required?: boolean;
   disabled?: boolean;
-  /** 尺寸: 'xs' | 'sm' | 'md' | 'lg' */
+  /** Размер: 'xs' | 'sm' | 'md' | 'lg' */
   size?: "xs" | "sm" | "md" | "lg";
-  /** 错误信息 */
+  /** Сообщение об ошибке */
   error?: string;
 }
 
@@ -45,7 +45,7 @@ const dropdownStyle = ref<Record<string, string>>({});
 let globalListenersAttached = false;
 let unmounted = false;
 
-// 归一化选项格式
+// Нормализация формата опций
 const normalizedOptions = computed(() => {
   return props.options.map((opt) => {
     if (typeof opt === "string") {
@@ -55,7 +55,7 @@ const normalizedOptions = computed(() => {
   });
 });
 
-// 获取当前选中项的 Label
+// Получение label текущей выбранной опции
 const selectedLabel = computed(() => {
   const found = normalizedOptions.value.find((opt) => opt.value === props.modelValue);
   return found ? found.label : "";
@@ -72,7 +72,7 @@ const handleSelect = (val: string | number) => {
   isOpen.value = false;
 };
 
-// 点击外部关闭
+// Закрытие по клику снаружи
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target;
   if (!(target instanceof Node)) {
@@ -169,7 +169,7 @@ onUnmounted(() => {
   detachGlobalListeners();
 });
 
-// 尺寸样式映射
+// Соответствие размеров и стилей
 const sizeClasses = computed(() => {
   const sizes = {
     xs: {
@@ -203,7 +203,7 @@ const sizeClasses = computed(() => {
 
 <template>
   <div ref="containerRef" class="form-control inline-block relative">
-    <!-- 顶部标签区域 -->
+    <!-- Область верхней метки -->
     <div v-if="label" class="label py-1">
       <span
         class="label-text font-medium flex items-center gap-0.5"
@@ -214,7 +214,7 @@ const sizeClasses = computed(() => {
       </span>
     </div>
 
-    <!-- 选择框 Trigger -->
+    <!-- Триггер выбора -->
     <div
       ref="triggerRef"
       class="relative flex items-center group transition-all duration-200 ease-out border rounded-xl shadow-sm cursor-pointer select-none"
@@ -228,15 +228,15 @@ const sizeClasses = computed(() => {
       ]"
       @click="toggleDropdown"
     >
-      <!-- 当前选中值 -->
+      <!-- Текущее выбранное значение -->
       <span
         class="truncate flex-1 font-medium"
         :class="[selectedLabel ? 'text-slate-700' : 'text-slate-400']"
       >
-        {{ selectedLabel || "请选择" }}
+        {{ selectedLabel || "Выберите" }}
       </span>
 
-      <!-- 下拉箭头 -->
+      <!-- Стрелка выпадающего списка -->
       <div
         class="ml-2 text-slate-400 transition-transform duration-300 ease-in-out"
         :class="[
@@ -261,7 +261,7 @@ const sizeClasses = computed(() => {
       </div>
     </div>
 
-    <!-- 下拉面板 (Popover) -->
+    <!-- Выпадающая панель (Popover) -->
     <Teleport to="body">
       <Transition
         enter-active-class="transition duration-100 ease-out"
@@ -289,7 +289,7 @@ const sizeClasses = computed(() => {
             v-if="normalizedOptions.length === 0"
             class="px-4 py-3 text-center text-slate-400 text-xs"
           >
-            暂无选项
+            Нет опций
           </div>
           <ul v-else class="overflow-y-auto custom-scrollbar" :style="{ maxHeight: 'inherit' }">
             <li v-for="opt in normalizedOptions" :key="opt.value">
@@ -304,7 +304,7 @@ const sizeClasses = computed(() => {
                 @click="handleSelect(opt.value)"
               >
                 <span class="truncate">{{ opt.label }}</span>
-                <!-- 选中标记 -->
+                <!-- Отметка выбора -->
                 <svg
                   v-if="modelValue === opt.value"
                   xmlns="http://www.w3.org/2000/svg"
@@ -327,7 +327,7 @@ const sizeClasses = computed(() => {
       </Transition>
     </Teleport>
 
-    <!-- 底部描述/错误信息 -->
+    <!-- Описание / сообщение об ошибке -->
     <div v-if="description || error" class="label py-1 min-h-[24px]">
       <span
         class="label-text-alt transition-all duration-300 ease-out"

@@ -18,7 +18,7 @@ def generate_certificates_result(
 ) -> OperationResult:
     if generate_certificates(log_func=log_func, ca_common_name=ca_common_name):
         return OperationResult.success()
-    return OperationResult.failure("生成证书失败")
+    return OperationResult.failure("Не удалось сгенерировать сертификаты")
 
 
 def has_existing_ca_cert_result(

@@ -27,13 +27,13 @@ def register_cert_commands(commands: Commands) -> None:
             log_func=log_func,
             ca_common_name=DEFAULT_METADATA.ca_common_name,
         )
-        return build_result_payload(result, logs, "证书生成完成")
+        return build_result_payload(result, logs, "Генерация сертификатов завершена")
 
     @register_command(commands)
     async def install_ca_cert() -> dict[str, Any]:
         logs, log_func = collect_logs()
         result = install_ca_cert_result(log_func=log_func)
-        return build_result_payload(result, logs, "CA 证书安装完成")
+        return build_result_payload(result, logs, "Установка CA-сертификата завершена")
 
     @register_command(commands)
     async def clear_ca_cert(body: ClearCaCertPayload) -> dict[str, Any]:
@@ -42,6 +42,6 @@ def register_cert_commands(commands: Commands) -> None:
             body.ca_common_name or DEFAULT_METADATA.ca_common_name,
             log_func=log_func,
         )
-        return build_result_payload(result, logs, "CA 证书清除完成")
+        return build_result_payload(result, logs, "Удаление CA-сертификата завершено")
 
     _ = (generate_certificates, install_ca_cert, clear_ca_cert)

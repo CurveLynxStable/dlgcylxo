@@ -54,7 +54,7 @@ class TraeOfficialBaseUrlRouteManager:
             if self._running and not self._loopback.is_running():
                 self._running = False
             if not self._running:
-                return OperationResult.failure("Trae 官方 base_url 路线未运行")
+                return OperationResult.failure("Маршрут официального base_url Trae не запущен")
         return self._loopback.apply_runtime_config(raw_config)
 
     def start(
@@ -69,8 +69,8 @@ class TraeOfficialBaseUrlRouteManager:
                 return stop_result
 
             log_func(
-                "Trae 官方 base_url 路线："
-                "仅启动本地 custom model loopback，不拉起 Trae、不打 patch"
+                "Маршрут официального base_url Trae: "
+                "запускаем только локальный custom model loopback, без запуска Trae и без patch"
             )
             loopback_result = self._loopback.start(
                 TraeLoopbackConfig(
@@ -88,15 +88,15 @@ class TraeOfficialBaseUrlRouteManager:
             api_base_url = str(loopback_result.details.get("base_url") or "")
             loopback_url = str(loopback_result.details.get("loopback_url") or "")
             selected_port = loopback_result.details.get("selected_port")
-            log_func(f"Trae 自定义模型 base_url 请填写: {api_base_url}")
+            log_func(f"Укажите этот base_url для пользовательской модели в Trae: {api_base_url}")
             if loopback_result.details.get("port_shifted") is True:
                 log_func(
-                    "⚠️ Trae 官方 base_url 路线发生端口顺延："
+                    "⚠️ Маршрут официального base_url Trae: порт был смещён: "
                     f"preferred={config.loopback_port} selected={selected_port}"
                 )
-            log_func("✅ Trae 官方 base_url 路线已就绪")
+            log_func("✅ Маршрут официального base_url Trae готов")
             return OperationResult.success(
-                "Trae 官方 base_url 路线已就绪",
+                "Маршрут официального base_url Trae готов",
                 base_url=api_base_url,
                 loopback_url=loopback_url,
                 preferred_port=config.loopback_port,
@@ -125,16 +125,16 @@ class TraeOfficialBaseUrlRouteManager:
         had_runtime = self._running or self._loopback.is_running()
         if not had_runtime:
             if show_idle_message:
-                log_func("Trae 官方 base_url 路线未运行")
+                log_func("Маршрут официального base_url Trae не запущен")
             return OperationResult.success()
 
-        log_func("正在停止 Trae 官方 base_url 路线...")
+        log_func("Останавливаем маршрут официального base_url Trae...")
         clean = self._loopback.stop()
         self._running = False
-        log_func("Trae 官方 base_url 路线已停止")
+        log_func("Маршрут официального base_url Trae остановлен")
         if clean:
             return OperationResult.success()
         return OperationResult.failure(
-            "Trae 官方 base_url 路线未完全停止",
+            "Маршрут официального base_url Trae остановлен не полностью",
             code=ErrorCode.UNKNOWN,
         )

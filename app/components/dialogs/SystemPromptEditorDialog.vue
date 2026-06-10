@@ -81,7 +81,7 @@ const createdAtLabel = computed(() => {
   if (Number.isNaN(date.getTime())) {
     return raw;
   }
-  return date.toLocaleString("zh-CN", { hour12: false });
+  return date.toLocaleString("ru-RU", { hour12: false });
 });
 
 const editedAtLabel = computed(() => {
@@ -93,7 +93,7 @@ const editedAtLabel = computed(() => {
   if (Number.isNaN(date.getTime())) {
     return raw;
   }
-  return date.toLocaleString("zh-CN", { hour12: false });
+  return date.toLocaleString("ru-RU", { hour12: false });
 });
 
 const isDirty = computed(() => draftText.value !== effectiveText.value);
@@ -471,19 +471,19 @@ const localizeSearchPanel = () => {
   const findInput = textInputs.item(0);
   const replaceInput = textInputs.item(1);
   if (findInput instanceof HTMLInputElement) {
-    findInput.placeholder = "查找";
+    findInput.placeholder = "Найти";
   }
   if (replaceInput instanceof HTMLInputElement) {
-    replaceInput.placeholder = "替换";
+    replaceInput.placeholder = "Заменить";
   }
 
   const labelMap: Record<string, string> = {
-    next: "下一个",
-    prev: "上一个",
-    select: "全选匹配",
-    replace: "替换",
-    replaceAll: "全部替换",
-    close: "关闭",
+    next: "Следующий",
+    prev: "Предыдущий",
+    select: "Выделить все совпадения",
+    replace: "Заменить",
+    replaceAll: "Заменить все",
+    close: "Закрыть",
   };
 
   panel.querySelectorAll("button[name]").forEach((button) => {
@@ -650,13 +650,13 @@ onUnmounted(() => {
       <div class="space-y-3">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0 flex-1 space-y-1">
-            <h3 class="text-lg font-semibold text-slate-900">系统提示词编辑器</h3>
+            <h3 class="text-lg font-semibold text-slate-900">Редактор системных промптов</h3>
             <div class="flex min-w-0 items-center gap-2">
               <span class="truncate font-mono text-[11px] text-slate-500">
                 {{ props.item?.hash || "-" }}
               </span>
               <button class="btn btn-ghost btn-xs h-6 min-h-6 px-2" @click="handleCopyHash">
-                {{ copied ? "已复制" : "复制" }}
+                {{ copied ? "Скопировано" : "Копировать" }}
               </button>
             </div>
           </div>
@@ -678,39 +678,41 @@ onUnmounted(() => {
                   : 'border border-emerald-200 bg-emerald-100 text-emerald-700'
               "
             >
-              {{ isDirty ? "未保存修改" : "已同步" }}
+              {{ isDirty ? "Несохранённые изменения" : "Синхронизировано" }}
             </span>
           </div>
         </div>
         <div class="flex w-full items-center gap-2 text-[11px] text-slate-400">
-          <span class="truncate">创建时间：{{ createdAtLabel || "-" }}</span>
+          <span class="truncate">Создано: {{ createdAtLabel || "-" }}</span>
           <span v-if="editedAtLabel" class="ml-auto shrink-0 text-right"
-            >编辑时间：{{ editedAtLabel }}</span
+            >Изменено: {{ editedAtLabel }}</span
           >
         </div>
 
         <div class="flex flex-wrap items-center gap-1">
           <button class="btn btn-xs rounded-lg border-slate-200" @click="handleSearch">
-            查找/替换面板
+            Поиск/замена
           </button>
           <button
             class="btn btn-xs rounded-lg border-slate-200"
             :disabled="!canUndo"
             @click="handleUndo"
           >
-            撤销
+            Отменить
           </button>
           <button
             class="btn btn-xs rounded-lg border-slate-200"
             :disabled="!canRedo"
             @click="handleRedo"
           >
-            重做
+            Повторить
           </button>
           <button class="btn btn-xs rounded-lg border-slate-200" @click="handleRestoreOriginal">
-            恢复原文
+            Восстановить оригинал
           </button>
-          <button class="btn btn-xs rounded-lg border-slate-200" @click="handleClear">清空</button>
+          <button class="btn btn-xs rounded-lg border-slate-200" @click="handleClear">
+            Очистить
+          </button>
         </div>
       </div>
     </template>
@@ -730,9 +732,9 @@ onUnmounted(() => {
           class="grid shrink-0 border-b border-slate-200"
           :style="{ gridTemplateColumns: mergeHeaderTemplate }"
         >
-          <div class="bg-slate-100 px-3 py-2 text-xs text-slate-600">原文</div>
+          <div class="bg-slate-100 px-3 py-2 text-xs text-slate-600">Оригинал</div>
           <div class="border-l border-slate-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            当前编辑稿
+            Текущая редакция
           </div>
         </div>
         <div ref="mergeHost" class="mtga-merge-host flex-1 min-h-0 overflow-hidden"></div>
@@ -742,19 +744,19 @@ onUnmounted(() => {
     <template #footer>
       <div class="flex w-full items-center justify-between gap-3">
         <div class="text-xs text-slate-500">
-          {{ lineCount }} 行 · {{ charCount }} 字符
+          Строк: {{ lineCount }} · Символов: {{ charCount }}
           <span class="mx-1 text-slate-300">|</span>
-          快捷键：Ctrl/Cmd+F 查找，Ctrl/Cmd+Z 撤销
+          Горячие клавиши: Ctrl/Cmd+F — поиск, Ctrl/Cmd+Z — отмена
         </div>
         <div class="flex items-center gap-2">
-          <button class="mtga-btn-dialog-ghost min-w-24" @click="handleCancel">取消</button>
+          <button class="mtga-btn-dialog-ghost min-w-24" @click="handleCancel">Отмена</button>
           <button
             class="mtga-btn-dialog-primary min-w-24"
             :class="saving ? 'loading' : ''"
             :disabled="saving"
             @click="handleSave"
           >
-            保存
+            Сохранить
           </button>
         </div>
       </div>

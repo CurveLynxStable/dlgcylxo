@@ -17,23 +17,27 @@ const PATCH_OPERATIONS: {
   value: PatchOperation;
   description: string;
 }[] = [
-  { label: "新增", value: "add", description: "写入新字段或数组元素" },
-  { label: "删除", value: "remove", description: "移除已有字段或数组元素" },
-  { label: "替换", value: "replace", description: "替换已有字段的值" },
-  { label: "复制", value: "copy", description: "从 from 复制到 path" },
-  { label: "移动", value: "move", description: "从 from 移动到 path" },
-  { label: "断言", value: "test", description: "保存前校验字段值" },
+  { label: "Добавить", value: "add", description: "Записать новое поле или элемент массива" },
+  {
+    label: "Удалить",
+    value: "remove",
+    description: "Удалить существующее поле или элемент массива",
+  },
+  { label: "Заменить", value: "replace", description: "Заменить значение существующего поля" },
+  { label: "Копировать", value: "copy", description: "Скопировать из from в path" },
+  { label: "Переместить", value: "move", description: "Переместить из from в path" },
+  { label: "Проверка", value: "test", description: "Проверить значение поля перед сохранением" },
 ];
 
 const VALUE_MODES: {
   label: string;
   value: PatchValueMode;
 }[] = [
-  { label: "文本", value: "string" },
-  { label: "数字", value: "number" },
-  { label: "布尔", value: "boolean" },
-  { label: "对象", value: "object" },
-  { label: "数组", value: "array" },
+  { label: "Текст", value: "string" },
+  { label: "Число", value: "number" },
+  { label: "Булево", value: "boolean" },
+  { label: "Объект", value: "object" },
+  { label: "Массив", value: "array" },
   { label: "Null", value: "null" },
 ];
 
@@ -77,7 +81,7 @@ const isOpen = computed({
 });
 
 const operationCountLabel = computed(() =>
-  rows.value.length ? `${rows.value.length} 项编辑` : "未启用",
+  rows.value.length ? `Правил: ${rows.value.length}` : "Не используется",
 );
 
 const needsValue = (op: PatchOperation) => op === "add" || op === "replace" || op === "test";
@@ -159,19 +163,21 @@ const hydrateRows = (source: string) => {
   try {
     parsed = JSON.parse(text);
   } catch {
-    parseError.value = "当前参数编辑不是合法 JSON，无法转换成可视化表单。";
+    parseError.value =
+      "Текущая правка параметров — не валидный JSON, невозможно преобразовать в визуальную форму.";
     rows.value = [];
     return;
   }
   if (!Array.isArray(parsed)) {
-    parseError.value = "当前参数编辑不是 JSON Patch 数组。";
+    parseError.value = "Текущая правка параметров не является массивом JSON Patch.";
     rows.value = [];
     return;
   }
   const nextRows: PatchRow[] = [];
   for (const item of parsed) {
     if (!isPlainObject(item)) {
-      parseError.value = "JSON Patch 数组里包含非对象项，无法转换成可视化表单。";
+      parseError.value =
+        "Массив JSON Patch содержит элементы, не являющиеся объектами; преобразование в форму невозможно.";
       rows.value = [];
       return;
     }
@@ -216,16 +222,16 @@ const decodePointer = (pointer: string) => {
 const validatePointer = (value: string, label: string) => {
   const pointer = value.trim();
   if (!pointer) {
-    return `${label} 必填`;
+    return `${label} обязателен`;
   }
   if (!pointer.startsWith("/")) {
-    return `${label} 必须以 / 开头`;
+    return `${label} должен начинаться с /`;
   }
   if (pointer === "/stream" || pointer.startsWith("/stream/")) {
-    return "不允许修改 stream";
+    return "Изменение stream не допускается";
   }
   if (decodePointer(pointer) === null) {
-    return `${label} 包含无效 JSON Pointer 转义`;
+    return `${label} содержит недопустимое экранирование JSON Pointer`;
   }
   return "";
 };
@@ -237,7 +243,7 @@ const readValue = (row: PatchRow) => {
   if (row.valueMode === "number") {
     const numberValue = Number(row.valueText.trim());
     if (!Number.isFinite(numberValue)) {
-      return { ok: false as const, error: "数字值不合法" };
+      return { ok: false as const, error: "Недопустимое числовое значение" };
     }
     return { ok: true as const, value: numberValue };
   }
@@ -253,14 +259,14 @@ const readValue = (row: PatchRow) => {
   } catch {
     return {
       ok: false as const,
-      error: row.valueMode === "array" ? "数组 JSON 不合法" : "对象 JSON 不合法",
+      error: row.valueMode === "array" ? "Невалидный JSON массива" : "Невалидный JSON объекта",
     };
   }
   if (row.valueMode === "array" && !Array.isArray(parsed)) {
-    return { ok: false as const, error: "value 必须是数组" };
+    return { ok: false as const, error: "value должен быть массивом" };
   }
   if (row.valueMode === "object" && !isPlainObject(parsed)) {
-    return { ok: false as const, error: "value 必须是对象" };
+    return { ok: false as const, error: "value должен быть объектом" };
   }
   return { ok: true as const, value: parsed };
 };
@@ -285,7 +291,7 @@ const validateRow = (row: PatchRow) => {
       pathTokens.length > fromTokens.length &&
       fromTokens.every((token, tokenIndex) => token === pathTokens[tokenIndex])
     ) {
-      issues.push("不能移动到自己的子路径");
+      issues.push("Нельзя переместить в собственный дочерний путь");
     }
   }
   if (needsValue(row.op)) {
@@ -459,9 +465,9 @@ watch(
       class="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-slate-700"
     >
       <span class="flex min-w-0 items-center gap-2">
-        <span>参数编辑</span>
+        <span>Правка параметров</span>
         <span class="hidden text-xs font-normal text-slate-500 sm:inline">
-          按顺序应用到上游请求体
+          Применяется к телу запроса апстрима по порядку
         </span>
       </span>
       <span
@@ -495,7 +501,7 @@ watch(
             <path d="M5 12h14" />
             <path d="M12 5v14" />
           </svg>
-          新增一项
+          Добавить правило
         </button>
         <button
           type="button"
@@ -517,7 +523,7 @@ watch(
           class="btn btn-xs rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
           @click="clearRows"
         >
-          清空
+          Очистить
         </button>
       </div>
 
@@ -532,7 +538,8 @@ watch(
         v-if="!rows.length && !parseError"
         class="rounded-lg border border-dashed border-slate-200 bg-white/60 px-4 py-6 text-center text-sm text-slate-500"
       >
-        当前不改写请求参数。需要新增、替换或删除字段时，点上方按钮添加规则。
+        Параметры запроса сейчас не изменяются. Чтобы добавить, заменить или удалить поля, нажмите
+        кнопки выше.
       </div>
 
       <div v-else class="space-y-3">
@@ -545,7 +552,7 @@ watch(
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="grid flex-1 gap-3 md:grid-cols-[116px_minmax(0,1fr)]">
               <div>
-                <div class="mb-1 text-xs font-medium text-slate-600">动作</div>
+                <div class="mb-1 text-xs font-medium text-slate-600">Действие</div>
                 <select
                   class="select select-sm w-full cursor-pointer rounded-lg border-slate-200 bg-slate-50 text-sm focus:border-amber-300 focus:outline-none"
                   :value="row.op"
@@ -568,7 +575,7 @@ watch(
 
               <div class="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label class="mb-1 block text-xs font-medium text-slate-600">目标路径</label>
+                  <label class="mb-1 block text-xs font-medium text-slate-600">Целевой путь</label>
                   <input
                     v-model="row.path"
                     class="input input-sm w-full rounded-lg border-slate-200 bg-slate-50 font-mono text-xs focus:border-amber-300 focus:outline-none"
@@ -591,7 +598,7 @@ watch(
                 </div>
 
                 <div v-if="needsFrom(row.op)">
-                  <label class="mb-1 block text-xs font-medium text-slate-600">来源路径</label>
+                  <label class="mb-1 block text-xs font-medium text-slate-600">Исходный путь</label>
                   <input
                     v-model="row.from"
                     class="input input-sm w-full rounded-lg border-slate-200 bg-slate-50 font-mono text-xs focus:border-amber-300 focus:outline-none"
@@ -609,7 +616,7 @@ watch(
                 type="button"
                 class="btn btn-ghost btn-xs btn-square rounded-lg text-slate-500"
                 :disabled="index === 0"
-                title="上移"
+                title="Вверх"
                 @click="moveRow(index, -1)"
               >
                 <svg
@@ -630,7 +637,7 @@ watch(
                 type="button"
                 class="btn btn-ghost btn-xs btn-square rounded-lg text-slate-500"
                 :disabled="index === rows.length - 1"
-                title="下移"
+                title="Вниз"
                 @click="moveRow(index, 1)"
               >
                 <svg
@@ -650,7 +657,7 @@ watch(
               <button
                 type="button"
                 class="btn btn-ghost btn-xs btn-square rounded-lg text-slate-500"
-                title="复制"
+                title="Дублировать"
                 @click="duplicateRow(row)"
               >
                 <svg
@@ -671,7 +678,7 @@ watch(
               <button
                 type="button"
                 class="btn btn-ghost btn-xs btn-square rounded-lg text-rose-500 hover:bg-rose-50"
-                title="删除"
+                title="Удалить"
                 @click="removeRow(index)"
               >
                 <svg
@@ -695,7 +702,7 @@ watch(
 
           <div v-if="needsValue(row.op)" class="mt-3 grid gap-3 md:grid-cols-[120px_minmax(0,1fr)]">
             <div>
-              <label class="mb-1 block text-xs font-medium text-slate-600">值类型</label>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Тип значения</label>
               <select
                 class="select select-sm w-full cursor-pointer rounded-lg border-slate-200 bg-slate-50 text-sm focus:border-amber-300 focus:outline-none"
                 :value="row.valueMode"
@@ -708,7 +715,7 @@ watch(
             </div>
 
             <div v-if="row.valueMode === 'boolean'">
-              <label class="mb-1 block text-xs font-medium text-slate-600">值</label>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Значение</label>
               <select
                 v-model="row.boolValue"
                 class="select select-sm w-full cursor-pointer rounded-lg border-slate-200 bg-slate-50 text-sm focus:border-amber-300 focus:outline-none"
@@ -720,7 +727,7 @@ watch(
             </div>
 
             <div v-else-if="row.valueMode === 'null'">
-              <label class="mb-1 block text-xs font-medium text-slate-600">值</label>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Значение</label>
               <div
                 class="flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 font-mono text-xs text-slate-500"
               >
@@ -729,7 +736,7 @@ watch(
             </div>
 
             <div v-else>
-              <label class="mb-1 block text-xs font-medium text-slate-600">值</label>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Значение</label>
               <textarea
                 v-if="row.valueMode === 'object' || row.valueMode === 'array'"
                 v-model="row.valueText"
@@ -758,8 +765,9 @@ watch(
       </div>
 
       <div class="text-xs leading-5 text-slate-500">
-        参数编辑优先级高于 provider 适配层，请谨慎使用，任何后果自行承担。保存时按 JSON Patch
-        校验；stream 字段不可修改。
+        Правка параметров имеет приоритет над адаптером провайдера — используйте осторожно,
+        ответственность на вас. При сохранении выполняется проверка JSON Patch; поле stream изменять
+        нельзя.
       </div>
     </div>
   </details>

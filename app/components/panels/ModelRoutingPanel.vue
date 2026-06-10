@@ -137,7 +137,7 @@ const targetModelOptions = computed(() =>
   ),
 );
 const poolOptions = computed(() => [
-  { label: "不启用故障转移", value: "" },
+  { label: "Не использовать фейловер", value: "" },
   ...failoverPools.value.map((pool) => ({ label: pool.id, value: pool.id })),
 ]);
 const enabledPublishedModels = computed(() =>
@@ -148,33 +148,33 @@ const hasModelRoute = computed(() => targets.value.length > 0 && hasEnabledPubli
 const routeSections = computed(() => [
   {
     id: "targets" as const,
-    label: "上游目标",
+    label: "Цели апстрима",
     count: targets.value.length,
-    description: "上游 provider、Base URL、模型与 API Key",
+    description: "Provider, Base URL, модель и API Key апстрима",
   },
   {
     id: "published" as const,
-    label: "发布模型",
+    label: "Публикуемые модели",
     count: publishedModels.value.length,
-    description: "暴露给下游 /models 与请求体 model 的名称",
+    description: "Имена, доступные даунстриму в /models и в поле model запроса",
   },
   {
     id: "failover" as const,
-    label: "故障转移池",
+    label: "Пулы фейловера",
     count: failoverPools.value.length,
-    description: "429 冷却与网络重试耗尽后的候选目标",
+    description: "Резервные цели после охлаждения 429 и исчерпания сетевых повторов",
   },
 ]);
 const routeWarnings = computed(() => {
   const messages: string[] = [];
   if (!targets.value.length) {
-    messages.push("缺少目标");
+    messages.push("Нет целей");
   }
   if (!publishedModels.value.length) {
-    messages.push("缺少发布模型");
+    messages.push("Нет публикуемых моделей");
   }
   if (publishedModels.value.length && !hasEnabledPublishedModel.value) {
-    messages.push("没有启用的发布模型");
+    messages.push("Нет включённых публикуемых моделей");
   }
   return messages;
 });
@@ -207,16 +207,20 @@ const activeSection = computed<RouteSectionId>({
 const isOverview = computed(() => activeView.value === "overview");
 const routePreviewTitle = computed(() => {
   if (enabledPublishedModels.value.length > 1) {
-    return `${enabledPublishedModels.value.length} 个发布模型已启用`;
+    return `Включено публикуемых моделей: ${enabledPublishedModels.value.length}`;
   }
   if (enabledPublishedModels.value.length === 1) {
-    return enabledPublishedModels.value[0]?.name || "发布模型已启用";
+    return enabledPublishedModels.value[0]?.name || "Публикуемая модель включена";
   }
-  return publishedModels.value.length ? "没有启用的发布模型" : "未发布模型";
+  return publishedModels.value.length
+    ? "Нет включённых публикуемых моделей"
+    : "Модели не опубликованы";
 });
 const routePreviewSubtitle = computed(() => {
   if (!enabledPublishedModels.value.length) {
-    return targets.value.length ? "发布模型启用后会暴露给下游" : "还没有可用上游目标";
+    return targets.value.length
+      ? "После включения публикуемые модели станут доступны даунстриму"
+      : "Пока нет доступных целей апстрима";
   }
   const names = enabledPublishedModels.value.map((model) => model.name);
   if (enabledPublishedModels.value.length === 1) {
@@ -224,14 +228,14 @@ const routePreviewSubtitle = computed(() => {
     const target = targets.value.find((item) => item.id === model?.primary_target_id);
     return target
       ? getTargetModelLabel(target.id, model?.primary_upstream_model || target.upstream_model)
-      : "主目标未找到";
+      : "Основная цель не найдена";
   }
   const targetCount = new Set(
     enabledPublishedModels.value.map((model) => model.primary_target_id).filter(Boolean),
   ).size;
   const visibleNames = names.slice(0, 3).join(", ");
   const suffix = names.length > 3 ? ` +${names.length - 3}` : "";
-  return `${visibleNames}${suffix} · ${targetCount} 个主目标`;
+  return `${visibleNames}${suffix} · основных целей: ${targetCount}`;
 });
 const routePreviewFailoverLabel = computed(() => {
   const poolIds = Array.from(
@@ -288,7 +292,7 @@ const decodePatchPointer = (pointer: string, label: string, index: number) => {
       } else if (escape === "1") {
         decoded += "/";
       } else {
-        formError.value = `参数编辑第 ${index + 1} 项 ${label} 包含无效转义`;
+        formError.value = `Редактор параметров: элемент ${index + 1}, ${label} содержит недопустимое экранирование`;
         return null;
       }
       position += 1;
@@ -300,15 +304,15 @@ const decodePatchPointer = (pointer: string, label: string, index: number) => {
 const validatePatchPointer = (value: unknown, label: string, index: number) => {
   const pointer = normalizePatchPointer(value);
   if (!pointer) {
-    formError.value = `参数编辑第 ${index + 1} 项缺少 ${label}`;
+    formError.value = `Редактор параметров: в элементе ${index + 1} отсутствует ${label}`;
     return null;
   }
   if (!pointer.startsWith("/")) {
-    formError.value = `参数编辑第 ${index + 1} 项 ${label} 必须以 / 开头`;
+    formError.value = `Редактор параметров: элемент ${index + 1}, ${label} должен начинаться с /`;
     return null;
   }
   if (pointer === "/stream" || pointer.startsWith("/stream/")) {
-    formError.value = "参数编辑不允许修改 stream";
+    formError.value = "Редактор параметров не позволяет изменять stream";
     return null;
   }
   const tokens = decodePatchPointer(pointer, label, index);
@@ -326,22 +330,22 @@ const parseTargetRequestBodyPatch = () => {
   try {
     parsed = JSON.parse(source);
   } catch {
-    formError.value = "参数编辑必须是合法 JSON";
+    formError.value = "Редактор параметров: требуется корректный JSON";
     return null;
   }
   if (!Array.isArray(parsed)) {
-    formError.value = "参数编辑必须是 JSON Patch 数组";
+    formError.value = "Редактор параметров: требуется массив JSON Patch";
     return null;
   }
   const operations: Record<string, unknown>[] = [];
   for (const [index, operation] of parsed.entries()) {
     if (!isPlainObject(operation)) {
-      formError.value = `参数编辑第 ${index + 1} 项必须是对象`;
+      formError.value = `Редактор параметров: элемент ${index + 1} должен быть объектом`;
       return null;
     }
     const op = String(operation.op);
     if (!["add", "remove", "replace", "copy", "move", "test"].includes(op)) {
-      formError.value = `参数编辑第 ${index + 1} 项 op 不支持`;
+      formError.value = `Редактор параметров: элемент ${index + 1}, op не поддерживается`;
       return null;
     }
     const path = validatePatchPointer(operation.path, "path", index);
@@ -354,7 +358,7 @@ const parseTargetRequestBodyPatch = () => {
       path: path.pointer,
     };
     if (["add", "replace", "test"].includes(op) && !("value" in operation)) {
-      formError.value = `参数编辑第 ${index + 1} 项缺少 value`;
+      formError.value = `Редактор параметров: в элементе ${index + 1} отсутствует value`;
       return null;
     }
     if (["copy", "move"].includes(op)) {
@@ -367,7 +371,7 @@ const parseTargetRequestBodyPatch = () => {
         path.tokens.length > from.tokens.length &&
         from.tokens.every((token, tokenIndex) => token === path.tokens[tokenIndex])
       ) {
-        formError.value = `参数编辑第 ${index + 1} 项不能把值移动到自己的子路径`;
+        formError.value = `Редактор параметров: элемент ${index + 1} не может перемещать значение в собственный дочерний путь`;
         return null;
       }
       normalizedOperation.from = from.pointer;
@@ -425,7 +429,7 @@ const customUpstreamModelSet = computed(() => new Set(knownCustomUpstreamModels.
 const upstreamModelOptions = computed(() => {
   const customModels = knownCustomUpstreamModels.value.map((model) => ({
     value: model,
-    tag: "自定义",
+    tag: "Пользовательская",
   }));
   const selectedOnlyModels = selectedUpstreamModels.value
     .filter(
@@ -437,7 +441,7 @@ const upstreamModelOptions = computed(() => {
   const apiModels = availableModels.value.map((model) => ({
     value: model,
     disabled: customUpstreamModelSet.value.has(model),
-    disabledReason: "已作为自定义 ID 添加",
+    disabledReason: "Уже добавлена как пользовательский ID",
   }));
   return [...customModels, ...selectedOnlyModels, ...apiModels];
 });
@@ -568,14 +572,14 @@ const getRemovedTargetModelReferenceError = (oldId: string, nextTarget: ModelRou
     if (model.primary_target_id !== oldId && model.primary_target_id !== nextTarget.id) {
       return;
     }
-    addReference(model.primary_upstream_model, `发布模型 ${model.name}`);
+    addReference(model.primary_upstream_model, `публикуемая модель ${model.name}`);
   });
   failoverPools.value.forEach((pool) => {
     pool.members.forEach((member) => {
       if (member.target_id !== oldId && member.target_id !== nextTarget.id) {
         return;
       }
-      addReference(member.upstream_model, `故障池 ${pool.id}`);
+      addReference(member.upstream_model, `пул фейловера ${pool.id}`);
     });
   });
   const references = Array.from(referencesByModel.entries());
@@ -586,12 +590,12 @@ const getRemovedTargetModelReferenceError = (oldId: string, nextTarget: ModelRou
     .slice(0, 3)
     .map(([upstreamModel, sources]) => {
       const visibleSources = Array.from(sources).slice(0, 3);
-      const suffix = sources.size > 3 ? `等 ${sources.size} 处` : "";
-      return `${upstreamModel}（${visibleSources.join("、")}${suffix}）`;
+      const suffix = sources.size > 3 ? ` и ещё ${sources.size - 3}` : "";
+      return `${upstreamModel} (${visibleSources.join(", ")}${suffix})`;
     })
-    .join("；");
-  const suffix = references.length > 3 ? ` 等 ${references.length} 个模型` : "";
-  return `无法保存：上游模型 ${details}${suffix} 仍被引用，请先修改发布模型或故障池成员后再删除。`;
+    .join("; ");
+  const suffix = references.length > 3 ? ` и ещё моделей: ${references.length - 3}` : "";
+  return `Невозможно сохранить: модели апстрима ${details}${suffix} всё ещё используются. Сначала измените публикуемые модели или членов пула фейловера, затем удаляйте.`;
 };
 const isValidTargetModelKey = (key: string) => {
   const { targetId, upstreamModel } = parseTargetModelKey(key);
@@ -603,7 +607,7 @@ const pendingDeleteKind = ref<"target" | "published" | "pool" | null>(null);
 const pendingDeleteIds = ref<string[]>([]);
 const pendingDeleteLabel = computed(() => {
   if (pendingDeleteIds.value.length > 1) {
-    return `${pendingDeleteIds.value.length} 项`;
+    return `элементов: ${pendingDeleteIds.value.length}`;
   }
   if (pendingDeleteIds.value.length === 1) {
     const pendingId = pendingDeleteIds.value[0];
@@ -626,27 +630,31 @@ const pendingDeleteLabel = computed(() => {
 });
 const pendingDeleteTitle = computed(() => {
   if (pendingDeleteKind.value === "target") {
-    return pendingDeleteIds.value.length > 1 ? "批量删除目标" : "删除目标";
+    return pendingDeleteIds.value.length > 1 ? "Массовое удаление целей" : "Удалить цель";
   }
   if (pendingDeleteKind.value === "published") {
-    return pendingDeleteIds.value.length > 1 ? "批量删除发布模型" : "删除发布模型";
+    return pendingDeleteIds.value.length > 1
+      ? "Массовое удаление публикуемых моделей"
+      : "Удалить публикуемую модель";
   }
-  return pendingDeleteIds.value.length > 1 ? "批量删除故障池" : "删除故障池";
+  return pendingDeleteIds.value.length > 1
+    ? "Массовое удаление пулов фейловера"
+    : "Удалить пул фейловера";
 });
 const pendingDeleteDescription = computed(() => {
   if (pendingDeleteKind.value === "target") {
     if (pendingDeleteIds.value.length > 1) {
-      return "目标删除后会从故障池成员中移除。已被发布模型引用的目标不能删除。";
+      return "После удаления цели будут убраны из членов пулов фейловера. Цели, на которые ссылаются публикуемые модели, удалить нельзя.";
     }
-    return "目标删除后会从故障池成员中移除。已被发布模型引用的目标不能删除。";
+    return "После удаления цель будет убрана из членов пулов фейловера. Цели, на которые ссылаются публикуемые модели, удалить нельзя.";
   }
   if (pendingDeleteKind.value === "published") {
     if (pendingDeleteIds.value.length > 1) {
-      return "删除后这些模型名称不会再暴露给下游 /models。";
+      return "После удаления эти имена моделей больше не будут доступны даунстриму в /models.";
     }
-    return "删除后该模型名称不会再暴露给下游 /models。";
+    return "После удаления это имя модели больше не будет доступно даунстриму в /models.";
   }
-  return "已被发布模型引用的故障池不能删除。";
+  return "Пулы фейловера, на которые ссылаются публикуемые модели, удалить нельзя.";
 });
 const openDeleteConfirm = (kind: "target" | "published" | "pool", ids?: string[]) => {
   const pendingIds = Array.from(new Set((ids || []).map((id) => id.trim()).filter(Boolean)));
@@ -660,7 +668,7 @@ const openDeleteConfirm = (kind: "target" | "published" | "pool", ids?: string[]
       return;
     }
     if (targetIds.some((targetId) => hasTargetReference(targetId))) {
-      store.appendLog("删除目标失败：仍有发布模型引用该目标");
+      store.appendLog("Не удалось удалить цель: на неё всё ещё ссылаются публикуемые модели");
       return;
     }
     pendingDeleteIds.value = targetIds;
@@ -686,7 +694,9 @@ const openDeleteConfirm = (kind: "target" | "published" | "pool", ids?: string[]
       return;
     }
     if (poolIds.some((poolId) => hasPoolReference(poolId))) {
-      store.appendLog("删除故障池失败：仍有发布模型引用该故障池");
+      store.appendLog(
+        "Не удалось удалить пул фейловера: на него всё ещё ссылаются публикуемые модели",
+      );
       return;
     }
     pendingDeleteIds.value = poolIds;
@@ -820,11 +830,13 @@ const persistConfig = async (successMessage: string) => {
       store.appendLog(successMessage);
       const applied = await store.runProxyApplyCurrentConfig();
       if (!applied) {
-        store.appendLog("配置已保存，但运行中代理仍可能使用旧模型路由");
+        store.appendLog(
+          "Конфигурация сохранена, но работающий прокси может использовать старую маршрутизацию моделей",
+        );
       }
       return true;
     }
-    store.appendLog("保存模型路由失败");
+    store.appendLog("Не удалось сохранить маршрутизацию моделей");
     return false;
   } finally {
     saving.value = false;
@@ -835,7 +847,7 @@ const saveSettings = async () => {
   const previousBucketId = store.promptCacheBucketId.value;
   store.mtgaAuthKey.value = settingsForm.mtga_auth_key;
   store.promptCacheBucketId.value = settingsForm.prompt_cache_bucket_id.trim();
-  if (await persistConfig("入站设置已保存")) {
+  if (await persistConfig("Входящие настройки сохранены")) {
     closeSettings();
     return;
   }
@@ -848,7 +860,7 @@ const saveTarget = async () => {
   const apiBase = normalizeApiBase(targetForm.api_base);
   const upstreamModels = getTargetFormUpstreamModels();
   if (!targetId || !apiBase || !upstreamModels.length) {
-    formError.value = "目标ID、API Base 和上游模型都是必填项";
+    formError.value = "ID цели, API Base и модель апстрима обязательны";
     return;
   }
   if (
@@ -858,7 +870,7 @@ const saveTarget = async () => {
         (editorMode.value === "add" || target.id !== selectedTargetId.value),
     )
   ) {
-    formError.value = "目标ID已存在";
+    formError.value = "ID цели уже существует";
     return;
   }
   const requestBodyPatch = parseTargetRequestBodyPatch();
@@ -916,7 +928,7 @@ const saveTarget = async () => {
     }
   }
   selectedTargetId.value = target.id;
-  if (await persistConfig(`已保存目标: ${target.display_name || target.id}`)) {
+  if (await persistConfig(`Цель сохранена: ${target.display_name || target.id}`)) {
     rememberTargetCustomUpstreamModels(target.id, upstreamModels, previousTargetId);
     closeEditor();
   }
@@ -926,7 +938,7 @@ const savePublishedModel = async () => {
   const name = publishedForm.name.trim();
   const primaryRoute = parseTargetModelKey(publishedForm.primary_route_key);
   if (!name || !isValidTargetModelKey(publishedForm.primary_route_key)) {
-    formError.value = "发布模型名称和主目标都是必填项";
+    formError.value = "Имя публикуемой модели и основная цель обязательны";
     return;
   }
   if (
@@ -936,7 +948,7 @@ const savePublishedModel = async () => {
         (editorMode.value === "add" || model.name !== selectedPublishedName.value),
     )
   ) {
-    formError.value = "发布模型名称已存在";
+    formError.value = "Имя публикуемой модели уже существует";
     return;
   }
   const model: PublishedModel = {
@@ -957,7 +969,7 @@ const savePublishedModel = async () => {
     }
   }
   selectedPublishedName.value = model.name;
-  if (await persistConfig(`已保存发布模型: ${model.name}`)) {
+  if (await persistConfig(`Публикуемая модель сохранена: ${model.name}`)) {
     closeEditor();
   }
 };
@@ -976,7 +988,7 @@ const savePool = async () => {
   const poolId = poolForm.id.trim();
   const statuses = parseStatuses(poolForm.trigger_statuses);
   if (!poolId || !statuses.length) {
-    formError.value = "故障池ID和触发状态码都是必填项";
+    formError.value = "ID пула фейловера и коды статуса срабатывания обязательны";
     return;
   }
   if (
@@ -985,7 +997,7 @@ const savePool = async () => {
         pool.id === poolId && (editorMode.value === "add" || pool.id !== selectedPoolId.value),
     )
   ) {
-    formError.value = "故障池ID已存在";
+    formError.value = "ID пула фейловера уже существует";
     return;
   }
   const pool: FailoverPool = {
@@ -1014,7 +1026,7 @@ const savePool = async () => {
     }
   }
   selectedPoolId.value = pool.id;
-  if (await persistConfig(`已保存故障池: ${pool.id}`)) {
+  if (await persistConfig(`Пул фейловера сохранён: ${pool.id}`)) {
     closeEditor();
   }
 };
@@ -1038,7 +1050,7 @@ const deleteTargetsByIds = async (targetIds: string[]) => {
     return false;
   }
   if (normalizedIds.some((targetId) => hasTargetReference(targetId))) {
-    store.appendLog("删除目标失败：仍有发布模型引用该目标");
+    store.appendLog("Не удалось удалить цель: на неё всё ещё ссылаются публикуемые модели");
     return false;
   }
   const deletingSet = new Set(normalizedIds);
@@ -1059,8 +1071,8 @@ const deleteTargetsByIds = async (targetIds: string[]) => {
   selectedTargetId.value = targets.value[0]?.id || "";
   const successMessage =
     deletingTargets.length === 1
-      ? `已删除目标: ${deletingTargets[0]?.display_name || deletingTargets[0]?.id || ""}`
-      : `已删除目标: ${deletingTargets.length} 项`;
+      ? `Цель удалена: ${deletingTargets[0]?.display_name || deletingTargets[0]?.id || ""}`
+      : `Удалено целей: ${deletingTargets.length}`;
   if (await persistConfig(successMessage)) {
     selectedTargetIds.value = selectedTargetIds.value.filter(
       (targetId) => !deletingSet.has(targetId),
@@ -1092,8 +1104,8 @@ const deletePublishedByNames = async (modelNames: string[]) => {
   selectedPublishedName.value = publishedModels.value[0]?.name || "";
   const successMessage =
     deletingModels.length === 1
-      ? `已删除发布模型: ${deletingModels[0]?.name || ""}`
-      : `已删除发布模型: ${deletingModels.length} 项`;
+      ? `Публикуемая модель удалена: ${deletingModels[0]?.name || ""}`
+      : `Удалено публикуемых моделей: ${deletingModels.length}`;
   if (await persistConfig(successMessage)) {
     selectedPublishedNames.value = selectedPublishedNames.value.filter(
       (modelName) => !deletingSet.has(modelName),
@@ -1114,7 +1126,9 @@ const deletePoolsByIds = async (poolIds: string[]) => {
     return false;
   }
   if (normalizedIds.some((poolId) => hasPoolReference(poolId))) {
-    store.appendLog("删除故障池失败：仍有发布模型引用该故障池");
+    store.appendLog(
+      "Не удалось удалить пул фейловера: на него всё ещё ссылаются публикуемые модели",
+    );
     return false;
   }
   const deletingSet = new Set(normalizedIds);
@@ -1128,8 +1142,8 @@ const deletePoolsByIds = async (poolIds: string[]) => {
   selectedPoolId.value = failoverPools.value[0]?.id || "";
   const successMessage =
     deletingPools.length === 1
-      ? `已删除故障池: ${deletingPools[0]?.id || ""}`
-      : `已删除故障池: ${deletingPools.length} 项`;
+      ? `Пул фейловера удалён: ${deletingPools[0]?.id || ""}`
+      : `Удалено пулов фейловера: ${deletingPools.length}`;
   if (await persistConfig(successMessage)) {
     selectedPoolIds.value = selectedPoolIds.value.filter((poolId) => !deletingSet.has(poolId));
     if (!failoverPools.value.length) {
@@ -1166,7 +1180,7 @@ const refreshConfig = async () => {
   refreshing.value = true;
   try {
     if (await store.loadConfig()) {
-      store.appendLog("已刷新模型路由");
+      store.appendLog("Маршрутизация моделей обновлена");
     }
   } finally {
     refreshing.value = false;
@@ -1192,7 +1206,7 @@ const fetchTargetModels = async () => {
   }
   const apiBase = normalizeApiBase(targetForm.api_base);
   if (!apiBase) {
-    store.appendLog("获取模型列表失败: API Base为空");
+    store.appendLog("Не удалось получить список моделей: API Base пуст");
     return;
   }
   modelLoading.value = true;
@@ -1291,8 +1305,10 @@ watch(
   <div class="flex h-full min-h-0 flex-col gap-3">
     <div class="flex shrink-0 flex-wrap items-start justify-between gap-3">
       <div class="min-w-0">
-        <h2 class="mtga-card-title">模型路由</h2>
-        <p class="mtga-card-subtitle">维护 MTGA 入站模型、上游目标与故障转移关系</p>
+        <h2 class="mtga-card-title">Маршрутизация моделей</h2>
+        <p class="mtga-card-subtitle">
+          Управление входящими моделями MTGA, целями апстрима и фейловером
+        </p>
       </div>
       <div class="flex shrink-0 items-center gap-2">
         <span
@@ -1303,7 +1319,9 @@ watch(
               : 'border-amber-200 bg-amber-50 text-amber-700'
           "
         >
-          {{ hasModelRoute ? "可启动" : routeWarnings.join(" / ") || "待配置" }}
+          {{
+            hasModelRoute ? "Готово к запуску" : routeWarnings.join(" / ") || "Требует настройки"
+          }}
         </span>
       </div>
     </div>
@@ -1330,7 +1348,7 @@ watch(
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
               </svg>
-              路由概览
+              Обзор маршрутов
             </div>
             <div class="mt-1 truncate text-base font-semibold text-slate-900">
               {{ routePreviewTitle }}
@@ -1361,7 +1379,7 @@ watch(
                 <circle cx="12" cy="12" r="6"></circle>
                 <circle cx="12" cy="12" r="2"></circle>
               </svg>
-              上游目标
+              Цели апстрима
             </div>
             <div class="mt-1 font-mono text-lg font-bold text-slate-900">{{ targets.length }}</div>
           </div>
@@ -1386,7 +1404,7 @@ watch(
                 <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
                 <line x1="12" y1="22.08" x2="12" y2="12"></line>
               </svg>
-              发布模型
+              Публикуемые модели
             </div>
             <div class="mt-1 font-mono text-lg font-bold text-slate-900">
               {{ publishedModels.length }}
@@ -1416,7 +1434,7 @@ watch(
                 <path d="m5 5 3.5 3.5"></path>
                 <path d="m19 19-3.5-3.5"></path>
               </svg>
-              故障转移池
+              Пулы фейловера
             </div>
             <div class="mt-1 font-mono text-lg font-bold text-slate-900">
               {{ failoverPools.length }}
@@ -1429,7 +1447,7 @@ watch(
             v-if="routePreviewFailoverLabel"
             class="rounded-lg border border-slate-200/70 bg-slate-50/70 px-3 py-2 text-xs font-semibold text-slate-600"
           >
-            已启用的故障转移池: {{ routePreviewFailoverLabel }}
+            Включённые пулы фейловера: {{ routePreviewFailoverLabel }}
           </span>
           <span
             v-for="warning in routeWarnings"
@@ -1457,7 +1475,7 @@ watch(
             <span
               class="flex items-center text-xs font-bold text-amber-600 transition-transform group-hover:translate-x-0.5 group-hover:text-amber-700"
             >
-              管理
+              Управлять
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="14"
@@ -1482,7 +1500,7 @@ watch(
           class="btn btn-sm rounded-xl border border-slate-200 bg-white/65 text-slate-700 hover:border-amber-300 hover:bg-amber-50"
           @click="openSettings"
         >
-          入站设置
+          Входящие настройки
         </button>
         <button
           class="btn btn-sm rounded-xl border border-slate-200 bg-white/65 text-slate-700 hover:border-amber-300 hover:bg-amber-50"
@@ -1490,7 +1508,7 @@ watch(
           :disabled="refreshing || saving"
           @click="refreshConfig"
         >
-          刷新配置
+          Обновить конфигурацию
         </button>
       </div>
     </section>
@@ -1520,7 +1538,7 @@ watch(
               >
                 <path d="m15 18-6-6 6-6" />
               </svg>
-              返回
+              Назад
             </button>
             <div class="min-w-0">
               <div class="flex items-center gap-2">
@@ -1541,14 +1559,14 @@ watch(
                 :disabled="targetDeleteMode"
                 @click="openTargetEditor('add')"
               >
-                新增
+                Добавить
               </button>
               <button
                 class="btn btn-xs min-w-12 rounded-lg border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50"
                 :disabled="targetDeleteMode || !selectedTarget"
                 @click="openTargetEditor('edit')"
               >
-                编辑
+                Изменить
               </button>
               <button
                 class="btn btn-xs min-w-12 rounded-lg border border-slate-200 bg-white text-slate-700 transition-[background-color,border-color,color,width] hover:border-amber-300 hover:bg-amber-50"
@@ -1562,7 +1580,7 @@ watch(
                   class="h-3 w-3 animate-spin rounded-full border-2 border-amber-500/25 border-t-amber-600"
                   aria-hidden="true"
                 ></span>
-                <span>{{ targetTesting ? "测活中" : "测活" }}</span>
+                <span>{{ targetTesting ? "Проверка..." : "Проверка" }}</span>
               </button>
               <MtgaBulkDeleteControls
                 v-model:active="targetDeleteMode"
@@ -1579,14 +1597,14 @@ watch(
                 :disabled="publishedDeleteMode || !targets.length"
                 @click="openPublishedEditor('add')"
               >
-                新增
+                Добавить
               </button>
               <button
                 class="btn btn-xs min-w-12 rounded-lg border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50"
                 :disabled="publishedDeleteMode || !selectedPublishedModel"
                 @click="openPublishedEditor('edit')"
               >
-                编辑
+                Изменить
               </button>
               <MtgaBulkDeleteControls
                 v-model:active="publishedDeleteMode"
@@ -1603,14 +1621,14 @@ watch(
                 :disabled="poolDeleteMode || !targets.length"
                 @click="openPoolEditor('add')"
               >
-                新增
+                Добавить
               </button>
               <button
                 class="btn btn-xs min-w-12 rounded-lg border border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50"
                 :disabled="poolDeleteMode || !selectedPool"
                 @click="openPoolEditor('edit')"
               >
-                编辑
+                Изменить
               </button>
               <MtgaBulkDeleteControls
                 v-model:active="poolDeleteMode"
@@ -1632,7 +1650,7 @@ watch(
             :active="targetDeleteMode"
             :all-selected="allTargetsSelected"
             :busy="saving"
-            item-label="个目标"
+            item-label="целей"
             :selected-count="selectedTargetIds.length"
             :total-count="targets.length"
             @delete-selected="openDeleteConfirm('target', selectedTargetIds)"
@@ -1766,8 +1784,10 @@ watch(
                 <circle cx="12" cy="12" r="2"></circle>
               </svg>
             </div>
-            <div class="mt-3 text-sm font-medium text-slate-500">暂无目标</div>
-            <div class="mt-1 text-xs text-slate-400">配置上游提供商、API Key 和模型信息</div>
+            <div class="mt-3 text-sm font-medium text-slate-500">Нет целей</div>
+            <div class="mt-1 text-xs text-slate-400">
+              Настройте провайдера апстрима, API Key и модели
+            </div>
             <button class="btn btn-sm btn-primary mt-4 rounded-xl" @click="openTargetEditor('add')">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -1783,7 +1803,7 @@ watch(
                 <path d="M5 12h14" />
                 <path d="M12 5v14" />
               </svg>
-              新增 Target
+              Добавить Target
             </button>
           </div>
         </div>
@@ -1794,7 +1814,7 @@ watch(
             :active="publishedDeleteMode"
             :all-selected="allPublishedSelected"
             :busy="saving"
-            item-label="个模型"
+            item-label="моделей"
             :selected-count="selectedPublishedNames.length"
             :total-count="publishedModels.length"
             @delete-selected="openDeleteConfirm('published', selectedPublishedNames)"
@@ -1822,7 +1842,7 @@ watch(
                       {{ model.name }}
                     </div>
                     <div class="mt-1 truncate text-xs text-slate-500">
-                      主目标: {{ getPublishedPrimaryLabel(model) }}
+                      Основная цель: {{ getPublishedPrimaryLabel(model) }}
                     </div>
                   </div>
                   <span
@@ -1833,11 +1853,11 @@ watch(
                         : 'border-slate-200 bg-slate-100 text-slate-500'
                     "
                   >
-                    {{ model.enabled ? "启用" : "停用" }}
+                    {{ model.enabled ? "Включена" : "Отключена" }}
                   </span>
                 </div>
                 <div class="mt-2 truncate font-mono text-xs text-slate-500">
-                  故障转移: {{ model.failover_pool_id || "-" }}
+                  Фейловер: {{ model.failover_pool_id || "-" }}
                 </div>
               </div>
               <button
@@ -1878,7 +1898,7 @@ watch(
                     {{ model.name }}
                   </div>
                   <div class="mt-1 flex flex-wrap items-center gap-1 text-xs text-slate-500">
-                    <span>主目标:</span>
+                    <span>Основная цель:</span>
                     <span :class="MODEL_PREVIEW_CHIP_CLASS">
                       {{ getPublishedPrimaryLabel(model) }}
                     </span>
@@ -1892,11 +1912,11 @@ watch(
                       : 'border-slate-200 bg-slate-100 text-slate-500'
                   "
                 >
-                  {{ model.enabled ? "启用" : "停用" }}
+                  {{ model.enabled ? "Включена" : "Отключена" }}
                 </span>
               </div>
               <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-slate-500">
-                <span>故障转移:</span>
+                <span>Фейловер:</span>
                 <span :class="MODEL_PREVIEW_CHIP_CLASS">
                   {{ model.failover_pool_id || "-" }}
                 </span>
@@ -1926,8 +1946,12 @@ watch(
                 <line x1="12" y1="22.08" x2="12" y2="12"></line>
               </svg>
             </div>
-            <div class="mt-3 text-sm font-medium text-slate-500">暂无发布模型 (Published)</div>
-            <div class="mt-1 text-xs text-slate-400">定义暴露给客户端的模型名称和主路由</div>
+            <div class="mt-3 text-sm font-medium text-slate-500">
+              Нет публикуемых моделей (Published)
+            </div>
+            <div class="mt-1 text-xs text-slate-400">
+              Определите имена моделей для клиентов и основной маршрут
+            </div>
             <button
               class="btn btn-sm btn-primary mt-4 rounded-xl"
               :disabled="!targets.length"
@@ -1947,7 +1971,7 @@ watch(
                 <path d="M5 12h14" />
                 <path d="M12 5v14" />
               </svg>
-              新增 Published
+              Добавить Published
             </button>
           </div>
         </div>
@@ -1958,7 +1982,7 @@ watch(
             :active="poolDeleteMode"
             :all-selected="allPoolsSelected"
             :busy="saving"
-            item-label="个故障池"
+            item-label="пулов фейловера"
             :selected-count="selectedPoolIds.length"
             :total-count="failoverPools.length"
             @delete-selected="openDeleteConfirm('pool', selectedPoolIds)"
@@ -1984,7 +2008,7 @@ watch(
                       {{ pool.id }}
                     </div>
                     <div class="mt-1 truncate text-xs text-slate-500">
-                      成员: {{ pool.members.length }}
+                      Участников: {{ pool.members.length }}
                     </div>
                   </div>
                   <span
@@ -1994,7 +2018,7 @@ watch(
                   </span>
                 </div>
                 <div class="mt-2 grid gap-1 text-xs text-slate-500">
-                  <div>状态码 {{ pool.trigger_statuses.join(", ") }}</div>
+                  <div>Коды статуса {{ pool.trigger_statuses.join(", ") }}</div>
                   <div class="flex flex-wrap gap-1">
                     <span
                       v-for="member in pool.members"
@@ -2043,7 +2067,7 @@ watch(
                     {{ pool.id }}
                   </div>
                   <div class="mt-1 truncate text-xs text-slate-500">
-                    成员: {{ pool.members.length }}
+                    Участников: {{ pool.members.length }}
                   </div>
                 </div>
                 <span
@@ -2053,7 +2077,7 @@ watch(
                 </span>
               </div>
               <div class="mt-2 grid gap-1 text-xs text-slate-500">
-                <div>状态码 {{ pool.trigger_statuses.join(", ") }}</div>
+                <div>Коды статуса {{ pool.trigger_statuses.join(", ") }}</div>
                 <div class="flex flex-wrap gap-1">
                   <span
                     v-for="member in pool.members"
@@ -2093,8 +2117,10 @@ watch(
                 <path d="m19 19-3.5-3.5"></path>
               </svg>
             </div>
-            <div class="mt-3 text-sm font-medium text-slate-500">暂无故障转移池 (Pools)</div>
-            <div class="mt-1 text-xs text-slate-400">配置备用目标，以便在上游失败时自动重试</div>
+            <div class="mt-3 text-sm font-medium text-slate-500">Нет пулов фейловера (Pools)</div>
+            <div class="mt-1 text-xs text-slate-400">
+              Настройте резервные цели для автоматического повтора при сбое апстрима
+            </div>
             <button
               class="btn btn-sm btn-primary mt-4 rounded-xl"
               :disabled="!targets.length"
@@ -2114,7 +2140,7 @@ watch(
                 <path d="M5 12h14" />
                 <path d="M12 5v14" />
               </svg>
-              新增 Pool
+              Добавить Pool
             </button>
           </div>
         </div>
@@ -2133,18 +2159,20 @@ watch(
               {{
                 editorKind === "target"
                   ? editorMode === "add"
-                    ? "新增目标"
-                    : "修改目标"
+                    ? "Новая цель"
+                    : "Изменение цели"
                   : editorKind === "published"
                     ? editorMode === "add"
-                      ? "新增发布模型"
-                      : "修改发布模型"
+                      ? "Новая публикуемая модель"
+                      : "Изменение публикуемой модели"
                     : editorMode === "add"
-                      ? "新增故障池"
-                      : "修改故障池"
+                      ? "Новый пул фейловера"
+                      : "Изменение пула фейловера"
               }}
             </h3>
-            <p class="text-xs text-slate-500">保存后写入模型路由配置</p>
+            <p class="text-xs text-slate-500">
+              После сохранения записывается в конфигурацию маршрутизации моделей
+            </p>
           </div>
         </div>
       </template>
@@ -2162,8 +2190,8 @@ watch(
             />
             <MtgaInput
               v-model="targetForm.display_name"
-              label="显示名称"
-              placeholder="Claude 主线路"
+              label="Отображаемое имя"
+              placeholder="Claude основная линия"
             />
             <MtgaSelect
               v-model="targetForm.provider"
@@ -2181,12 +2209,12 @@ watch(
             <div class="space-y-1">
               <MtgaInput
                 v-model="targetForm.upstream_model"
-                label="上游模型"
+                label="Модель апстрима"
                 required
                 show-dropdown
                 multi-select
                 show-add-option
-                add-option-hint="点击以添加id"
+                add-option-hint="Нажмите, чтобы добавить ID"
                 :options="upstreamModelOptions"
                 :selected-options="selectedUpstreamModels"
                 :add-option-value="targetForm.upstream_model.trim()"
@@ -2223,7 +2251,9 @@ watch(
             <label
               class="mt-7 flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-slate-200/60 bg-slate-50/50 px-4 py-3"
             >
-              <span class="label-text text-sm font-medium text-slate-700">启用提示缓存</span>
+              <span class="label-text text-sm font-medium text-slate-700"
+                >Включить кэш промптов</span
+              >
               <input
                 v-model="targetForm.prompt_cache_enabled"
                 type="checkbox"
@@ -2241,27 +2271,29 @@ watch(
         <div v-else-if="editorKind === 'published'" class="grid gap-4 md:grid-cols-2">
           <MtgaInput
             v-model="publishedForm.name"
-            label="发布模型名称"
+            label="Имя публикуемой модели"
             required
             placeholder="gpt-5"
           />
           <MtgaSelect
             v-model="publishedForm.primary_route_key"
-            label="主目标"
+            label="Основная цель"
             required
             :options="targetModelOptions"
             class="w-full"
           />
           <MtgaSelect
             v-model="publishedForm.failover_pool_id"
-            label="故障转移池"
+            label="Пул фейловера"
             :options="poolOptions"
             class="w-full"
           />
           <label
             class="mt-7 flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-slate-200/60 bg-slate-50/50 px-4 py-3"
           >
-            <span class="label-text text-sm font-medium text-slate-700">启用（暴露给下游）</span>
+            <span class="label-text text-sm font-medium text-slate-700"
+              >Включить (доступна клиентам)</span
+            >
             <input
               v-model="publishedForm.enabled"
               type="checkbox"
@@ -2280,20 +2312,20 @@ watch(
             />
             <MtgaInput
               v-model="poolForm.trigger_statuses"
-              label="触发状态码"
+              label="Коды статуса срабатывания"
               required
               placeholder="429"
             />
             <MtgaInput
               v-model="poolForm.cooldown_seconds"
-              label="冷却秒数"
+              label="Охлаждение (сек)"
               type="number"
               required
               placeholder="10"
             />
           </div>
           <div>
-            <div class="mb-2 text-sm font-medium text-slate-600">成员目标</div>
+            <div class="mb-2 text-sm font-medium text-slate-600">Цели-участники</div>
             <div class="grid gap-2 sm:grid-cols-2">
               <label
                 v-for="option in targetModelOptions"
@@ -2323,14 +2355,14 @@ watch(
       </div>
 
       <template #footer>
-        <button class="mtga-btn-dialog-ghost flex-1" @click="closeEditor">取消</button>
+        <button class="mtga-btn-dialog-ghost flex-1" @click="closeEditor">Отмена</button>
         <button
           class="mtga-btn-dialog-primary flex-1"
           :class="saving ? 'loading' : ''"
           :disabled="saving"
           @click="handleEditorSave"
         >
-          保存
+          Сохранить
         </button>
       </template>
     </MtgaDialog>
@@ -2345,7 +2377,7 @@ watch(
 
       <div class="px-6 py-6">
         <div class="rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-3">
-          <div class="text-xs font-semibold text-rose-500">即将删除</div>
+          <div class="text-xs font-semibold text-rose-500">Будет удалено</div>
           <div class="mt-1 break-all font-mono text-sm font-bold text-rose-700">
             {{ pendingDeleteLabel || "-" }}
           </div>
@@ -2353,14 +2385,14 @@ watch(
       </div>
 
       <template #footer>
-        <button class="mtga-btn-dialog-ghost flex-1" @click="closeDeleteConfirm">取消</button>
+        <button class="mtga-btn-dialog-ghost flex-1" @click="closeDeleteConfirm">Отмена</button>
         <button
           class="flex-1 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700"
           :class="saving ? 'loading' : ''"
           :disabled="saving"
           @click="confirmDelete"
         >
-          删除
+          Удалить
         </button>
       </template>
     </MtgaDialog>
@@ -2368,8 +2400,10 @@ watch(
     <MtgaDialog v-model:open="settingsOpen" max-width="max-w-xl" @close="closeSettings">
       <template #header>
         <div>
-          <h3 class="text-lg font-semibold text-slate-900">入站设置</h3>
-          <p class="text-xs text-slate-500">只影响 MTGA 入站鉴权与 prompt cache 隔离</p>
+          <h3 class="text-lg font-semibold text-slate-900">Входящие настройки</h3>
+          <p class="text-xs text-slate-500">
+            Влияет только на входящую авторизацию MTGA и изоляцию prompt cache
+          </p>
         </div>
       </template>
 
@@ -2377,29 +2411,29 @@ watch(
         <MtgaInput
           v-model="settingsForm.mtga_auth_key"
           label="MTGA Auth Key"
-          placeholder="为空则不鉴权"
+          placeholder="Пусто — без авторизации"
           type="password"
-          description="为空时 MTGA 入站请求不做鉴权；上游 API Key 在 上游目标 中维护"
+          description="Если пусто, входящие запросы MTGA не авторизуются; API Key апстрима задаётся в Целях апстрима"
           :clearable="true"
         />
         <MtgaInput
           v-model="settingsForm.prompt_cache_bucket_id"
           label="Prompt Cache Bucket"
-          placeholder="自动生成或留空"
-          description="用于 prompt cache 隔离"
+          placeholder="Автогенерация или оставьте пустым"
+          description="Используется для изоляции prompt cache"
           :clearable="true"
         />
       </div>
 
       <template #footer>
-        <button class="mtga-btn-dialog-ghost flex-1" @click="closeSettings">取消</button>
+        <button class="mtga-btn-dialog-ghost flex-1" @click="closeSettings">Отмена</button>
         <button
           class="mtga-btn-dialog-primary flex-1"
           :class="saving ? 'loading' : ''"
           :disabled="saving"
           @click="saveSettings"
         >
-          保存
+          Сохранить
         </button>
       </template>
     </MtgaDialog>

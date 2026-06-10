@@ -3,7 +3,7 @@ import DOMPurify from "dompurify";
 import { isTauriRuntime } from "../../composables/runtime";
 
 /**
- * 更新提示对话框
+ * Диалог уведомления об обновлении
  */
 const props = withDefaults(
   defineProps<{
@@ -132,7 +132,7 @@ const handleOpenRelease = () => {
   <MtgaDialog v-model:open="openModel" max-width="max-w-md" @close="handleDialogClose">
     <template #header>
       <div class="flex items-center justify-between bg-white/50">
-        <h3 class="mtga-card-title text-lg!">发现新版本</h3>
+        <h3 class="mtga-card-title text-lg!">Доступна новая версия</h3>
         <div
           v-if="props.versionLabel"
           class="mtga-chip bg-amber-50 border-amber-200! text-amber-700 font-medium"
@@ -143,7 +143,9 @@ const handleOpenRelease = () => {
     </template>
 
     <div class="px-6 py-4">
-      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">更新日志</div>
+      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+        Список изменений
+      </div>
       <div
         class="mtga-soft-panel bg-slate-50/40 max-h-[260px] overflow-y-auto p-4 custom-scrollbar"
         @click="handleNotesClick"
@@ -156,7 +158,7 @@ const handleOpenRelease = () => {
         />
         <!-- eslint-enable vue/no-v-html -->
         <div v-else class="text-sm text-slate-400 italic py-6 text-center">
-          该版本暂无更新说明。
+          Для этой версии нет описания изменений.
         </div>
       </div>
     </div>
@@ -168,7 +170,7 @@ const handleOpenRelease = () => {
           :disabled="!props.releaseUrl"
           @click="handleOpenRelease"
         >
-          前往发布页
+          Перейти на страницу релиза
         </button>
       </div>
     </template>

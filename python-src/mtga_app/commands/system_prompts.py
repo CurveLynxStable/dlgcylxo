@@ -38,7 +38,7 @@ def register_system_prompt_commands(commands: Commands) -> None:
         logs, _log = collect_logs()
         items = _get_prompt_store().list_items()
         result = OperationResult.success(items=items)
-        return build_result_payload(result, logs, "系统提示词列表加载完成")
+        return build_result_payload(result, logs, "Список системных промптов загружен")
 
     @register_command(commands)
     async def system_prompts_update(body: SystemPromptUpdatePayload) -> dict[str, Any]:
@@ -49,8 +49,8 @@ def register_system_prompt_commands(commands: Commands) -> None:
             edited_text=body.edited_text,
         )
         if result.ok:
-            log_func(f"已更新系统提示词增量 hash={hash_value[:12]}")
-        return build_result_payload(result, logs, "系统提示词更新完成")
+            log_func(f"Инкремент системного промпта обновлён hash={hash_value[:12]}")
+        return build_result_payload(result, logs, "Обновление системного промпта завершено")
 
     @register_command(commands)
     async def system_prompts_delete(body: SystemPromptDeletePayload) -> dict[str, Any]:
@@ -59,8 +59,8 @@ def register_system_prompt_commands(commands: Commands) -> None:
         if result.ok:
             deleted_count = result.details.get("deleted_count", 0)
             if isinstance(deleted_count, int):
-                log_func(f"已删除系统提示词记录 count={deleted_count}")
-        return build_result_payload(result, logs, "系统提示词删除完成")
+                log_func(f"Записи системных промптов удалены count={deleted_count}")
+        return build_result_payload(result, logs, "Удаление системных промптов завершено")
 
     _ = system_prompts_list
     _ = system_prompts_update

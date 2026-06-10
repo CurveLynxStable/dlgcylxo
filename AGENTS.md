@@ -1,53 +1,53 @@
 # Repository Guidelines
 
-## 项目结构与模块组织
+## Структура проекта и организация модулей
 
-- `app/`：Nuxt 前端入口，当前从 `app/app.vue` 渲染页面。
-- `public/`：静态资源目录（图标、图片等）。
-- `src-tauri/`：Tauri 后端与桌面打包配置，关键文件包括 `src-tauri/src/main.rs`、`src-tauri/src/lib.rs`、`src-tauri/Cargo.toml` 与 `src-tauri/tauri.conf.json`。
-- `python-src/mtga_app/`：Python 后端源码（`__init__.py`、`__main__.py`），通过 `pytauri-wheel` 绑定 Tauri，无需手写 Rust glue 代码。
-- `python-src/pyproject.toml`、`python-src/uv.lock`、`python-src/.venv/`：Python 依赖与虚拟环境配置。
-- `src-tauri/icons/` 与 `src-tauri/capabilities/`：桌面图标与权限能力定义。
-- `nuxt.config.ts`、`tsconfig.json`：前端构建与类型配置。
+- `app/`: входная точка фронтенда Nuxt; страница сейчас рендерится из `app/app.vue`.
+- `public/`: каталог статических ресурсов (иконки, изображения и т.д.).
+- `src-tauri/`: бэкенд Tauri и конфигурация десктопной сборки; ключевые файлы — `src-tauri/src/main.rs`, `src-tauri/src/lib.rs`, `src-tauri/Cargo.toml` и `src-tauri/tauri.conf.json`.
+- `python-src/mtga_app/`: исходники Python-бэкенда (`__init__.py`, `__main__.py`), привязка к Tauri через `pytauri-wheel` — рукописный Rust glue-код не нужен.
+- `python-src/pyproject.toml`, `python-src/uv.lock`, `python-src/.venv/`: зависимости Python и конфигурация виртуального окружения.
+- `src-tauri/icons/` и `src-tauri/capabilities/`: иконки приложения и определения разрешений (capabilities).
+- `nuxt.config.ts`, `tsconfig.json`: конфигурация сборки фронтенда и типов.
 
-## 构建、测试与开发命令
+## Команды сборки, тестирования и разработки
 
-- `pnpm i`：安装依赖并触发 `nuxt prepare`。
-- `uv sync --project .`：在 `python-src/` 安装 Python 运行时依赖（依赖由 uv 管理）。
-- 需要运行 Python 时，一律使用 `uv run ...`，不要直接 `python ...`。
-- `pnpm dev:all`：启动前后端开发服务器（默认 `http://localhost:3000`）。
-- `pnpm pytauri:install:{平台：win/mac}`：安装后端到 tauri。
-- `pnpm tauri:dev`：启动 Tauri 原生开发环境。
-- `pnpm tauri:bundle:{平台：win/mac} -- --profile bundle-release`：打包桌面端（依赖 `src-tauri/` 配置）。
+- `pnpm i`: установка зависимостей с запуском `nuxt prepare`.
+- `uv sync --project .`: установка runtime-зависимостей Python в `python-src/` (зависимости управляются uv).
+- Когда нужно запустить Python, всегда используйте `uv run ...`, не `python ...` напрямую.
+- `pnpm dev:all`: запуск dev-серверов фронтенда и бэкенда (по умолчанию `http://localhost:3000`).
+- `pnpm pytauri:install:{платформа: win/mac}`: установка бэкенда в tauri.
+- `pnpm tauri:dev`: запуск нативного dev-окружения Tauri.
+- `pnpm tauri:bundle:{платформа: win/mac} -- --profile bundle-release`: сборка десктопного приложения (зависит от конфигурации в `src-tauri/`).
 
-## 编码风格与命名约定
+## Стиль кода и соглашения об именовании
 
-- Vue 单文件组件保持 2 空格缩进，遵循 Nuxt/Vue 默认结构。
-- `package.json` 为 ESM（`"type": "module"`），使用 `import` 语法。
-- Python 目标版本为 3.13（见 `python-src/pyproject.toml`），使用 4 空格缩进与 PEP 8 命名。
-- Rust 代码位于 `src-tauri/src/`，沿用 `rustfmt` 默认风格与 `snake_case` 命名。
-- daisyUI 针对LLMs优化的prompt：https://daisyui.com/llms.txt
+- Однофайловые компоненты Vue используют отступ в 2 пробела и стандартную структуру Nuxt/Vue.
+- `package.json` объявлен как ESM (`"type": "module"`), используйте синтаксис `import`.
+- Целевая версия Python — 3.13 (см. `python-src/pyproject.toml`), отступ 4 пробела и именование по PEP 8.
+- Rust-код находится в `src-tauri/src/`; стиль по умолчанию `rustfmt`, именование `snake_case`.
+- Оптимизированный для LLM prompt daisyUI: https://daisyui.com/llms.txt
 
-## 测试指引
+## Рекомендации по тестированию
 
-- `package.json` 未配置 `test` 脚本，当前无固定前端测试框架。
-- 如新增 Rust 测试，可在 `src-tauri/` 运行 `cargo test` 并在 PR 中说明覆盖范围。
+- В `package.json` нет скрипта `test`; фиксированный фронтенд-тестовый фреймворк сейчас отсутствует.
+- Если добавляете Rust-тесты, запускайте `cargo test` в `src-tauri/` и опишите покрытие в PR.
 
-## 质量检查
+## Проверки качества
 
-LLM在向user交付更改前需进行质量检查：
+Перед передачей изменений пользователю LLM обязан выполнить проверки качества:
 
-- 任何 Python 变更：必须运行 `pnpm py:check`。
-- 任何 YAML 变更：必须运行 `pnpm eslint . --fix`。
-- 任何 Rust 变更：必须运行 `pnpm rs:check`。
-- 任何 JS/TS/Vue 变更：必须运行 `pnpm app:check`。
+- Любые изменения Python: обязательно `pnpm py:check`.
+- Любые изменения YAML: обязательно `pnpm eslint . --fix`.
+- Любые изменения Rust: обязательно `pnpm rs:check`.
+- Любые изменения JS/TS/Vue: обязательно `pnpm app:check`.
 
-## 提交与 PR 指南
+## Коммиты и PR
 
-- 提交信息采用 Conventional Commits：`feat: ...`、`feat(tauri): ...`、`chore: ...`。
-- PR 需说明变更目的、影响范围与验证方式；涉及 UI 或 Tauri 配置时附截图与说明。
+- Сообщения коммитов — Conventional Commits: `feat: ...`, `feat(tauri): ...`, `chore: ...`.
+- В PR указывайте цель изменений, область влияния и способ проверки; для UI или конфигурации Tauri прикладывайте скриншоты и пояснения.
 
-## 安全与配置提示
+## Безопасность и конфигурация
 
-- 变更 `src-tauri/tauri.conf.json` 或 `src-tauri/capabilities/` 时需明确权限影响。
-- 避免提交生成产物：`node_modules/`、`src-tauri/target/`、`dist/`、本地 `.venv/`。
+- При изменении `src-tauri/tauri.conf.json` или `src-tauri/capabilities/` явно описывайте влияние на разрешения.
+- Не коммитьте артефакты сборки: `node_modules/`, `src-tauri/target/`, `dist/`, локальный `.venv/`.

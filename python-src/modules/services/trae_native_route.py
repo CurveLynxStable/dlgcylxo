@@ -264,7 +264,7 @@ class TraeNativeRouteManager:
             if self._state.running and not self._loopback.is_running():
                 self._state.running = False
             if not self._state.running:
-                return OperationResult.failure("Trae native 路线未运行")
+                return OperationResult.failure("Маршрут Trae native не запущен")
         return self._loopback.apply_runtime_config(raw_config)
 
     def _get_or_create_native_backend_locked(self) -> NativeBackend:
@@ -288,7 +288,7 @@ class TraeNativeRouteManager:
             if not compatibility_result.ok:
                 return compatibility_result
 
-            log_func("Trae native 路线：启动本地 custom model loopback")
+            log_func("Маршрут Trae native: запускаем локальный custom model loopback")
             loopback_result = self._loopback.start(
                 TraeLoopbackConfig(
                     runtime_config=config.runtime_config,
@@ -312,18 +312,20 @@ class TraeNativeRouteManager:
             rewriter_result = self._start_rewriter_locked(config, log_func=log_func)
             if not rewriter_result.ok:
                 log_func(
-                    "⚠️ native rewriter 启动失败；Trae 已由 MTGA 拉起但不会自动关闭，"
-                    "请关闭 Trae 后重试，或切回官方、反代路线。"
+                    "⚠️ Не удалось запустить native rewriter; Trae был запущен MTGA и не будет "
+                    "закрыт автоматически; "
+                    "закройте Trae и повторите попытку либо переключитесь на официальный "
+                    "маршрут или обратный прокси."
                 )
                 self._stop_locked(log_func=log_func, show_idle_message=False)
                 return rewriter_result
 
             self._state.running = True
             self._start_rewriter_watcher_locked(log_func=log_func)
-            log_func("✅ Trae native 路线已就绪")
+            log_func("✅ Маршрут Trae native готов")
             loopback_url = self._loopback.current_chat_url()
             return OperationResult.success(
-                "Trae native 路线已就绪",
+                "Маршрут Trae native готов",
                 loopback_url=loopback_url,
                 cdp_port=self._state.cdp_port,
             )
@@ -357,13 +359,15 @@ class TraeNativeRouteManager:
 
         if not config.trae_path.strip():
             message = "trae_path_missing"
-            log_func(f"❌ Trae 路径为空，请先在设置中选择 {backend.path_prompt_name}")
+            log_func(
+                f"❌ Путь к Trae пуст, сначала выберите в настройках {backend.path_prompt_name}"
+            )
             return OperationResult.failure(message, code=ErrorCode.CONFIG_INVALID)
 
         trae_exe = backend.resolve_trae_executable(config.trae_path)
         if not trae_exe.is_file():
             message = "trae_path_invalid"
-            log_func(f"❌ Trae 路径无效: {trae_exe}")
+            log_func(f"❌ Путь к Trae некорректен: {trae_exe}")
             return OperationResult.failure(message, code=ErrorCode.FILE_NOT_FOUND)
 
         module_path = backend.resolve_module_path(trae_exe)
@@ -374,28 +378,29 @@ class TraeNativeRouteManager:
         sha_preview = (report.dll_sha256 or "<empty>")[:12]
         if report.blocked:
             log_func(
-                "❌ Trae native 兼容性检查失败: "
+                "❌ Проверка совместимости Trae native не пройдена: "
                 f"reason={report.reason} "
                 f"pattern_count={report.pattern_count} "
                 f"sha={sha_preview} "
                 f"{backend.module_display_name}={module_path}"
             )
             return OperationResult.failure(
-                "Trae native 兼容性检查失败",
+                "Проверка совместимости Trae native не пройдена",
                 code=ErrorCode.CONFIG_INVALID,
                 **details,
             )
 
         log_func(
-            "Trae native 兼容性检查通过: "
+            "Проверка совместимости Trae native пройдена: "
             f"status={report.status.value} "
             f"reason={report.reason} "
             f"breakpoint_rva={report.url_copy_call_rva} "
             f"sha={sha_preview}"
         )
         if report.manifest_error:
-            log_func(f"⚠️ Trae native manifest 读取异常，按未知版本处理: {report.manifest_error}")
-        return OperationResult.success("Trae native 兼容性检查通过", **details)
+            log_func(f"⚠️ Ошибка чтения манифеста Trae native, считаем версию неизвестной: "
+                f"{report.manifest_error}")
+        return OperationResult.success("Проверка совместимости Trae native пройдена", **details)
 
     def _launch_trae_locked(  # noqa: PLR0911, PLR0915
         self,
@@ -407,13 +412,15 @@ class TraeNativeRouteManager:
 
         if not config.trae_path.strip():
             message = "trae_path_missing"
-            log_func(f"❌ Trae 路径为空，请先在设置中选择 {backend.path_prompt_name}")
+            log_func(
+                f"❌ Путь к Trae пуст, сначала выберите в настройках {backend.path_prompt_name}"
+            )
             return OperationResult.failure(message, code=ErrorCode.CONFIG_INVALID)
 
         trae_exe = backend.resolve_trae_executable(config.trae_path)
         if not trae_exe.is_file():
             message = "trae_path_invalid"
-            log_func(f"❌ Trae 路径无效: {trae_exe}")
+            log_func(f"❌ Путь к Trae некорректен: {trae_exe}")
             return OperationResult.failure(message, code=ErrorCode.FILE_NOT_FOUND)
 
         cdp_port_result = self._resolve_cdp_port_locked(config, log_func=log_func)
@@ -424,7 +431,7 @@ class TraeNativeRouteManager:
         self._state.cdp_port = cdp_port
         loopback_url = self._loopback.current_chat_url()
         if not loopback_url:
-            message = "Trae loopback URL 状态异常"
+            message = "Некорректное состояние Trae loopback URL"
             log_func(f"❌ {message}")
             return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
         existing_processes = backend.list_existing_trae_processes()
@@ -434,8 +441,8 @@ class TraeNativeRouteManager:
             )
             suffix = "..." if len(existing_processes) > TRAE_PID_LOG_LIMIT else ""
             message = (
-                f"检测到 Trae 已在运行 pid={preview}{suffix}。"
-                "请先完全关闭 Trae，再由 MTGA 拉起干净实例。"
+                f"Обнаружен уже запущенный Trae pid={preview}{suffix}. "
+                "Сначала полностью закройте Trae, чтобы MTGA запустил чистый экземпляр."
             )
             log_func(f"❌ {message}")
             return OperationResult.failure(message, code=ErrorCode.CONFIG_INVALID)
@@ -450,7 +457,7 @@ class TraeNativeRouteManager:
                 )
             )
         except Exception as exc:  # noqa: BLE001
-            message = f"Trae 启动前准备失败: {exc}"
+            message = f"Не удалась подготовка перед запуском Trae: {exc}"
             log_func(f"❌ {message}")
             return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
 
@@ -468,12 +475,12 @@ class TraeNativeRouteManager:
                 stderr=subprocess.DEVNULL,
             )
         except Exception as exc:  # noqa: BLE001
-            message = f"Trae 拉起失败: {exc}"
+            message = f"Не удалось запустить Trae: {exc}"
             log_func(f"❌ {message}")
             return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
 
         log_func(
-            "已拉起 Trae，并注入参数: "
+            "Trae запущен, добавлен параметр: "
             f"--remote-debugging-port={cdp_port}"
         )
         summary = preparation.summary
@@ -498,19 +505,19 @@ class TraeNativeRouteManager:
                 )
             if prepared_app:
                 log_func(
-                    "Trae native 启动前已准备 patched copy: "
+                    "Перед запуском Trae native подготовлена patched copy: "
                     f"path={prepared_app} clone_mode={clone_mode or '<empty>'} "
                     f"patched_offsets={patched_offsets}"
                 )
         if not _wait_port(config.cdp_host, cdp_port, timeout_seconds=8):
             wait_target = (
-                f"native rewriter 挂载 {backend.module_display_name}"
+                f"подключения native rewriter к {backend.module_display_name}"
                 if preparation.requires_runtime_rewriter
-                else "patched copy 工作台完成初始化"
+                else "завершения инициализации рабочей области patched copy"
             )
             log_func(
-                f"⚠️ 未检测到 CDP 端口 {config.cdp_host}:{cdp_port}，"
-                f"继续等待 {wait_target}"
+                f"⚠️ CDP-порт {config.cdp_host}:{cdp_port} не обнаружен, "
+                f"продолжаем ожидание {wait_target}"
             )
         cdp_wait_result = self._wait_for_cdp_port_locked(
             host=config.cdp_host,
@@ -538,14 +545,14 @@ class TraeNativeRouteManager:
             site_label = site.get("label")
             site_offset = site.get("file_offset")
             log_func(
-                "Trae native static patch 已就绪: "
+                "Trae native static patch готов: "
                 f"site={site_label or '<empty>'} "
                 f"offset={site_offset or '<empty>'}"
             )
             return OperationResult.success()
 
         if importlib.util.find_spec(backend.rewriter_module) is None:
-            message = f"未找到 native rewriter 模块: {backend.rewriter_module}"
+            message = f"Модуль native rewriter не найден: {backend.rewriter_module}"
             log_func(f"❌ {message}")
             return OperationResult.failure(message, code=ErrorCode.FILE_NOT_FOUND)
 
@@ -553,7 +560,7 @@ class TraeNativeRouteManager:
         module_path = backend.resolve_module_path(trae_exe)
         loopback_url = self._loopback.current_chat_url()
         if not loopback_url:
-            message = "Trae loopback URL 状态异常"
+            message = "Некорректное состояние Trae loopback URL"
             log_func(f"❌ {message}")
             return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
 
@@ -569,7 +576,7 @@ class TraeNativeRouteManager:
 
         task_id = self._state.rewriter_task_id
         if task_id is None:
-            message = "native rewriter 启动状态异常"
+            message = "Некорректное состояние запуска native rewriter"
             log_func(f"❌ {message}")
             return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
 
@@ -581,17 +588,17 @@ class TraeNativeRouteManager:
             log_func=log_func,
         )
         if armed is None:
-            return OperationResult.failure("native rewriter 未就绪", code=ErrorCode.UNKNOWN)
+            return OperationResult.failure("native rewriter не готов", code=ErrorCode.UNKNOWN)
 
         breakpoint_rva = str(armed.get("breakpoint_rva") or "")
         module_sha = str(armed.get("dll_sha256") or "<empty>")[:12]
         if armed.get("compatibility_changed_since_preflight") is True:
             log_func(
-                f"⚠️ Trae {backend.module_display_name} 在启动期间发生变化，"
-                "已使用 rewriter attach 前重新定位的 RVA"
+                f"⚠️ Trae {backend.module_display_name} изменился во время запуска, "
+                "использован RVA, заново определённый перед attach в rewriter"
             )
         log_func(
-            "Trae native rewriter 已就绪: "
+            "Trae native rewriter готов: "
             f"breakpoint_rva={breakpoint_rva} "
             f"module_sha={module_sha}"
         )
@@ -626,7 +633,7 @@ class TraeNativeRouteManager:
     ) -> OperationResult:
         backend = self._state.native_backend
         if backend is None:
-            message = "native backend 状态异常"
+            message = "Некорректное состояние native backend"
             log_func(f"❌ {message}")
             return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
 
@@ -649,7 +656,7 @@ class TraeNativeRouteManager:
             )
         except Exception as exc:  # noqa: BLE001
             files.log_fp.close()
-            message = f"native rewriter 配置创建失败: {exc}"
+            message = f"Не удалось создать конфигурацию native rewriter: {exc}"
             log_func(f"❌ {message}")
             return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
 
@@ -683,7 +690,7 @@ class TraeNativeRouteManager:
             self._state.rewriter_log_fp = None
             self._state.rewriter_events_path = None
             self._state.rewriter_stop_path = None
-            message = f"native rewriter 启动失败: {exc}"
+            message = f"Не удалось запустить native rewriter: {exc}"
             log_func(f"❌ {message}")
             return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
 
@@ -709,7 +716,7 @@ class TraeNativeRouteManager:
                 tail = _read_tail(log_path)
                 summary = self._state.rewriter_summary
                 log_func(
-                    "❌ native rewriter 提前退出 "
+                    "❌ native rewriter завершился досрочно "
                     f"status={status.get('status')}; "
                     f"error={self._state.rewriter_error or status.get('error') or '<empty>'}; "
                     f"summary_status={_summary_value(summary, 'status')}; "
@@ -721,7 +728,7 @@ class TraeNativeRouteManager:
             time.sleep(0.2)
 
         tail = _read_tail(log_path)
-        log_func(f"❌ native rewriter 等待超时; log_tail={tail or '<empty>'}")
+        log_func(f"❌ Истекло время ожидания native rewriter; log_tail={tail or '<empty>'}")
         return None
 
     def _start_rewriter_watcher_locked(self, *, log_func: LogFunc) -> None:
@@ -763,8 +770,9 @@ class TraeNativeRouteManager:
                         error = self._state.rewriter_error
 
                     log_func(
-                        "❌ native rewriter 运行中退出，Trae native 路线已失效；"
-                        "请重启 Trae native 路线。"
+                        "❌ native rewriter завершился во время работы, маршрут Trae native "
+                        "больше не действует; "
+                        "перезапустите маршрут Trae native. "
                         f"status={status.get('status')} "
                         f"error={error or status.get('error') or '<empty>'} "
                         f"summary_status={_summary_value(summary, 'status')}"
@@ -847,7 +855,7 @@ class TraeNativeRouteManager:
             self._state.launch_requires_runtime_rewriter = True
 
         log_func(
-            "❌ Trae 客户端已退出，Trae native 路线已失效；"
+            "❌ Клиент Trae завершился, маршрут Trae native больше не действует; "
             f"exit_code={exit_code} loopback_stopped={loopback_stopped} "
             f"rewriter_stopped={rewriter_stopped}"
         )
@@ -857,11 +865,11 @@ class TraeNativeRouteManager:
         for record in _read_jsonl(events_path):
             kind = record.get("kind")
             if kind == "patched":
-                log_func(f"Trae native URL rewrite 已命中: count={record.get('count')}")
+                log_func(f"Trae native URL rewrite: совпадение: count={record.get('count')}")
                 return True
             if kind == "already_patched":
                 log_func(
-                    "Trae native URL rewrite 观察到已改写 URL: "
+                    "Trae native URL rewrite: обнаружен уже переписанный URL: "
                     f"count={record.get('count')}"
                 )
                 return True
@@ -869,7 +877,7 @@ class TraeNativeRouteManager:
                 current_text = str(record.get("current_text") or "")
                 preview = current_text[:200] if current_text else "<empty>"
                 log_func(
-                    "⚠️ Trae native URL copy 点命中非目标 URL: "
+                    "⚠️ Точка Trae native URL copy сработала на нецелевом URL: "
                     f"count={record.get('count')} preview={preview}"
                 )
                 return True
@@ -886,7 +894,8 @@ class TraeNativeRouteManager:
 
         rewriter_stopped = self._thread_manager.wait(task_id, timeout=5)
         if not rewriter_stopped:
-            log_func("⚠️ native rewriter 未能在 5 秒内停止，保留停止状态以便后续重试")
+            log_func("⚠️ native rewriter не остановился за 5 секунд, сохраняем состояние остановки "
+                "для повторной попытки")
             return False
 
         self._log_rewriter_stop_summary_locked(log_func=log_func)
@@ -898,7 +907,7 @@ class TraeNativeRouteManager:
         if summary is None:
             return
         log_func(
-            "Trae native rewriter 停止摘要: "
+            "Сводка остановки Trae native rewriter: "
             f"status={_summary_value(summary, 'status')} "
             f"breakpoint_restored={_summary_value(summary, 'breakpoint_restored')} "
             f"debug_detached={_summary_value(summary, 'debug_detached')}"
@@ -944,10 +953,10 @@ class TraeNativeRouteManager:
             self._state.launch_requires_runtime_rewriter = True
             self._state.stopping = False
             if show_idle_message:
-                log_func("Trae native 路线未运行")
+                log_func("Маршрут Trae native не запущен")
             return OperationResult.success()
 
-        log_func("正在停止 Trae native 路线...")
+        log_func("Останавливаем маршрут Trae native...")
         self._state.stopping = True
         self._state.process_watcher_task_id = None
         rewriter_stopped = self._stop_rewriter_locked(log_func=log_func)
@@ -967,10 +976,12 @@ class TraeNativeRouteManager:
             self._state.compatibility_report = None
             self._state.launch_preparation_summary = None
             self._state.launch_requires_runtime_rewriter = True
-        log_func("Trae native 路线已停止；不会关闭 Trae 客户端进程")
+        log_func("Маршрут Trae native остановлен; процесс клиента Trae не закрывается")
         if clean:
             return OperationResult.success()
-        return OperationResult.failure("Trae native 路线未完全停止", code=ErrorCode.UNKNOWN)
+        return OperationResult.failure(
+            "Маршрут Trae native остановлен не полностью", code=ErrorCode.UNKNOWN
+        )
 
     def _resolve_cdp_port_locked(
         self,
@@ -984,8 +995,9 @@ class TraeNativeRouteManager:
             owner_display = ", ".join(owner_names) if owner_names else "<unknown>"
             if any(name.lower() == "trae.exe" for name in owner_names):
                 message = (
-                    f"检测到已有 Trae CDP 端口 {config.cdp_host}:{preferred_port}。"
-                    "为避免复用失效 custom model tunnel，请先完全关闭 Trae 后再启动。"
+                    f"Обнаружен уже открытый CDP-порт Trae {config.cdp_host}:{preferred_port}. "
+                    "Чтобы не переиспользовать недействительный custom model tunnel, сначала "
+                    "полностью закройте Trae и запустите снова."
                 )
                 log_func(f"❌ {message}")
                 return OperationResult.failure(message, code=ErrorCode.CONFIG_INVALID)
@@ -996,7 +1008,7 @@ class TraeNativeRouteManager:
             ):
                 if not is_host_port_open(config.cdp_host, candidate_port, timeout=0.5):
                     log_func(
-                        "⚠️ Trae CDP 首选端口已被占用，"
+                        "⚠️ Предпочитаемый CDP-порт Trae уже занят, "
                         f"owner={owner_display} "
                         f"preferred={preferred_port} "
                         f"selected={candidate_port}"
@@ -1008,7 +1020,7 @@ class TraeNativeRouteManager:
                     )
 
             message = (
-                "Trae CDP 未找到可用端口: "
+                "Не найден свободный CDP-порт Trae: "
                 f"preferred={preferred_port} max_search={DEFAULT_CDP_PORT_SEARCH}"
             )
             log_func(f"❌ {message}")
@@ -1038,7 +1050,7 @@ class TraeNativeRouteManager:
                 exit_code = trae_process.poll()
                 if exit_code is not None:
                     message = (
-                        "Trae 在启动阶段已退出: "
+                        "Trae завершился на этапе запуска: "
                         f"expected_pid={expected_pid} exit_code={exit_code}"
                     )
                     log_func(f"❌ {message}")
@@ -1063,7 +1075,7 @@ class TraeNativeRouteManager:
             exit_code = trae_process.poll()
             if exit_code is not None:
                 message = (
-                    "Trae 在启动阶段已退出: "
+                    "Trae завершился на этапе запуска: "
                     f"expected_pid={expected_pid} exit_code={exit_code}"
                 )
                 log_func(f"❌ {message}")
@@ -1079,7 +1091,7 @@ class TraeNativeRouteManager:
                 ]
                 owner_display = ", ".join(owner_names) if owner_names else "<unknown>"
                 message = (
-                    "Trae CDP 端口已打开但不属于本次拉起的 Trae 进程: "
+                    "CDP-порт Trae открыт, но не принадлежит запущенному нами процессу Trae: "
                     f"port={port} expected_pid={expected_pid} owner_pids={listener_pids} "
                     f"owner_names={owner_display}"
                 )
@@ -1087,11 +1099,17 @@ class TraeNativeRouteManager:
                 return OperationResult.failure(message, code=ErrorCode.CONFIG_INVALID)
             if not owner_resolution_seen:
                 log_func(
-                    f"⚠️ CDP 端口 {host}:{port} 已打开，但未能解析监听 PID；继续等待 native rewriter"
+                    
+                        f"⚠️ CDP-порт {host}:{port} открыт, но не удалось определить слушающий "
+                        f"PID; продолжаем ожидание native rewriter"
+                    
                 )
                 return OperationResult.success()
 
         log_func(
-            f"⚠️ 未检测到 CDP 端口 {host}:{port}，继续等待 native rewriter 挂载 ai_agent.dll"
+            
+                f"⚠️ CDP-порт {host}:{port} не обнаружен, продолжаем ожидание подключения native "
+                f"rewriter к ai_agent.dll"
+            
         )
         return OperationResult.success()

@@ -12,18 +12,19 @@ def run_network_environment_check(
     thread_manager: ThreadManager,
 ) -> None:
     def task() -> None:
-        log_func("开始检查网络环境...")
+        log_func("Начинаем проверку сетевого окружения...")
         report = check_network_environment(
             log_func=log_func,
             emit_logs=True,
         )
         if report.explicit_proxy_detected:
-            log_func("⚠️ 检测到显式代理配置，hosts 导流可能被绕过。\n" + "⚠️" * 21)
+            log_func("⚠️ Обнаружена явная настройка прокси: перенаправление через hosts может быть "
+                "обойдено.\n" + "⚠️" * 21)
             return
-        log_func("✅ 未检测到系统/环境变量层面的显式代理配置。")
+        log_func("✅ Явная настройка прокси на уровне системы/переменных окружения не обнаружена.")
         log_func(
-            "ℹ️ 若仍无法连接，请检查 Trae 的代理设置，"
-            "或是否启用了 TUN/VPN/安全软件网络防护。"
+            "ℹ️ Если подключения по-прежнему нет, проверьте настройки прокси в Trae "
+            "или включённые TUN/VPN/средства сетевой защиты."
         )
 
     thread_manager.run("network_env_check", task)

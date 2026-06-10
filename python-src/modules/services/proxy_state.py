@@ -13,10 +13,10 @@ _STATE = ProxyState()
 
 
 def get_proxy_instance() -> Any | None:
-    """读取当前代理实例"""
+    """Возвращает текущий экземпляр прокси"""
     return _STATE.instance
 
 
 def set_proxy_instance(instance: Any | None) -> None:
-    """更新当前代理实例"""
+    """Обновляет текущий экземпляр прокси"""
     _STATE.instance = instance

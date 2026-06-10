@@ -12,7 +12,7 @@ function fail(message) {
 
 function ensurePathExists(targetPath, label) {
   if (!fs.existsSync(targetPath)) {
-    fail(`${label} 不存在: ${targetPath}\n请先执行 pnpm pytauri:install:mac`);
+    fail(`${label} не существует: ${targetPath}\nСначала выполните pnpm pytauri:install:mac`);
   }
 }
 
@@ -88,7 +88,9 @@ function resolveWindowsPnpmEntrypoint() {
   const entrypoint = cmdPath ? resolveEntrypointFromPnpmCmd(cmdPath) : null;
 
   if (!entrypoint) {
-    fail("无法定位 pnpm JS 入口，请确认 pnpm.CMD 在 PATH 中，或通过 pnpm tauri:dev 启动。");
+    fail(
+      "Не удалось определить JS-вход pnpm; убедитесь, что pnpm.CMD есть в PATH, или запустите через pnpm tauri:dev.",
+    );
   }
 
   return entrypoint;
@@ -99,7 +101,7 @@ if (process.platform === "darwin") {
   const pyembedLib = path.resolve("src-tauri", "pyembed", "python", "lib");
 
   ensurePathExists(pyembedPython, "pyembed Python");
-  ensurePathExists(pyembedLib, "pyembed Python lib 目录");
+  ensurePathExists(pyembedLib, "каталог pyembed Python lib");
 
   env.PYO3_PYTHON = env.PYO3_PYTHON || pyembedPython;
 
@@ -122,7 +124,7 @@ const child = spawn(spawnCommand, spawnArgs, {
 });
 
 child.on("error", (error) => {
-  fail(`启动 tauri dev 失败: ${error.message}`);
+  fail(`Не удалось запустить tauri dev: ${error.message}`);
 });
 
 child.on("exit", (code, signal) => {

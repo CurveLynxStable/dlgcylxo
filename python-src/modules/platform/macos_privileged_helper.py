@@ -1,8 +1,8 @@
 """
-macOS 管理员权限持久化辅助模块。
+Вспомогательный модуль персистентных прав администратора macOS.
 
-该模块会在第一次需要提权时通过 osascript 启动一个以 root 运行的
-Python helper，后续通过 Unix Socket 与其通信，在 GUI 关闭时主动释放。
+При первой необходимости повышения прав модуль через osascript запускает работающий от root
+Python helper, далее общается с ним через Unix Socket и освобождает его при закрытии GUI.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from typing import Any, cast
 try:
     from modules.runtime.resource_manager import get_packaging_runtime
 except ImportError:
-    # 作为脚本运行时，没有包上下文，补充模块搜索路径
+    # При запуске как скрипт нет контекста пакета — дополняем пути поиска модулей
     import sys
 
     project_root = Path(__file__).resolve().parents[2]
@@ -54,11 +54,11 @@ def _as_json_dict(value: Any) -> JsonDict:
 
 
 class MacPrivilegeSessionError(RuntimeError):
-    """代表持久化提权通信过程中的错误。"""
+    """Ошибка при коммуникации персистентного повышения прав."""
 
 
 class MacPrivilegeSession:
-    """与 root helper 通信的客户端，实现写文件/复制/运行命令等能力。"""
+    """Клиент для общения с root helper: запись файлов, копирование, запуск команд."""
 
     def __init__(self) -> None:
         self.owner_uid = getattr(os, "getuid", lambda: 0)()
@@ -79,16 +79,16 @@ class MacPrivilegeSession:
         self._security_session = os.environ.get("SECURITYSESSIONID")
 
     def ensure_ready(self, log_func: LogFunc = print) -> bool:
-        """确保 helper 已经启动并建立 socket 连接。"""
+        """Гарантирует, что helper запущен и socket-соединение установлено."""
         if sys.platform != "darwin":
-            log_func("⚠️ macOS 持久化提权仅在 macOS 平台生效")
+            log_func("⚠️ Персистентное повышение прав macOS работает только на платформе macOS")
             return False
 
         if self._connection:
             return True
 
         if self._helper_started and not os.path.exists(self.socket_path):
-            # helper 异常退出，需重新启动
+            # helper аварийно завершился, требуется перезапуск
             self._helper_started = False
 
         if not self._helper_started:
@@ -101,7 +101,7 @@ class MacPrivilegeSession:
     def write_file(
         self, path: str, content: str, encoding: str, log_func: LogFunc = print
     ) -> bool:
-        """以管理员权限写入文本文件。"""
+        """Записывает текстовый файл с правами администратора."""
         payload = {
             "action": "write_file",
             "path": path,
@@ -113,31 +113,31 @@ class MacPrivilegeSession:
             return False
         if response.get("ok"):
             return True
-        log_func(f"⚠️ 写入 {path} 失败: {response.get('error')}")
+        log_func(f"⚠️ Не удалось записать {path}: {response.get('error')}")
         return False
 
     def copy_file(self, src: str, dst: str, log_func: LogFunc = print) -> bool:
-        """复制文件，可用于 hosts 备份/还原等场景。"""
+        """Копирует файл, например для резервного копирования/восстановления hosts."""
         payload = {"action": "copy_file", "src": src, "dst": dst}
         response = self._send_payload(payload, log_func)
         if not response:
             return False
         if response.get("ok"):
             return True
-        log_func(f"⚠️ 复制 {src} -> {dst} 失败: {response.get('error')}")
+        log_func(f"⚠️ Не удалось скопировать {src} -> {dst}: {response.get('error')}")
         return False
 
     def run_command(self, cmd: list[str], log_func: LogFunc = print) -> tuple[bool, JsonDict]:
-        """运行命令（例如 open -t /etc/hosts），返回 (success, data)。"""
+        """Выполняет команду (например, open -t /etc/hosts), возвращает (success, data)."""
         payload = {"action": "run_command", "cmd": cmd}
         response = self._send_payload(payload, log_func)
         if not response:
-            return False, {"error": "通信失败"}
+            return False, {"error": "Сбой связи"}
         if response.get("ok"):
             data = _as_json_dict(response.get("data", {}))
             return True, data
         data = _as_json_dict(response.get("data"))
-        data.setdefault("error", response.get("error", "未知错误"))
+        data.setdefault("error", response.get("error", "Неизвестная ошибка"))
         return False, data
 
     def install_trusted_cert(
@@ -147,9 +147,10 @@ class MacPrivilegeSession:
         keychain: str = "/Library/Keychains/System.keychain",
         log_func: LogFunc = print,
     ) -> tuple[bool, JsonDict]:
-        """使用管理员权限安装并信任 CA 证书，返回 (success, data)。"""
+        """Устанавливает и делает доверенным CA-сертификат с правами администратора, возвращает
+        (success, data)."""
         if not cert_path:
-            return False, {"error": "证书路径为空"}
+            return False, {"error": "Путь к сертификату пуст"}
 
         base_cmd: list[str] = [
             "security",
@@ -171,11 +172,11 @@ class MacPrivilegeSession:
         if success or cmd == base_cmd:
             return success, data
 
-        # 回退使用直接 security 命令，避免 launchctl 不可用时失败
+        # Откат на прямую команду security, чтобы не падать при недоступном launchctl
         return self.run_command(base_cmd, log_func=log_func)
 
     def shutdown(self) -> None:
-        """GUI 退出时关闭 helper。"""
+        """Закрывает helper при выходе из GUI."""
         if not self._helper_started:
             return
         payload = {"action": "shutdown"}
@@ -194,7 +195,8 @@ class MacPrivilegeSession:
         if runtime == "nuitka":
             launcher = self._locate_packaged_launcher()
             if not launcher:
-                log_func("⚠️ 无法找到打包后的可执行文件，无法申请管理员权限")
+                log_func("⚠️ Не найден упакованный исполняемый файл, невозможно запросить права "
+                    "администратора")
                 return False
             cmd_parts = [
                 shlex.quote(str(launcher)),
@@ -209,7 +211,7 @@ class MacPrivilegeSession:
         else:
             python_exec = self._locate_python_executable()
             if not python_exec:
-                log_func(f"⚠️ 无法定位 Python 解释器: {sys.executable}")
+                log_func(f"⚠️ Не удалось найти интерпретатор Python: {sys.executable}")
                 return False
             helper_path = Path(__file__).resolve()
             cmd_parts = [
@@ -224,7 +226,7 @@ class MacPrivilegeSession:
                 str(self.owner_gid),
             ]
 
-        log_func("🔐 正在请求管理员权限，请在弹窗中输入密码...")
+        log_func("🔐 Запрашиваем права администратора, введите пароль в диалоговом окне...")
         helper_cmd = " ".join(cmd_parts)
         if self._security_session:
             helper_cmd = f"SECURITYSESSIONID={shlex.quote(self._security_session)} " + helper_cmd
@@ -234,10 +236,10 @@ class MacPrivilegeSession:
             ["osascript", "-e", script], capture_output=True, text=True, check=False
         )
         if result.returncode != 0:
-            message = result.stderr.strip() or result.stdout.strip() or "未知错误"
-            log_func(f"⚠️ 无法获取管理员权限: {message}")
+            message = result.stderr.strip() or result.stdout.strip() or "Неизвестная ошибка"
+            log_func(f"⚠️ Не удалось получить права администратора: {message}")
             return False
-        log_func("✅ 管理员权限已授权，正在建立通信通道...")
+        log_func("✅ Права администратора получены, устанавливаем канал связи...")
         return True
 
     def _locate_packaged_launcher(self) -> Path | None:
@@ -287,13 +289,13 @@ class MacPrivilegeSession:
 
     def _connect(self, log_func: LogFunc) -> bool:
         if not self._connect_logged_wait:
-            log_func("⌛ 正在初始化管理员通信通道，请稍候...")
+            log_func("⌛ Инициализируем канал связи администратора, подождите...")
             self._connect_logged_wait = True
         deadline = time.time() + CONNECT_TIMEOUT
         while time.time() < deadline:
             try:
                 if _SOCKET_FAMILY_UNIX is None:
-                    log_func("当前系统不支持 Unix Socket，无法建立连接")
+                    log_func("Текущая система не поддерживает Unix Socket, соединение невозможно")
                     break
                 conn = socket.socket(_SOCKET_FAMILY_UNIX, socket.SOCK_STREAM)
                 conn.connect(self.socket_path)
@@ -301,7 +303,7 @@ class MacPrivilegeSession:
                 self._recv_buffer = b""
                 self._register_atexit()
                 self._connect_logged_wait = False
-                log_func("🔗 管理员通信通道已就绪")
+                log_func("🔗 Канал связи администратора готов")
                 return True
             except FileNotFoundError:
                 time.sleep(RETRY_DELAY)
@@ -311,7 +313,8 @@ class MacPrivilegeSession:
                 time.sleep(RETRY_DELAY)
 
         self._connect_logged_wait = False
-        log_func(f"⚠️ 管理员权限通道初始化失败，请重试（日志: {self.helper_log_path}）")
+        log_func(f"⚠️ Не удалось инициализировать канал прав администратора, повторите попытку "
+            f"(лог: {self.helper_log_path}）")
         self._cleanup_connection()
         return False
 
@@ -338,11 +341,11 @@ class MacPrivilegeSession:
                     self._cleanup_connection()
                     time.sleep(RETRY_DELAY)
 
-        raise MacPrivilegeSessionError("无法与管理员权限 helper 通信")
+        raise MacPrivilegeSessionError("Не удаётся связаться с helper прав администратора")
 
     def _readline(self) -> bytes:
         if not self._connection:
-            raise ConnectionError("连接尚未建立")
+            raise ConnectionError("Соединение ещё не установлено")
 
         while True:
             if REQUEST_TERMINATOR in self._recv_buffer:
@@ -350,7 +353,7 @@ class MacPrivilegeSession:
                 return line
             chunk = self._connection.recv(4096)
             if not chunk:
-                raise ConnectionError("helper 已关闭连接")
+                raise ConnectionError("helper закрыл соединение")
             self._recv_buffer += chunk
 
     def _cleanup_connection(self) -> None:
@@ -373,7 +376,7 @@ _mac_session_lock = threading.Lock()
 
 
 def get_mac_privileged_session(log_func: LogFunc = print) -> MacPrivilegeSession | None:
-    """返回可用的 MacPrivilegeSession，没有可用权限时返回 None。"""
+    """Возвращает доступную MacPrivilegeSession или None при отсутствии прав."""
     if sys.platform != "darwin":
         return None
 
@@ -389,7 +392,7 @@ def get_mac_privileged_session(log_func: LogFunc = print) -> MacPrivilegeSession
 
 
 class _PrivilegeHelperServer:
-    """运行在 root 下的 helper，实现具体的提权操作。"""
+    """Работающий под root helper, выполняющий привилегированные операции."""
 
     def __init__(self, socket_path: str, owner_uid: int, owner_gid: int) -> None:
         self.socket_path = socket_path
@@ -446,9 +449,10 @@ class _PrivilegeHelperServer:
         try:
             payload_obj = json.loads(line.decode("utf-8"))
         except json.JSONDecodeError:
-            return json.dumps({"ok": False, "error": "无效的 JSON 请求"}).encode("utf-8")
+            return json.dumps({"ok": False, "error": "Некорректный JSON-запрос"}).encode("utf-8")
         if not isinstance(payload_obj, dict):
-            return json.dumps({"ok": False, "error": "请求必须是 JSON 对象"}).encode("utf-8")
+            return json.dumps({"ok": False, "error": "Запрос должен быть JSON-объектом"}).encode(
+                "utf-8")
         payload = _as_json_dict(payload_obj)
 
         action_obj = payload.get("action")
@@ -457,12 +461,12 @@ class _PrivilegeHelperServer:
             if action == "write_file":
                 path_obj = payload.get("path")
                 if not isinstance(path_obj, str):
-                    raise ValueError("path 必须是字符串")
+                    raise ValueError("path должен быть строкой")
                 encoding_obj = payload.get("encoding", "utf-8")
                 encoding = encoding_obj if isinstance(encoding_obj, str) else "utf-8"
                 content_obj = payload.get("content")
                 if not isinstance(content_obj, str):
-                    raise ValueError("content 必须是字符串")
+                    raise ValueError("content должен быть строкой")
                 with open(path_obj, "w", encoding=encoding) as fh:
                     fh.write(content_obj)
                 result = {"ok": True}
@@ -470,16 +474,16 @@ class _PrivilegeHelperServer:
                 src_obj = payload.get("src")
                 dst_obj = payload.get("dst")
                 if not isinstance(src_obj, str) or not isinstance(dst_obj, str):
-                    raise ValueError("src/dst 必须是字符串")
+                    raise ValueError("src/dst должны быть строками")
                 shutil.copy2(src_obj, dst_obj)
                 result = {"ok": True}
             elif action == "run_command":
                 cmd_obj = payload.get("cmd")
                 if not isinstance(cmd_obj, list):
-                    raise ValueError("cmd 必须是字符串列表")
+                    raise ValueError("cmd должен быть списком строк")
                 cmd_list = cast(list[object], cmd_obj)
                 if not all(isinstance(item, str) for item in cmd_list):
-                    raise ValueError("cmd 必须是字符串列表")
+                    raise ValueError("cmd должен быть списком строк")
                 cmd = cast(list[str], cmd_list)
                 completed = subprocess.run(
                     cmd, capture_output=True, text=True, check=False
@@ -496,7 +500,7 @@ class _PrivilegeHelperServer:
                 self._stop = True
                 result = {"ok": True}
             else:
-                result = {"ok": False, "error": f"未知 action: {action}"}
+                result = {"ok": False, "error": f"Неизвестный action: {action}"}
         except Exception as exc:
             result = {"ok": False, "error": str(exc)}
 
@@ -510,16 +514,16 @@ def _parse_server_args() -> argparse.Namespace:
         "--run-server",
         action="store_true",
         dest="run_helper",
-        help="启动 helper",
+        help="Запустить helper",
     )
-    parser.add_argument("--socket", dest="socket_path", required=True, help="Socket 路径")
-    parser.add_argument("--owner-uid", type=int, required=True, help="原始用户 UID")
-    parser.add_argument("--owner-gid", type=int, required=True, help="原始用户 GID")
+    parser.add_argument("--socket", dest="socket_path", required=True, help="Путь к socket")
+    parser.add_argument("--owner-uid", type=int, required=True, help="UID исходного пользователя")
+    parser.add_argument("--owner-gid", type=int, required=True, help="GID исходного пользователя")
     return parser.parse_args()
 
 
 def main() -> None:
-    """当以脚本方式运行时，启动 root helper。"""
+    """При запуске как скрипт запускает root helper."""
     args = _parse_server_args()
     if not getattr(args, "run_helper", False):
         return

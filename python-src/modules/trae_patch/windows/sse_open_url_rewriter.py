@@ -135,7 +135,7 @@ def _allocate_remote_utf8(process: wintypes.HANDLE, text: str) -> dict[str, Any]
         raise last_windows_error("VirtualAllocEx")
     allocated_address = int(ctypes.cast(allocated, ctypes.c_void_p).value or 0)
     if allocated_address <= MIN_USER_POINTER:
-        raise RuntimeError(f"VirtualAllocEx 返回地址异常: {hex(allocated_address)}")
+        raise RuntimeError(f"VirtualAllocEx вернул некорректный адрес: {hex(allocated_address)}")
     write_process_memory(process, allocated_address, payload + b"\x00")
     return {
         "allocated_address": hex(allocated_address),
@@ -161,7 +161,7 @@ def _coerce_report(raw_report: object) -> dict[str, Any]:
 def _report_rva(report: dict[str, Any]) -> int:
     raw_rva = report.get("url_copy_call_rva")
     if not isinstance(raw_rva, str) or raw_rva == "<unknown>":
-        raise RuntimeError(f"runtime compatibility report 缺少有效 RVA: {raw_rva}")
+        raise RuntimeError(f"В runtime compatibility report отсутствует корректный RVA: {raw_rva}")
     return int(raw_rva, 0)
 
 
@@ -259,7 +259,8 @@ def run_rewriter(args: argparse.Namespace) -> dict[str, Any]:  # noqa: PLR0912, 
         process = open_process_handle(target_pid)
         original = read_process_memory(process, breakpoint_address, 1)
         if len(original) != 1:
-            raise RuntimeError(f"读取断点原字节失败: {hex(breakpoint_address)}")
+            raise RuntimeError(f"Не удалось прочитать исходный байт точки останова: "
+                f"{hex(breakpoint_address)}")
 
         allocation = _allocate_remote_utf8(process, args.new_url)
         new_ptr = int(str(allocation["allocated_address"]), 16)
@@ -421,28 +422,36 @@ def run_rewriter(args: argparse.Namespace) -> dict[str, Any]:  # noqa: PLR0912, 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="持续在 native SseOpenPayload URL copy call 前重写 reqwest 目标 URL。"
+        description=(
+            "Непрерывно переписывает целевой URL reqwest перед native SseOpenPayload URL copy call."
+        )
     )
-    parser.add_argument("--pid", type=int, help="可选：指定已加载 ai_agent.dll 的 Trae PID")
-    parser.add_argument("--module-path", type=Path, default=AI_AGENT_DLL, help="ai_agent.dll 路径")
+    parser.add_argument("--pid", type=int, help="Опционально: PID процесса Trae с загруженной "
+        "ai_agent.dll")
+    parser.add_argument(
+        "--module-path", type=Path, default=AI_AGENT_DLL, help="Путь к ai_agent.dll"
+    )
     parser.add_argument(
         "--breakpoint-rva",
         type=lambda value: int(value, 0),
-        help="SseOpenPayload URL copy call RVA；不传则按字节模式自动定位",
+        help=(
+            "RVA SseOpenPayload URL copy call; если не задан, определяется автоматически по "
+            "байтовому шаблону"
+        ),
     )
-    parser.add_argument("--old-url", default=DEFAULT_OLD_URL, help="要匹配的原 URL")
-    parser.add_argument("--new-url", default=DEFAULT_NEW_URL, help="要改写成的新 URL")
+    parser.add_argument("--old-url", default=DEFAULT_OLD_URL, help="Исходный URL для сопоставления")
+    parser.add_argument("--new-url", default=DEFAULT_NEW_URL, help="Новый URL для перезаписи")
     parser.add_argument(
         "--duration-seconds",
         type=int,
         default=DEFAULT_DURATION_SECONDS,
-        help="运行时长；<=0 表示一直运行到进程退出或 Ctrl+C",
+        help="Длительность работы; <=0 — работать до завершения процесса или Ctrl+C",
     )
     parser.add_argument(
         "--max-patches",
         type=int,
         default=DEFAULT_MAX_PATCHES,
-        help="成功改写次数上限；0 表示不限",
+        help="Лимит успешных перезаписей; 0 — без ограничений",
     )
     parser.add_argument(
         "--wait-for-module-seconds",
@@ -453,11 +462,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--poll-milliseconds",
         type=int,
         default=DEFAULT_POLL_MILLISECONDS,
-        help="WaitForDebugEvent 轮询间隔",
+        help="Интервал опроса WaitForDebugEvent",
     )
-    parser.add_argument("--output-path", type=Path, help="可选 JSONL 事件输出")
-    parser.add_argument("--stop-file", type=Path, help="文件存在时主动退出并恢复断点")
-    parser.add_argument("--quiet", action="store_true", help="只输出最终 summary")
+    parser.add_argument("--output-path", type=Path, help="Опциональный вывод событий в JSONL")
+    parser.add_argument("--stop-file", type=Path, help="Если файл существует, выйти и восстановить "
+        "точку останова")
+    parser.add_argument("--quiet", action="store_true", help="Выводить только финальный summary")
     return parser
 
 

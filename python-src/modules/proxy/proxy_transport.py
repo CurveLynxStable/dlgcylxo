@@ -16,7 +16,7 @@ type LogFunc = Callable[[str], None]
 
 
 class ProxyTransport:
-    """代理传输层：MLiteLLM 上游调用与响应归一化。"""
+    """Транспортный слой прокси: вызовы апстрима MLiteLLM и нормализация ответов."""
 
     def __init__(
         self,
@@ -127,7 +127,7 @@ class ProxyTransport:
             try:
                 payload_obj = json.loads(payload_str)
             except Exception as exc:  # noqa: BLE001
-                log(f"chunk#{event_index} JSON 解析失败，原样透传: {exc}")
+                log(f"chunk#{event_index} Не удалось разобрать JSON, передаём как есть: {exc}")
                 return f"data: {payload_str}\n\n".encode(), None
             if not isinstance(payload_obj, dict):
                 return f"data: {payload_str}\n\n".encode(), None
@@ -260,7 +260,7 @@ class ProxyTransport:
             try:
                 payload_obj = json.loads(payload_str)
             except Exception as exc:  # noqa: BLE001
-                log(f"响应事件 JSON 解析失败，原样透传: {exc}")
+                log(f"Событие ответа: не удалось разобрать JSON, передаём как есть: {exc}")
                 return f"data: {payload_str}\n\n".encode(), None
             if not isinstance(payload_obj, dict):
                 return f"data: {payload_str}\n\n".encode(), None

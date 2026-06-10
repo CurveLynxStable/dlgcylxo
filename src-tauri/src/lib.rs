@@ -62,7 +62,7 @@ where
     K: AsRef<std::ffi::OsStr>,
     V: AsRef<std::ffi::OsStr>,
 {
-    // SAFETY: 仅在应用启动早期主线程调用，尚未启动后台线程或 Python 运行时。
+    // SAFETY: вызывается только в главном потоке на раннем этапе запуска, до фоновых потоков и Python-рантайма.
     unsafe {
         std::env::set_var(key, value);
     }
@@ -639,8 +639,14 @@ fn inject_runtime_tag(window: &tauri::WebviewWindow) {
 }
 
 fn setup_tray(app: &mut tauri::App, shutdown_started: Arc<AtomicBool>) -> tauri::Result<()> {
-    let show_item = MenuItem::with_id(app, TRAY_SHOW_MENU_ID, "显示主窗口", true, None::<&str>)?;
-    let quit_item = MenuItem::with_id(app, TRAY_QUIT_MENU_ID, "退出 MTGA", true, None::<&str>)?;
+    let show_item = MenuItem::with_id(
+        app,
+        TRAY_SHOW_MENU_ID,
+        "Показать главное окно",
+        true,
+        None::<&str>,
+    )?;
+    let quit_item = MenuItem::with_id(app, TRAY_QUIT_MENU_ID, "Выйти из MTGA", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
     let mut tray_builder = TrayIconBuilder::with_id(TRAY_ID)

@@ -29,7 +29,7 @@ DEFAULT_PRIMARY_SITE_ADDRESS = 0x1204B3C
 DEFAULT_PRIMARY_SITE_SYMBOL = "default_handler_handle_sse_closure"
 DEFAULT_PRIMARY_SITE_KIND = "reqwest_request_url_pair_load"
 DEFAULT_PRIMARY_SITE_WHY = (
-    "DefaultSseProxyHandler 在 reqwest::Client::request 前最后一次装入 URL 对。"
+    "DefaultSseProxyHandler в последний раз загружает пару URL перед reqwest::Client::request."
 )
 ARM64_BL_BASE = 0x94000000
 ARM64_INSTRUCTION_SIZE = 4
@@ -115,13 +115,13 @@ def _resolve_paths(trae_path: str) -> dict[str, Path]:
     backend = MacOSNativeBackend()
     executable = backend.resolve_trae_executable(trae_path)
     if not executable.is_file():
-        raise RuntimeError(f"Trae 路径无效: {executable}")
+        raise RuntimeError(f"Некорректный путь к Trae: {executable}")
     app_bundle = _find_app_bundle(executable)
     if app_bundle is None:
-        raise RuntimeError(f"无法从路径推导 Trae.app: {executable}")
+        raise RuntimeError(f"Не удалось вывести Trae.app из пути: {executable}")
     module_path = backend.resolve_module_path(executable)
     if not module_path.is_file():
-        raise RuntimeError(f"未找到 libai_agent.dylib: {module_path}")
+        raise RuntimeError(f"Не найден libai_agent.dylib: {module_path}")
     return {
         "app_bundle": app_bundle,
         "executable": executable,
@@ -142,11 +142,13 @@ def _load_report(trae_path: str, artifact_root: Path) -> dict[str, Any]:
     completed = _run_command(command, timeout=90)
     if completed.returncode != 0:
         raise RuntimeError(
-            completed.stderr.strip() or completed.stdout.strip() or "symbol report 执行失败"
+            completed.stderr.strip() or completed.stdout.strip() or (
+                "Не удалось выполнить symbol report"
+            )
         )
     payload = json.loads(completed.stdout)
     if not isinstance(payload, dict):
-        raise RuntimeError("symbol report JSON 根节点不是对象")
+        raise RuntimeError("Корневой узел JSON symbol report не является объектом")
     return payload
 
 
@@ -160,10 +162,10 @@ def _load_manifest_entry(
 
     raw_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if not isinstance(raw_manifest, dict):
-        raise RuntimeError("manifest 根节点不是对象")
+        raise RuntimeError("Корневой узел manifest не является объектом")
     raw_entries = raw_manifest.get("entries")
     if not isinstance(raw_entries, list):
-        raise RuntimeError("manifest entries 不是数组")
+        raise RuntimeError("manifest entries не является массивом")
 
     module_sha256 = _sha256_file(module_path)
     for raw_entry in raw_entries:
@@ -179,7 +181,7 @@ def _rva_to_file_offset(layout: Any, rva: int) -> int:
     for section in layout.sections:
         if section.address <= rva < section.address + section.size:
             return section.offset + (rva - section.address)
-    raise RuntimeError(f"RVA 未命中任何 section: {hex(rva)}")
+    raise RuntimeError(f"RVA не попадает ни в одну section: {hex(rva)}")
 
 
 def _u32le(value: int) -> bytes:
@@ -189,10 +191,10 @@ def _u32le(value: int) -> bytes:
 def _encode_bl(src_rva: int, target_rva: int) -> bytes:
     offset = target_rva - src_rva
     if offset % ARM64_INSTRUCTION_SIZE != 0:
-        raise RuntimeError(f"BL 偏移未按 4 字节对齐: {offset}")
+        raise RuntimeError(f"Смещение BL не выровнено по 4 байтам: {offset}")
     if not -(ARM64_BL_RANGE // 2) <= offset < (ARM64_BL_RANGE // 2):
         raise RuntimeError(
-            f"BL 目标超出 +/-128MiB 范围: src={hex(src_rva)} target={hex(target_rva)}"
+            f"Цель BL вне диапазона +/-128MiB: src={hex(src_rva)} target={hex(target_rva)}"
         )
     imm26 = (offset >> 2) & 0x03FFFFFF
     return _u32le(ARM64_BL_BASE | imm26)
@@ -215,7 +217,7 @@ def _candidate_site(summary: dict[str, Any], label: str) -> dict[str, Any]:
 
     raw_sites = summary.get("candidate_patch_sites")
     if not isinstance(raw_sites, list):
-        raise RuntimeError("summary 缺少 candidate_patch_sites")
+        raise RuntimeError("В summary отсутствует candidate_patch_sites")
     for item in raw_sites:
         if isinstance(item, dict) and str(item.get("label")) == label:
             return item
@@ -227,7 +229,7 @@ def _candidate_site(summary: dict[str, Any], label: str) -> dict[str, Any]:
             "kind": DEFAULT_PRIMARY_SITE_KIND,
             "why": DEFAULT_PRIMARY_SITE_WHY,
         }
-    raise RuntimeError(f"未在 summary 中找到 patch site: {label}")
+    raise RuntimeError(f"В summary не найден patch site: {label}")
 
 
 def _candidate_cave(
@@ -238,7 +240,7 @@ def _candidate_cave(
 ) -> dict[str, Any]:
     raw_caves = summary.get("text_code_caves")
     if not isinstance(raw_caves, list):
-        raise RuntimeError("summary 缺少 text_code_caves")
+        raise RuntimeError("В summary отсутствует text_code_caves")
 
     for raw_cave in raw_caves:
         if not isinstance(raw_cave, dict):
@@ -263,7 +265,7 @@ def _candidate_cave(
             "branch_distance_bytes": distance,
         }
     raise RuntimeError(
-        "未找到可用的 __TEXT,__text cave: "
+        "Не найден доступный __TEXT,__text cave: "
         f"site={hex(site_rva)} required_length={required_length}"
     )
 
@@ -275,7 +277,9 @@ def _extract_text_section_bytes(object_path: Path) -> bytes:
     )
     if completed.returncode != 0:
         raise RuntimeError(
-            completed.stderr.strip() or completed.stdout.strip() or "otool 提取 __text 失败"
+            completed.stderr.strip() or completed.stdout.strip() or (
+                "Не удалось извлечь __text через otool"
+            )
         )
 
     blob = bytearray()
@@ -290,44 +294,44 @@ def _extract_text_section_bytes(object_path: Path) -> bytes:
             else:
                 break
     if not blob:
-        raise RuntimeError(f"未从 {object_path} 提取到 __text section 原始字节")
+        raise RuntimeError(f"Не удалось извлечь исходные байты __text section из {object_path}")
     return bytes(blob)
 
 
 def _site_register_spec(kind: str) -> dict[str, str]:
     spec = SITE_KIND_REGISTER_SPECS.get(kind)
     if spec is None:
-        raise RuntimeError(f"当前 recipe 暂不支持该 site.kind: {kind}")
+        raise RuntimeError(f"Текущий recipe пока не поддерживает этот site.kind: {kind}")
     return spec
 
 
 def _validated_manifest_site(entry: dict[str, Any]) -> dict[str, Any]:
     raw_site = entry.get("site")
     if not isinstance(raw_site, dict):
-        raise RuntimeError("manifest entry 缺少 site")
+        raise RuntimeError("В manifest entry отсутствует site")
     site = dict(raw_site)
     if str(site.get("label") or "") != DEFAULT_PRIMARY_SITE_LABEL:
         raise RuntimeError(
-            "manifest site.label 与当前默认 primary 不一致: "
+            "manifest site.label не совпадает с текущим primary по умолчанию: "
             f"{site.get('label')}"
         )
     if str(site.get("kind") or "") != DEFAULT_PRIMARY_SITE_KIND:
         raise RuntimeError(
-            "manifest site.kind 与当前 recipe 预期不一致: "
+            "manifest site.kind не совпадает с ожиданием текущего recipe: "
             f"{site.get('kind')}"
         )
     if "address" not in site or "file_offset" not in site:
-        raise RuntimeError("manifest site 缺少 address/file_offset")
+        raise RuntimeError("В manifest site отсутствуют address/file_offset")
     return site
 
 
 def _validated_manifest_trampoline(entry: dict[str, Any]) -> dict[str, Any]:
     raw_trampoline = entry.get("trampoline")
     if not isinstance(raw_trampoline, dict):
-        raise RuntimeError("manifest entry 缺少 trampoline")
+        raise RuntimeError("В manifest entry отсутствует trampoline")
     trampoline = dict(raw_trampoline)
     if "stub_rva" not in trampoline or "file_offset" not in trampoline:
-        raise RuntimeError("manifest trampoline 缺少 stub_rva/file_offset")
+        raise RuntimeError("В manifest trampoline отсутствуют stub_rva/file_offset")
     return trampoline
 
 
@@ -338,7 +342,8 @@ def _assemble_url_override_trampoline(
     length_register: str,
 ) -> dict[str, Any]:
     if len(new_url.encode("utf-8")) > MAX_MOVZ_IMMEDIATE:
-        raise RuntimeError(f"new_url 长度超出 MOVZ 立即数范围: {len(new_url)}")
+        raise RuntimeError(f"Длина new_url превышает диапазон непосредственного значения MOVZ: "
+            f"{len(new_url)}")
 
     assembly = f"""
 .text
@@ -371,7 +376,9 @@ new_url:
         )
         if completed.returncode != 0:
             raise RuntimeError(
-                completed.stderr.strip() or completed.stdout.strip() or "clang 汇编 trampoline 失败"
+                completed.stderr.strip() or completed.stdout.strip() or (
+                    "Не удалось ассемблировать trampoline через clang"
+                )
             )
         blob = _extract_text_section_bytes(object_path)
 
@@ -416,17 +423,20 @@ def _build_recipe(  # noqa: PLR0913
         compatibility_report = manifest_entry.get("compatibility_report")
         report_summary_path = None
         reference_notes = [
-            "primary site/cave 来自已验证通过的 manifest，不再重新跑 symbol report 推导。",
+            (
+                "primary site/cave взяты из проверенного manifest, повторный вывод через symbol "
+                "report не выполняется."
+            ),
         ]
     else:
         if summary is None:
-            raise RuntimeError("缺少 summary 或 manifest_entry")
+            raise RuntimeError("Отсутствует summary или manifest_entry")
         layout = parse_macho_layout(data)
         site = _candidate_site(summary, DEFAULT_PRIMARY_SITE_LABEL)
         site_kind = str(site.get("kind") or "")
         if site_kind != DEFAULT_PRIMARY_SITE_KIND:
             raise RuntimeError(
-                "primary site kind 不符合当前 recipe 预期: "
+                "primary site kind не соответствует ожиданию текущего recipe: "
                 f"expected={DEFAULT_PRIMARY_SITE_KIND} actual={site_kind}"
             )
         site_rva = int(str(site["address"]), 16)
@@ -460,7 +470,7 @@ def _build_recipe(  # noqa: PLR0913
     blob = bytes(trampoline["blob"])
     cave_expected = data[cave_file_offset : cave_file_offset + len(blob)]
     if len(cave_expected) != len(blob):
-        raise RuntimeError("trampoline 写入区域越界")
+        raise RuntimeError("Область записи trampoline выходит за границы")
 
     relative_module_path = _relative_to(module_path, app_bundle)
     module_sha256 = _sha256_file(module_path)
@@ -476,12 +486,12 @@ def _build_recipe(  # noqa: PLR0913
             "manifest_path": str(manifest_path) if manifest_path is not None else None,
             "compatibility_report": compatibility_report,
             "notes": reference_notes + [
-                "将 primary site 的 URL 装载指令改为 BL trampoline。",
-                "trampoline 通过 ADR + MOVZ 直接设置 "
+                "Инструкция загрузки URL в primary site заменяется на BL trampoline.",
+                "trampoline через ADR + MOVZ напрямую устанавливает "
                 f"{register_spec['pointer_register']}/{register_spec['length_register']}，"
-                "并用 ret 返回到 "
+                "и возвращается через ret к "
                 f"{hex(site_rva + ARM64_INSTRUCTION_SIZE)}。",
-                f"该位点当前覆盖 {register_spec['path_scope']} 路径。",
+                f"Этот сайт сейчас покрывает {register_spec['path_scope']} пути.",
             ],
         },
         "replacements": [
@@ -492,7 +502,7 @@ def _build_recipe(  # noqa: PLR0913
                 "expected": _hex_bytes(site_expected),
                 "replace": _hex_bytes(branch),
                 "description": (
-                    "用 BL trampoline 替换 URL 装载指令 "
+                    "Замена инструкции загрузки URL на BL trampoline "
                     f"{register_spec['instruction_hint']}"
                 ),
             },
@@ -502,7 +512,8 @@ def _build_recipe(  # noqa: PLR0913
                 "offset": hex(cave_file_offset),
                 "expected": _hex_bytes(cave_expected),
                 "replace": str(trampoline["blob_hex"]),
-                "description": "向 __TEXT,__text cave 注入最小 URL override trampoline",
+                "description": "Внедрение минимального URL override trampoline "
+                "в __TEXT,__text cave",
             },
         ],
         "plan": {
@@ -536,7 +547,7 @@ def _build_recipe(  # noqa: PLR0913
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="生成 macOS Trae native URL override 的离线 patch recipe。"
+        description="Генерирует офлайн patch recipe для macOS Trae native URL override."
     )
     parser.add_argument("--trae-path", default=DEFAULT_TRAE_PATH)
     parser.add_argument("--new-url", default=DEFAULT_NEW_URL)
@@ -551,13 +562,13 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=DEFAULT_MANIFEST_PATH,
     )
-    parser.add_argument("--json", action="store_true", help="输出完整 JSON")
+    parser.add_argument("--json", action="store_true", help="Вывести полный JSON")
     return parser
 
 
 def main() -> int:
     if sys.platform != "darwin":
-        raise SystemExit("该脚本仅支持 macOS")
+        raise SystemExit("Скрипт поддерживает только macOS")
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
 

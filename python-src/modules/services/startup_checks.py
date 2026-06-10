@@ -24,7 +24,7 @@ class StartupReport:
 
 
 def run_hosts_preflight() -> FileOperabilityReport | None:
-    """程序启动时预检 hosts 文件，必要时启用受限 hosts 模式。"""
+    """При запуске проверяет файл hosts и при необходимости включает ограниченный режим hosts."""
     if not is_windows():
         return None
     logger = logging.getLogger("mtga_gui")
@@ -40,8 +40,9 @@ def run_hosts_preflight() -> FileOperabilityReport | None:
 
     if ALLOW_UNSAFE_HOSTS_FLAG in sys.argv:
         warn(
-            f"⚠️ hosts 预检未通过（status={report.status.value}），但已使用启动参数 "
-            f"{ALLOW_UNSAFE_HOSTS_FLAG} 覆盖；后续自动修改可能失败。"
+            f"⚠️ Предварительная проверка hosts не пройдена (status={report.status.value}), но "
+            f"применён параметр запуска "
+            f"{ALLOW_UNSAFE_HOSTS_FLAG}; последующие автоматические изменения могут не удаться."
         )
         return report
 
@@ -51,14 +52,18 @@ def run_hosts_preflight() -> FileOperabilityReport | None:
         report=report,
     )
     warn(
-        f"⚠️ hosts 预检未通过（status={report.status.value}），已启用受限 hosts 模式："
-        "添加将回退为追加写入（无法保证原子性增删/去重），自动移除/还原将被禁用。"
+        f"⚠️ Предварительная проверка hosts не пройдена (status={report.status.value}), "
+        f"включён ограниченный режим hosts: "
+        "добавление будет выполняться в режиме дозаписи (без гарантии атомарного "
+        "добавления/удаления/дедупликации), автоматическое удаление/восстановление будет "
+        "отключено."
     )
     return report
 
 
 def run_network_environment_preflight() -> NetworkEnvironmentReport:
-    """程序启动时检查网络环境（显式代理），用于提示 hosts 导流可能被绕过。"""
+    """При запуске проверяет сетевое окружение (явный прокси), чтобы предупредить о возможном
+    обходе перенаправления через hosts."""
     logger = logging.getLogger("mtga_gui")
 
     def warn(message: str) -> None:
@@ -79,9 +84,9 @@ def emit_startup_logs(
     if env_ok:
         log(f"✅ {env_msg}")
         if is_packaged():
-            log("📦 运行在打包环境中")
+            log("📦 Запущено в упакованном окружении")
         else:
-            log("🔧 运行在开发环境中")
+            log("🔧 Запущено в среде разработки")
     else:
         log(f"❌ {env_msg}")
 
@@ -89,22 +94,31 @@ def emit_startup_logs(
         report = get_hosts_modify_block_report()
         status = report.status.value if report else "unknown"
         log(
-            f"⚠️ 检测到 hosts 文件写入受限（status={status}），已启用受限 hosts 模式："
-            "添加将回退为追加写入（无法保证原子性增删/去重），自动移除/还原将被禁用。"
+            f"⚠️ Обнаружено ограничение записи в файл hosts (status={status}), включён "
+            f"ограниченный режим hosts: "
+            "добавление будет выполняться в режиме дозаписи (без гарантии атомарного "
+            "добавления/удаления/дедупликации), автоматическое удаление/восстановление будет "
+            "отключено."
         )
         log(
-            f"⚠️ 你可以点击「打开hosts文件」手动修改；或使用启动参数 "
-            f"{ALLOW_UNSAFE_HOSTS_FLAG} 覆盖此检查以强制尝试原子写入（风险自负）。"
+            "⚠️ Вы можете нажать «Открыть файл hosts» и изменить его вручную; либо "
+            "использовать параметр запуска "
+            f"{ALLOW_UNSAFE_HOSTS_FLAG}, чтобы обойти эту проверку и принудительно попробовать "
+            f"атомарную запись (на свой риск)."
         )
     elif hosts_preflight_report is not None and not hosts_preflight_report.ok:
         log(
-            f"⚠️ hosts 预检未通过（status={hosts_preflight_report.status.value}），"
-            f"但已使用启动参数 {ALLOW_UNSAFE_HOSTS_FLAG} 覆盖；后续自动修改可能失败。"
+            f"⚠️ Предварительная проверка hosts не пройдена "
+            f"(status={hosts_preflight_report.status.value}), "
+            f"но применён параметр запуска {ALLOW_UNSAFE_HOSTS_FLAG}; последующие "
+            f"автоматические изменения могут не удаться."
         )
 
     if network_env_report is not None and network_env_report.explicit_proxy_detected:
-        log("⚠️" * 21 + "\n检测到显式代理配置：部分应用可能优先走代理，从而绕过 hosts 导流。")
-        log("建议：1. 关闭显式代理（如clash的系统代理），或改用 TUN/VPN")
-        log("      2. 检查 Trae 的代理设置。\n" + "⚠️" * 21)
+        log("⚠️" * 21 + "\nОбнаружена явная настройка прокси: часть приложений может идти через "
+            "прокси и обходить перенаправление через hosts.")
+        log("Рекомендации: 1. Отключите явный прокси (например системный прокси clash) или "
+            "используйте TUN/VPN")
+        log("      2. Проверьте настройки прокси в Trae.\n" + "⚠️" * 21)
 
     return StartupReport(env_ok=env_ok, env_message=env_msg)

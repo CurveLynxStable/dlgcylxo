@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * 设置面板组件
- * 提供用户数据管理、备份、还原及清理功能
+ * Панель настроек
+ * Управление пользовательскими данными: резервное копирование, восстановление и очистка
  */
 import type { ProxyMode } from "~/composables/mtgaTypes";
 import {
@@ -18,9 +18,9 @@ const store = useMtgaStore();
 const appInfo = store.appInfo;
 
 const clearConfirmOpen = ref(false);
-const clearConfirmTitle = "确认清除数据";
+const clearConfirmTitle = "Подтвердите очистку данных";
 const clearConfirmMessage =
-  "确定要清除用户数据吗？该操作将删除配置文件、SSL 证书和 hosts 备份（历史 backups 保留）。";
+  "Очистить пользовательские данные? Будут удалены конфигурация, SSL-сертификаты и резервная копия hosts (папка backups сохраняется).";
 const proxyModeSwitchConfirmOpen = ref(false);
 const currentProxyModeForConfirm = ref<ProxyMode | null>(null);
 const themeDialogOpen = ref(false);
@@ -75,12 +75,12 @@ const formatProxyModeLabel = (value: ProxyMode | null | undefined) => {
     return "Trae native";
   }
   if (value === "trae_official_base_url") {
-    return "官方 Base URL";
+    return "Официальный Base URL";
   }
   if (value === "reverse_hosts") {
-    return "反代";
+    return "Обратный прокси";
   }
-  return "未运行";
+  return "Не запущен";
 };
 
 const runtimeStatusBadgeClass = computed(() => {
@@ -102,12 +102,12 @@ const runtimeStatusDotClass = computed(() => {
 
 const runtimeStatusLabel = computed(() => {
   if (!proxyRuntimeKnown.value) {
-    return "运行态同步中";
+    return "Синхронизация состояния...";
   }
   if (proxyRuntimeRunning.value) {
     return formatProxyModeLabel(proxyRuntimeActiveMode.value);
   }
-  return "未运行";
+  return "Не запущен";
 });
 
 const traePathPlaceholder = computed(() => {
@@ -118,68 +118,68 @@ const traePathPlaceholder = computed(() => {
 });
 
 /**
- * 打开目录的工具提示内容
+ * Текст подсказки для открытия каталога
  */
 const openDirTooltip = computed(() => {
   const current = appInfo.value.user_data_dir?.trim();
   const fallback = appInfo.value.default_user_data_dir?.trim();
   if (current && fallback && current !== fallback) {
-    return `使用系统文件管理器打开用户数据目录\n当前：${current}\n默认：${fallback}`;
+    return `Открыть каталог пользовательских данных в файловом менеджере\nТекущий: ${current}\nПо умолчанию: ${fallback}`;
   }
   if (current) {
-    return `使用系统文件管理器打开用户数据目录\n目录：${current}`;
+    return `Открыть каталог пользовательских данных в файловом менеджере\nКаталог: ${current}`;
   }
   if (fallback) {
-    return `使用系统文件管理器打开用户数据目录\n默认目录：${fallback}`;
+    return `Открыть каталог пользовательских данных в файловом менеджере\nКаталог по умолчанию: ${fallback}`;
   }
-  return "使用系统文件管理器打开用户数据目录";
+  return "Открыть каталог пользовательских данных в файловом менеджере";
 });
 
 /**
- * 备份数据的工具提示内容
+ * Текст подсказки для резервного копирования
  */
 const backupTooltip = [
-  "创建带时间戳的完整数据备份",
-  "备份内容：配置文件、SSL证书、hosts备份",
-  "备份位置：用户数据目录/backups/backup_时间戳/",
+  "Создать полную резервную копию с отметкой времени",
+  "Содержимое: конфигурация, SSL-сертификаты, резервная копия hosts",
+  "Расположение: каталог данных/backups/backup_время/",
 ].join("\n");
 
 /**
- * 还原数据的工具提示内容
+ * Текст подсказки для восстановления данных
  */
 const restoreTooltip = [
-  "从最新备份恢复用户数据（覆盖现有数据）",
-  "自动选择最新时间戳的备份进行还原",
-  "注意：此操作会覆盖当前的配置和证书",
+  "Восстановить данные из последней резервной копии (перезаписывает текущие)",
+  "Автоматически выбирается самая свежая копия",
+  "Внимание: операция перезапишет текущую конфигурацию и сертификаты",
 ].join("\n");
 
 /**
- * 清除数据的工具提示内容
+ * Текст подсказки для очистки данных
  */
 const clearTooltip = [
-  "删除所有用户数据（保留历史备份）",
-  "清除内容：配置文件、SSL证书、hosts备份",
-  "保留内容：backups文件夹及其历史备份",
+  "Удалить все пользовательские данные (исторические копии сохраняются)",
+  "Удаляется: конфигурация, SSL-сертификаты, резервная копия hosts",
+  "Сохраняется: папка backups и её содержимое",
 ].join("\n");
 
 const proxyModeTooltip = [
-  "官方 Base URL：走官方接口，只启动本地 loopback",
-  "反代：沿用旧的 hosts + HTTPS 路线",
-  "Trae native：MTGA 拉起 Trae，并挂载 native rewriter",
-  "后续一键启动会按所选模式切分启动流程",
+  "Официальный Base URL: официальный интерфейс, запускается только локальный loopback",
+  "Обратный прокси: классическая схема hosts + HTTPS",
+  "Trae native: MTGA запускает Trae и подключает native rewriter",
+  "Кнопка «Запустить всё» работает согласно выбранному режиму",
 ].join("\n");
 
 const traePathTooltip = [
-  "用于选择 Trae 可执行文件路径",
-  "建议直接通过右侧“浏览”选择，避免手填路径出错",
-  "启用该模式后，一键启动会自动拉起 Trae，并挂载 native SSE URL rewriter",
+  "Выбор пути к исполняемому файлу Trae",
+  "Рекомендуется использовать кнопку «Обзор», чтобы не ошибиться в пути",
+  "При этом режиме «Запустить всё» автоматически запустит Trae с native SSE URL rewriter",
 ].join("\n");
 
 const officialBaseUrlTooltip = [
-  "该模式只启动本地 loopback，不会修改 hosts，也不会安装证书",
-  `优先使用：${PREFERRED_TRAE_OFFICIAL_BASE_URL}`,
-  "若 18083 被占用，会自动顺延到下一个可用端口",
-  "启动后会在此处自动显示实际地址",
+  "Этот режим запускает только локальный loopback, не меняет hosts и не устанавливает сертификаты",
+  `Предпочтительный адрес: ${PREFERRED_TRAE_OFFICIAL_BASE_URL}`,
+  "Если порт 18083 занят, будет выбран следующий свободный порт",
+  "После запуска здесь автоматически отобразится фактический адрес",
 ].join("\n");
 
 const officialRuntimeLoopbackPort = computed(() => {
@@ -200,12 +200,12 @@ const officialBaseUrlDisplay = computed(() => {
 const officialBaseUrlStatusText = computed(() => {
   const runtimePort = officialRuntimeLoopbackPort.value;
   if (runtimePort === null) {
-    return "未启动时显示首选地址；启动后会自动更新为实际端口";
+    return "Пока не запущено — показан предпочтительный адрес; после запуска обновится на фактический порт";
   }
   if (runtimePort === 18083) {
-    return "当前运行中的实际地址";
+    return "Фактический адрес работающего сервиса";
   }
-  return `当前运行中的实际地址，端口已顺延到 ${runtimePort}`;
+  return `Фактический адрес работающего сервиса, порт изменён на ${runtimePort}`;
 });
 
 onMounted(() => {
@@ -215,28 +215,28 @@ onMounted(() => {
 });
 
 /**
- * 处理打开数据目录
+ * Открытие каталога данных
  */
 const handleOpen = () => {
   store.runUserDataOpenDir();
 };
 
 /**
- * 处理备份数据
+ * Резервное копирование данных
  */
 const handleBackup = () => {
   store.runUserDataBackup();
 };
 
 /**
- * 处理还原数据
+ * Восстановление данных
  */
 const handleRestore = () => {
   store.runUserDataRestoreLatest();
 };
 
 /**
- * 处理清除数据
+ * Очистка данных
  */
 const handleClear = () => {
   clearConfirmOpen.value = true;
@@ -279,22 +279,22 @@ const saveProxySettings = async (options?: { stopRunningProxy?: boolean }) => {
   try {
     const ok = await store.saveConfig();
     if (!ok) {
-      store.appendLog("保存代理模式设置失败");
+      store.appendLog("Не удалось сохранить настройки режима прокси");
       return;
     }
 
     if (!stopRunningProxy) {
-      store.appendLog("代理模式设置已保存");
+      store.appendLog("Настройки режима прокси сохранены");
       return;
     }
 
-    store.appendLog("代理模式设置已保存，正在停止当前代理...");
+    store.appendLog("Настройки режима прокси сохранены, остановка текущего прокси...");
     const stopped = await store.runProxyStop();
     if (stopped) {
-      store.appendLog("当前代理已停止；请按新路线重新启动");
+      store.appendLog("Текущий прокси остановлен; запустите заново с новым режимом");
       return;
     }
-    store.appendLog("代理模式设置已保存，但停止当前代理失败");
+    store.appendLog("Настройки режима прокси сохранены, но остановить текущий прокси не удалось");
   } finally {
     proxySettingsSaving.value = false;
   }
@@ -302,7 +302,9 @@ const saveProxySettings = async (options?: { stopRunningProxy?: boolean }) => {
 
 const handleProxySettingsSave = async () => {
   if (proxyMode.value === "trae_native" && !traePath.value.trim()) {
-    store.appendLog("错误: 启用 Trae native 路线前，请先选择 Trae 路径");
+    store.appendLog(
+      "Ошибка: Путь к Trae не выбран — укажите его перед включением режима Trae native",
+    );
     return;
   }
 
@@ -337,10 +339,12 @@ const handleThemeSave = (value: ThemeConfig) => {
   applyThemeConfig(themeConfig);
   const saveResult = saveThemeToStorage(themeConfig);
   if (saveResult.ok) {
-    store.appendLog("主题配置已保存");
+    store.appendLog("Конфигурация темы сохранена");
     return;
   }
-  store.appendLog(`主题配置已应用，但本地保存失败：${saveResult.error}`);
+  store.appendLog(
+    `Конфигурация темы применена, но локальное сохранение не удалось: ${saveResult.error}`,
+  );
 };
 
 const handleMinimizeToTrayOnCloseChange = async () => {
@@ -353,10 +357,10 @@ const handleMinimizeToTrayOnCloseChange = async () => {
     const ok = await store.saveAppSettings();
     if (!ok) {
       minimizeToTrayOnClose.value = previousValue;
-      store.appendLog("保存关闭行为设置失败");
+      store.appendLog("Не удалось сохранить настройку поведения при закрытии");
       return;
     }
-    store.appendLog("关闭行为设置已保存");
+    store.appendLog("Настройка поведения при закрытии сохранена");
   } finally {
     appSettingsSaving.value = false;
   }
@@ -366,17 +370,17 @@ const handleMinimizeToTrayOnCloseChange = async () => {
 <template>
   <div class="flex items-center justify-between gap-3">
     <div>
-      <h2 class="mtga-card-title">应用设置</h2>
-      <p class="mtga-card-subtitle">管理数据与系统配置</p>
+      <h2 class="mtga-card-title">Настройки приложения</h2>
+      <p class="mtga-card-subtitle">Управление данными и системной конфигурацией</p>
     </div>
-    <span class="mtga-chip">系统</span>
+    <span class="mtga-chip">Система</span>
   </div>
 
   <div class="mt-4 space-y-4">
     <div class="mtga-soft-panel space-y-3">
       <div>
-        <div class="text-sm font-semibold text-slate-900">用户数据</div>
-        <div class="text-xs text-slate-500">备份与恢复历史数据</div>
+        <div class="text-sm font-semibold text-slate-900">Пользовательские данные</div>
+        <div class="text-xs text-slate-500">Резервное копирование и восстановление данных</div>
       </div>
       <div class="space-y-2">
         <button
@@ -384,7 +388,7 @@ const handleMinimizeToTrayOnCloseChange = async () => {
           :data-tip="openDirTooltip"
           @click="handleOpen"
         >
-          打开目录
+          Открыть каталог
         </button>
         <button
           class="mtga-btn-primary tooltip mtga-tooltip"
@@ -392,7 +396,7 @@ const handleMinimizeToTrayOnCloseChange = async () => {
           style="--mtga-tooltip-max: 360px"
           @click="handleBackup"
         >
-          备份数据
+          Резервная копия
         </button>
         <button
           class="mtga-btn-outline tooltip mtga-tooltip"
@@ -400,7 +404,7 @@ const handleMinimizeToTrayOnCloseChange = async () => {
           style="--mtga-tooltip-max: 360px"
           @click="handleRestore"
         >
-          还原数据
+          Восстановить данные
         </button>
         <button
           class="mtga-btn-error tooltip mtga-tooltip"
@@ -408,7 +412,7 @@ const handleMinimizeToTrayOnCloseChange = async () => {
           style="--mtga-tooltip-max: 360px"
           @click="handleClear"
         >
-          清除数据
+          Очистить данные
         </button>
       </div>
     </div>
@@ -416,15 +420,15 @@ const handleMinimizeToTrayOnCloseChange = async () => {
     <div class="mtga-soft-panel space-y-3">
       <div class="flex items-start justify-between gap-3">
         <div>
-          <div class="text-sm font-semibold text-slate-900">启动路线</div>
-          <div class="text-xs text-slate-500">决定使用哪条接入链路</div>
+          <div class="text-sm font-semibold text-slate-900">Режим запуска</div>
+          <div class="text-xs text-slate-500">Определяет способ подключения</div>
         </div>
         <span
           class="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold"
           :class="runtimeStatusBadgeClass"
         >
           <span class="h-1.5 w-1.5 rounded-full" :class="runtimeStatusDotClass" />
-          实时运行态：{{ runtimeStatusLabel }}
+          Состояние: {{ runtimeStatusLabel }}
         </span>
       </div>
 
@@ -443,9 +447,9 @@ const handleMinimizeToTrayOnCloseChange = async () => {
           "
           @click="setProxyMode('trae_official_base_url')"
         >
-          <span class="block text-sm font-semibold text-slate-800">官方 Base URL</span>
+          <span class="block text-sm font-semibold text-slate-800">Официальный Base URL</span>
           <span class="mt-0.5 block text-[11px] leading-4 text-slate-500"
-            >仅 loopback，无 patch</span
+            >только loopback, без patch</span
           >
         </button>
         <button
@@ -458,8 +462,10 @@ const handleMinimizeToTrayOnCloseChange = async () => {
           "
           @click="setProxyMode('reverse_hosts')"
         >
-          <span class="block text-sm font-semibold text-slate-800">反代</span>
-          <span class="mt-0.5 block text-[11px] leading-4 text-slate-500">hosts + HTTPS 代理</span>
+          <span class="block text-sm font-semibold text-slate-800">Обратный прокси</span>
+          <span class="mt-0.5 block text-[11px] leading-4 text-slate-500"
+            >hosts + HTTPS-прокси</span
+          >
         </button>
         <button
           type="button"
@@ -472,7 +478,9 @@ const handleMinimizeToTrayOnCloseChange = async () => {
           @click="setProxyMode('trae_native')"
         >
           <span class="block text-sm font-semibold text-slate-800">Trae native</span>
-          <span class="mt-0.5 block text-[11px] leading-4 text-slate-500">patch trae 源码</span>
+          <span class="mt-0.5 block text-[11px] leading-4 text-slate-500"
+            >patch исходников Trae</span
+          >
         </button>
       </div>
 
@@ -484,8 +492,10 @@ const handleMinimizeToTrayOnCloseChange = async () => {
       >
         <div class="mb-2 flex items-center justify-between gap-3">
           <div>
-            <div class="text-xs font-semibold text-slate-700">Trae 可执行文件</div>
-            <div class="text-[11px] text-slate-400">用于由 MTGA 拉起干净 Trae 实例</div>
+            <div class="text-xs font-semibold text-slate-700">Исполняемый файл Trae</div>
+            <div class="text-[11px] text-slate-400">
+              Используется для запуска чистого экземпляра Trae из MTGA
+            </div>
           </div>
         </div>
         <div class="flex items-start gap-2">
@@ -493,7 +503,9 @@ const handleMinimizeToTrayOnCloseChange = async () => {
             v-model="traePath"
             class="min-w-0 flex-1"
             :placeholder="traePathPlaceholder"
-            :error="traePathMissing ? '启用 Trae native 路线前需要先选择 Trae 路径。' : ''"
+            :error="
+              traePathMissing ? 'Перед включением режима Trae native выберите путь к Trae.' : ''
+            "
           />
           <button
             type="button"
@@ -506,7 +518,7 @@ const handleMinimizeToTrayOnCloseChange = async () => {
               v-if="traePathBrowsing"
               class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-amber-500"
             />
-            <span>{{ traePathBrowsing ? "选择中" : "浏览" }}</span>
+            <span>{{ traePathBrowsing ? "Выбор..." : "Обзор" }}</span>
           </button>
         </div>
       </div>
@@ -519,9 +531,11 @@ const handleMinimizeToTrayOnCloseChange = async () => {
       >
         <div class="mb-2 flex items-center justify-between gap-3">
           <div>
-            <div class="text-xs font-semibold text-emerald-800">Trae 自定义模型 Base URL</div>
+            <div class="text-xs font-semibold text-emerald-800">
+              Base URL пользовательской модели Trae
+            </div>
             <div class="text-[11px] text-emerald-700/80">
-              该路线只启动本地 loopback，Trae 需要手动配置 base_url
+              Этот режим запускает только локальный loopback; base_url в Trae нужно указать вручную
             </div>
           </div>
         </div>
@@ -542,15 +556,15 @@ const handleMinimizeToTrayOnCloseChange = async () => {
           :disabled="proxySettingsSaving"
           @click="handleProxySettingsSave"
         >
-          保存路线设置
+          Сохранить режим запуска
         </button>
       </div>
     </div>
 
     <button class="mtga-clickable-row" @click="openThemeDialog">
       <span class="flex flex-col items-start gap-0.5 text-left">
-        <span class="font-semibold text-slate-800">主题配置</span>
-        <span class="text-xs font-normal text-slate-500">自定义颜色、字体与背景</span>
+        <span class="font-semibold text-slate-800">Настройка темы</span>
+        <span class="text-xs font-normal text-slate-500">Настройка цветов, шрифтов и фона</span>
       </span>
     </button>
 
@@ -558,8 +572,10 @@ const handleMinimizeToTrayOnCloseChange = async () => {
       class="mtga-btn-outline flex h-auto cursor-pointer items-center justify-between gap-3 px-4 py-2 text-sm transition-all active:scale-[0.98]"
     >
       <span class="flex min-w-0 flex-col gap-0.5 text-left">
-        <span class="font-semibold text-slate-800">关闭时最小化到托盘</span>
-        <span class="text-xs font-normal text-slate-500">关闭主窗口后继续在后台运行</span>
+        <span class="font-semibold text-slate-800">Сворачивать в трей при закрытии</span>
+        <span class="text-xs font-normal text-slate-500"
+          >После закрытия главного окна продолжать работу в фоне</span
+        >
       </span>
       <input
         v-model="minimizeToTrayOnClose"
@@ -575,7 +591,7 @@ const handleMinimizeToTrayOnCloseChange = async () => {
     :open="clearConfirmOpen"
     :title="clearConfirmTitle"
     :message="clearConfirmMessage"
-    confirm-text="确认清除"
+    confirm-text="Очистить"
     type="error"
     @cancel="cancelClear"
     @confirm="confirmClear"
@@ -583,15 +599,15 @@ const handleMinimizeToTrayOnCloseChange = async () => {
 
   <ConfirmDialog
     :open="proxyModeSwitchConfirmOpen"
-    title="确认切换路线"
-    message="当前代理正在运行。保存新路线后，MTGA 会立即停止当前代理；下次启动将按新路线生效。"
-    confirm-text="保存并停止代理"
+    title="Подтвердите смену режима"
+    message="Прокси сейчас работает. После сохранения нового режима MTGA немедленно остановит текущий прокси; следующий запуск будет в новом режиме."
+    confirm-text="Сохранить и остановить прокси"
     @cancel="cancelProxyModeSwitch"
     @confirm="confirmProxyModeSwitch"
   >
     <div class="space-y-2 text-sm text-slate-600">
-      <p>当前运行：{{ formatProxyModeLabel(currentProxyModeForConfirm) }}</p>
-      <p>将切换为：{{ formatProxyModeLabel(proxyMode) }}</p>
+      <p>Сейчас работает: {{ formatProxyModeLabel(currentProxyModeForConfirm) }}</p>
+      <p>Будет переключено на: {{ formatProxyModeLabel(proxyMode) }}</p>
     </div>
   </ConfirmDialog>
 

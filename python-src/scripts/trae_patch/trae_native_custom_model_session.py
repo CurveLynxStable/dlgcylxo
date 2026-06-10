@@ -33,7 +33,7 @@ DEFAULT_TARGET_URL_SUBSTRING = "workbench/workbench.html"
 DEFAULT_TARGET_TITLE_SUBSTRING = ""
 DEFAULT_CDP_MODE = "current"
 DEFAULT_CDP_AGENT_NAME = "current"
-DEFAULT_TEST_MESSAGE = "请简短回复：mtga-native-smoke"
+DEFAULT_TEST_MESSAGE = "Ответь кратко: mtga-native-smoke"
 ARTIFACT_DIR = Path("python-src/artifacts")
 DEFAULT_LOOPBACK_LOG = ARTIFACT_DIR / "trae_native_custom_model_session.loopback.log"
 DEFAULT_REWRITER_LOG = ARTIFACT_DIR / "trae_native_custom_model_session.rewriter.log"
@@ -112,8 +112,8 @@ def _start_loopback(args: argparse.Namespace) -> tuple[subprocess.Popen[bytes] |
             process.wait(timeout=3)
         log_fp.close()
         raise RuntimeError(
-            f"loopback 未在 {args.loopback_wait_seconds}s 内监听 "
-            f"{args.loopback_host}:{args.loopback_port}；详见 {args.loopback_log}"
+            f"loopback не начал слушать {args.loopback_wait_seconds}s на "
+            f"{args.loopback_host}:{args.loopback_port}; подробности: {args.loopback_log}"
         )
     return process, log_fp
 
@@ -139,10 +139,10 @@ def _start_trae(
 
     trae_executable = backend.resolve_trae_executable(args.trae_path)
     if not trae_executable.is_file():
-        raise RuntimeError(f"Trae 路径无效: {trae_executable}")
+        raise RuntimeError(f"Некорректный путь к Trae: {trae_executable}")
     if _is_port_open(args.cdp_host, args.cdp_port):
         raise RuntimeError(
-            f"CDP 端口已被占用: {args.cdp_host}:{args.cdp_port}；请先关闭已有 Trae"
+            f"Порт CDP уже занят: {args.cdp_host}:{args.cdp_port}; сначала закройте запущенный Trae"
         )
 
     existing_processes = backend.list_existing_trae_processes()
@@ -152,8 +152,8 @@ def _start_trae(
         )
         suffix = "..." if len(existing_processes) > TRAE_PID_LOG_LIMIT else ""
         raise RuntimeError(
-            f"检测到 Trae 已在运行 pid={preview}{suffix}；"
-            "请先完全关闭 Trae，再跑自动化会话"
+            f"Обнаружен уже запущенный Trae pid={preview}{suffix}; "
+            "; сначала полностью закройте Trae, затем запускайте автоматизированную сессию"
         )
 
     command, cwd = backend.build_launch_command(trae_executable, cdp_port=args.cdp_port)
@@ -165,7 +165,7 @@ def _start_trae(
     )
     if not _wait_port(args.cdp_host, args.cdp_port, args.cdp_wait_seconds):
         raise RuntimeError(
-            f"Trae 未在 {args.cdp_wait_seconds}s 内开放 CDP "
+            f"Trae не открыл CDP за {args.cdp_wait_seconds}s "
             f"{args.cdp_host}:{args.cdp_port}"
     )
     return process
@@ -269,16 +269,16 @@ def _wait_rewriter_armed(
             summary_status = summary.get("status") if isinstance(summary, dict) else None
             summary_error = summary.get("error") if isinstance(summary, dict) else None
             raise RuntimeError(
-                f"native rewriter 提前退出 returncode={process.returncode}；"
+                f"native rewriter завершился преждевременно returncode={process.returncode}; "
                 f"summary_status={summary_status or '<empty>'} "
                 f"summary_error={summary_error or '<empty>'}"
-                f"{_format_attach_diagnostics(summary)}；"
-                f"详见 {args.rewriter_log}"
+                f"{_format_attach_diagnostics(summary)}; "
+                f"подробности: {args.rewriter_log}"
             )
         time.sleep(0.2)
     raise RuntimeError(
-        f"native rewriter 未在 {args.rewriter_wait_seconds}s 内 armed；"
-        f"详见 {args.rewriter_log}"
+        f"native rewriter не перешёл в armed за {args.rewriter_wait_seconds}s; "
+        f"подробности: {args.rewriter_log}"
     )
 
 
@@ -393,20 +393,25 @@ def _run_cdp_send_chat(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError(message)
     payload = json.loads(completed.stdout or "{}")
     if not isinstance(payload, dict):
-        raise RuntimeError("CDP send 返回格式无效")
+        raise RuntimeError("CDP send вернул некорректный формат")
     return payload
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="启动 MTGA local loopback，并在 native sse.open URL copy 点重写到该 loopback。"
+        description=(
+            "Запускает локальный loopback MTGA и переписывает URL в точке native sse.open URL copy "
+            "на этот loopback."
+        )
     )
     parser.add_argument("--loopback-host", default=DEFAULT_HOST)
     parser.add_argument("--loopback-port", type=int, default=DEFAULT_LOOPBACK_PORT)
     parser.add_argument("--cdp-host", default=DEFAULT_HOST)
     parser.add_argument("--cdp-port", type=int, default=DEFAULT_CDP_PORT)
-    parser.add_argument("--trae-path", help="可选：自动拉起 Trae，支持 .app/.exe/可执行文件")
-    parser.add_argument("--no-start-loopback", action="store_true", help="只使用已有 loopback")
+    parser.add_argument("--trae-path", help="Опционально: автоматически запустить Trae, "
+        "поддерживаются .app/.exe/исполняемые файлы")
+    parser.add_argument("--no-start-loopback", action="store_true", help="Использовать только уже "
+        "запущенный loopback")
     parser.add_argument(
         "--loopback-wait-seconds",
         type=float,
@@ -415,10 +420,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--current-config-index", type=int)
     parser.add_argument("--debug-mode", action="store_true")
     parser.add_argument("--disable-ssl-strict-mode", action="store_true")
-    parser.add_argument("--pid", type=int, help="可选：指定 ai_agent.dll 所在 Trae PID")
+    parser.add_argument("--pid", type=int, help="Опционально: PID процесса Trae с ai_agent.dll")
     parser.add_argument(
         "--breakpoint-rva",
-        help="可选：覆盖 native URL copy call RVA；默认由 rewriter 自动定位",
+        help=(
+            "Опционально: переопределить RVA native URL copy call; по умолчанию rewriter "
+            "определяет автоматически"
+        ),
     )
     parser.add_argument("--duration-seconds", type=int, default=DEFAULT_DURATION_SECONDS)
     parser.add_argument(
@@ -430,47 +438,51 @@ def build_parser() -> argparse.ArgumentParser:
         "--cdp-wait-seconds",
         type=float,
         default=DEFAULT_CDP_WAIT_SECONDS,
-        help="等待 Trae CDP 端口可用的秒数",
+        help="Сколько секунд ждать доступности порта CDP Trae",
     )
     parser.add_argument(
         "--patch-wait-seconds",
         type=float,
         default=DEFAULT_PATCH_WAIT_SECONDS,
-        help="CDP 发消息后等待 rewriter 命中/改写的秒数",
+        help=(
+            "Сколько секунд после отправки сообщения через CDP ждать срабатывания/перезаписи "
+            "rewriter"
+        ),
     )
     parser.add_argument("--max-patches", type=int, default=0)
     parser.add_argument(
         "--send-chat",
         action="store_true",
-        help="armed 后通过 CDP 自动发一条测试消息",
+        help="После armed автоматически отправить тестовое сообщение через CDP",
     )
-    parser.add_argument("--message", default=DEFAULT_TEST_MESSAGE, help="CDP 自动发送的测试消息")
+    parser.add_argument("--message", default=DEFAULT_TEST_MESSAGE, help="Тестовое сообщение, "
+        "отправляемое через CDP")
     parser.add_argument(
         "--target-url-substring",
         default=DEFAULT_TARGET_URL_SUBSTRING,
-        help="CDP 目标 page URL 子串",
+        help="Подстрока URL целевой page CDP",
     )
     parser.add_argument(
         "--target-title-substring",
         default=DEFAULT_TARGET_TITLE_SUBSTRING,
-        help="CDP 目标 page 标题子串",
+        help="Подстрока заголовка целевой page CDP",
     )
     parser.add_argument(
         "--wait-after-send-seconds",
         type=float,
         default=DEFAULT_WAIT_AFTER_SEND_SECONDS,
-        help="CDP 发消息后额外等待秒数",
+        help="Дополнительное ожидание после отправки сообщения через CDP, сек",
     )
     parser.add_argument(
         "--cdp-mode",
         choices=("ide", "solo", "current"),
         default=DEFAULT_CDP_MODE,
-        help="CDP 发消息前优先切换的模式；主线默认保持 current",
+        help="Режим, в который переключиться перед отправкой через CDP; по умолчанию current",
     )
     parser.add_argument(
         "--cdp-agent-name",
         default=DEFAULT_CDP_AGENT_NAME,
-        help="CDP 发消息前要求的已选 agent；传 current 跳过校验",
+        help="Требуемый выбранный agent перед отправкой через CDP; current — пропустить проверку",
     )
     parser.add_argument("--loopback-log", type=Path, default=DEFAULT_LOOPBACK_LOG)
     parser.add_argument("--rewriter-log", type=Path, default=DEFAULT_REWRITER_LOG)
@@ -480,7 +492,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--module-path",
         type=Path,
-        help="可选：覆盖 native rewriter 目标模块路径；macOS 下默认根据 --trae-path 推导",
+        help=(
+            "Опционально: переопределить путь целевого модуля native rewriter; на macOS по "
+            "умолчанию выводится из --trae-path"
+        ),
     )
     return parser
 
@@ -518,7 +533,7 @@ def main() -> int:
         if args.send_chat:
             if not _wait_port(args.cdp_host, args.cdp_port, args.cdp_wait_seconds):
                 raise RuntimeError(
-                    f"CDP 未在 {args.cdp_wait_seconds}s 内就绪: {args.cdp_host}:{args.cdp_port}"
+                    f"CDP не готов за {args.cdp_wait_seconds}s: {args.cdp_host}:{args.cdp_port}"
                 )
             ready_payload["cdp_send"] = _run_cdp_send_chat(args)
             ready_payload["cdp_mode"] = args.cdp_mode

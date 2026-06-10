@@ -98,20 +98,21 @@ class TraceSummary:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="精简输出最新 Trae ai-agent 路由结论")
+    parser = argparse.ArgumentParser(description="Краткий вывод последнего вердикта маршрутизации "
+        "Trae ai-agent")
     parser.add_argument(
         "--log",
         type=Path,
-        help="指定 ai-agent stdout 日志；默认自动选择最新文件",
+        help="Указать лог stdout ai-agent; по умолчанию автоматически выбирается самый новый файл",
     )
     parser.add_argument(
         "--trace-id",
-        help="指定 trace_id；默认选择日志里最后一个 custom model trace",
+        help="Указать trace_id; по умолчанию берётся последний custom model trace в логе",
     )
     parser.add_argument(
         "--json",
         action="store_true",
-        help="输出 JSON",
+        help="Вывод в JSON",
     )
     return parser.parse_args()
 
@@ -129,7 +130,7 @@ def find_latest_log(explicit_log: Path | None) -> Path:
         reverse=True,
     )
     if not candidates:
-        raise FileNotFoundError("未找到 ai-agent stdout 日志")
+        raise FileNotFoundError("Не найден лог stdout ai-agent")
     return candidates[0]
 
 
@@ -301,11 +302,11 @@ def main() -> int:
     elif custom_model_trace_ids:
         trace_id = custom_model_trace_ids[-1]
     else:
-        raise RuntimeError("日志里未找到 custom model trace_id")
+        raise RuntimeError("В логе не найден custom model trace_id")
 
     summary = summary_map.get(trace_id)
     if summary is None:
-        raise RuntimeError(f"未在日志中找到 trace_id={trace_id}")
+        raise RuntimeError(f"В логе не найден trace_id={trace_id}")
 
     if args.json:
         payload = {

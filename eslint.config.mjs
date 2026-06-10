@@ -30,7 +30,7 @@ export default withNuxt(
       "@typescript-eslint/no-unnecessary-type-assertion": "warn",
     },
   },
-  // 让 Prettier 作为 ESLint 诊断来源（Problems 面板会实时显示具体差异信息）
+  // Prettier как источник диагностик ESLint (панель Problems показывает конкретные расхождения в реальном времени)
   {
     files: ["**/*.{js,mjs,cjs,ts,tsx,vue}"],
     plugins: {
@@ -40,7 +40,7 @@ export default withNuxt(
       "prettier/prettier": "warn",
     },
   },
-  // 添加 YAML 支持
+  // Поддержка YAML
   {
     files: ["**/*.{yaml,yml}"],
     languageOptions: {
@@ -50,49 +50,49 @@ export default withNuxt(
       yml: eslintPluginYml.default || eslintPluginYml,
     },
     rules: {
-      // 对应 document-start: present: false
+      // Соответствует document-start: present: false
       "yml/file-header": "off",
 
-      // 对应 indentation: spaces: 2, indent-sequences: true
+      // Соответствует indentation: spaces: 2, indent-sequences: true
       "yml/indent": ["error", 2, { indentBlockSequences: true }],
 
-      // YAML 插件本身没有 line-length，使用 ESLint 通用规则或关闭
+      // У YAML-плагина нет line-length; используем общее правило ESLint или отключаем
       "max-len": ["warn", { code: 175, ignoreUrls: true }],
 
-      // 对应 trailing-spaces: level: warning
+      // Соответствует trailing-spaces: level: warning
       "no-trailing-spaces": "warn",
 
-      // 对应 comments: min-spaces-from-content: 1
+      // Соответствует comments: min-spaces-from-content: 1
       "yml/spaced-comment": ["error", "always"],
     },
   },
-  // 添加 Better Tailwind CSS 支持
+  // Поддержка Better Tailwind CSS
   {
     plugins: {
       "better-tailwindcss": betterTailwind,
     },
     rules: {
-      // 使用 warn 级别而不是 error，避免阻塞开发
+      // Уровень warn вместо error, чтобы не блокировать разработку
       ...Object.fromEntries(
         Object.entries(betterTailwind.configs.recommended.rules).map(([key, value]) => [
           key,
           value === "error" ? "warn" : value,
         ]),
       ),
-      "better-tailwindcss/no-unregistered-classes": "off", // daisyUI 类名经常被识别为未注册，暂时关闭
-      "better-tailwindcss/enforce-consistent-class-order": "off", // 排序规则太严格，暂时关闭
-      "better-tailwindcss/enforce-consistent-line-wrapping": "off", // 换行规则太严格，暂时关闭
-      "vue/multi-word-component-names": "off", // 允许单单词组件名
-      "vue/html-self-closing": "off", // 允许在 HTML void elements 上使用自闭合
-      "@typescript-eslint/unified-signatures": "off", // 允许分开定义重载（在 defineEmits 中常见）
+      "better-tailwindcss/no-unregistered-classes": "off", // Классы daisyUI часто считаются незарегистрированными — временно отключено
+      "better-tailwindcss/enforce-consistent-class-order": "off", // Правило сортировки слишком строгое — временно отключено
+      "better-tailwindcss/enforce-consistent-line-wrapping": "off", // Правило переносов слишком строгое — временно отключено
+      "vue/multi-word-component-names": "off", // Разрешить однословные имена компонентов
+      "vue/html-self-closing": "off", // Разрешить самозакрывающиеся теги для HTML void elements
+      "@typescript-eslint/unified-signatures": "off", // Разрешить раздельное определение перегрузок (часто в defineEmits)
     },
     settings: {
       "better-tailwindcss": {
-        // Tailwind v4 的 CSS 入口文件
+        // CSS-входной файл Tailwind v4
         entryPoint: "app/assets/css/tailwind.css",
       },
     },
   },
-  // 关闭与 Prettier 冲突的 ESLint 规则
+  // Отключить правила ESLint, конфликтующие с Prettier
   eslintConfigPrettier,
 );

@@ -331,21 +331,21 @@ def _log_model_list(
     if not model_ids:
         return
     if model_id in model_ids:
-        log_func(f"✅ 发现模型: {model_id}")
+        log_func(f"✅ Модель найдена: {model_id}")
     else:
-        log_func(f"❌ 未找到模型: {model_id}")
+        log_func(f"❌ Модель не найдена: {model_id}")
 
 
 def _log_response_error(
     response: requests.Response,
     log_func: Callable[[str], None],
 ) -> None:
-    log_func(f"❌ 模型列表获取失败: HTTP {response.status_code}")
+    log_func(f"❌ Не удалось получить список моделей: HTTP {response.status_code}")
     try:
         error_info = response.text[:200]
-        log_func(f"   错误信息: {error_info}")
+        log_func(f"   Сведения об ошибке: {error_info}")
     except Exception:
-        log_func("   (无法获取错误详情)")
+        log_func("   (не удалось получить подробности ошибки)")
 
 
 def _parse_response_json(
@@ -355,7 +355,7 @@ def _parse_response_json(
     try:
         return response.json()
     except Exception:
-        log_func("   (响应成功，但无法解析详细信息)")
+        log_func("   (ответ успешен, но не удалось разобрать подробности)")
         return None
 
 
@@ -366,15 +366,15 @@ def _parse_model_ids(
     if isinstance(payload, dict):
         payload_dict = cast(dict[str, Any], payload)
         if payload_dict.get("object"):
-            log_func(f"   对象类型: {payload_dict['object']}")
+            log_func(f"   Тип объекта: {payload_dict['object']}")
 
     model_items = _extract_model_items(payload)
     if not model_items:
-        log_func("❌ 响应中未发现模型列表")
+        log_func("❌ В ответе не обнаружен список моделей")
         return []
 
     model_ids = sorted(_collect_model_ids(model_items))
-    log_func(f"   模型数量: {len(model_ids)}")
+    log_func(f"   Количество моделей: {len(model_ids)}")
     return model_ids
 
 
@@ -431,7 +431,7 @@ def _run_generation_test_with_mlitellm(
     model_id = (config_group.get("model_id") or "").strip()
     api_url = (config_group.get("api_url") or "").rstrip("/")
     if not api_url or not model_id:
-        log_func("测活失败: API URL或模型ID为空")
+        log_func("Проверка не удалась: API URL или ID модели пусты")
         return
 
     proxy_config = _build_generation_test_proxy_config(config_group)
@@ -447,8 +447,9 @@ def _run_generation_test_with_mlitellm(
             "max_tokens": 1,
         }
         log_func(
-            "正在测活模型: "
-            f"{model_id} (provider={provider}, request_api={route.request_api}, 会消耗少量tokens)"
+            "Проверяем модель: "
+            f"{model_id} (provider={provider}, request_api={route.request_api}, расходует "
+            f"немного tokens)"
         )
 
         response_payload = adapter.create_chat_completion(
@@ -457,25 +458,25 @@ def _run_generation_test_with_mlitellm(
         )
         response_json = _coerce_payload_dict(response_payload)
         if response_json is None:
-            log_func("✅ 模型测活成功")
+            log_func("✅ Проверка модели успешна")
             return
 
-        log_func(f"✅ 模型测活成功: {model_id}")
+        log_func(f"✅ Проверка модели успешна: {model_id}")
         content = _extract_generation_preview(response_json, OPENAI_CHAT_COMPLETION_PROVIDER)
         if content:
             preview = content[:CONTENT_PREVIEW_LEN]
             suffix = "..." if len(content) > CONTENT_PREVIEW_LEN else ""
-            log_func(f"   响应内容: {preview}{suffix}")
+            log_func(f"   Содержимое ответа: {preview}{suffix}")
         usage_obj = response_json.get("usage")
         if isinstance(usage_obj, dict):
             usage = cast(dict[str, Any], usage_obj)
-            log_func(f"   消耗tokens: {usage.get('total_tokens', '未知')}")
+            log_func(f"   Израсходовано tokens: {usage.get('total_tokens', 'неизвестно')}")
     except Exception as exc:  # noqa: BLE001
         error_info = normalize_upstream_error(exc)
-        log_func(f"❌ 模型测活失败: HTTP {error_info.status_code}")
+        log_func(f"❌ Проверка модели не удалась: HTTP {error_info.status_code}")
         detail = error_info.detail_text.strip() if error_info.detail_text.strip() else None
         if isinstance(detail, str):
-            log_func(f"   错误信息: {detail[:200]}")
+            log_func(f"   Сведения об ошибке: {detail[:200]}")
     finally:
         adapter.close()
 
@@ -489,20 +490,20 @@ def _try_fetch_model_payload(
 ) -> tuple[Any | None, bool]:
     test_url = f"{api_url}{strategy.path}"
     suffix = f": {model_id}" if model_id else ""
-    log_func(f"正在获取模型列表 ({strategy.label}): {test_url}")
+    log_func(f"Получаем список моделей ({strategy.label}): {test_url}")
 
     try:
         response = requests.get(test_url, headers=strategy.headers, timeout=10)
     except requests.exceptions.Timeout:
-        log_func(f"❌ 模型列表获取超时{suffix}")
+        log_func(f"❌ Тайм-аут получения списка моделей{suffix}")
         payload = None
         should_continue = True
     except requests.exceptions.RequestException as exc:
-        log_func(f"❌ 模型列表获取网络错误{suffix}: {str(exc)}")
+        log_func(f"❌ Сетевая ошибка получения списка моделей{suffix}: {str(exc)}")
         payload = None
         should_continue = True
     except Exception as exc:
-        log_func(f"❌ 模型列表获取意外错误{suffix}: {str(exc)}")
+        log_func(f"❌ Непредвиденная ошибка получения списка моделей{suffix}: {str(exc)}")
         payload = None
         should_continue = False
     else:
@@ -511,12 +512,12 @@ def _try_fetch_model_payload(
             payload = None
             should_continue = _should_continue_model_discovery(response.status_code)
         else:
-            log_func("✅ 模型列表获取成功")
+            log_func("✅ Список моделей успешно получен")
             payload = _parse_response_json(response, log_func)
             if payload is None:
                 should_continue = True
             elif not _extract_model_items(payload):
-                log_func("❌ 响应中未发现模型列表")
+                log_func("❌ В ответе не обнаружен список моделей")
                 payload = None
                 should_continue = True
             else:
@@ -534,15 +535,16 @@ def _fetch_model_payload(  # noqa: PLR0911
     provider = normalize_provider(config_group.get("provider"))
     api_url = config_group.get("api_url", "").rstrip("/")
     if not api_url:
-        log_func("检查失败: API URL为空")
+        log_func("Проверка не удалась: API URL пуст")
         return None, None
     if not provider_supports_model_discovery(provider):
-        log_func("当前提供商不支持通过 /models 自动发现模型，请直接手填实际模型ID")
+        log_func("Текущий провайдер не поддерживает автообнаружение моделей через /models, укажите "
+            "фактический ID модели вручную")
         return None, None
 
     strategies = _build_model_discovery_strategies(config_group)
     if not strategies:
-        log_func("当前提供商没有可用的模型发现策略")
+        log_func("У текущего провайдера нет доступных стратегий обнаружения моделей")
         return None, None
 
     cached_strategy_id = normalize_model_discovery_strategy(
@@ -551,7 +553,8 @@ def _fetch_model_payload(  # noqa: PLR0911
         else None
     )
     if cached_strategy_id:
-        log_func(f"优先使用缓存模型发现策略: {cached_strategy_id}")
+        log_func(f"Сначала используем кэшированную стратегию обнаружения моделей: "
+            f"{cached_strategy_id}")
 
     for strategy in strategies:
         payload, should_continue = _try_fetch_model_payload(
@@ -562,13 +565,14 @@ def _fetch_model_payload(  # noqa: PLR0911
         )
         if payload is not None:
             if strategy.id != cached_strategy_id:
-                log_func(f"已选定模型发现策略: {strategy.id}")
+                log_func(f"Выбрана стратегия обнаружения моделей: {strategy.id}")
             else:
-                log_func(f"缓存模型发现策略命中: {strategy.id}")
+                log_func(f"Совпадение с кэшированной стратегией обнаружения моделей: {strategy.id}")
             return payload, strategy.id
         if not should_continue:
             break
-        log_func(f"当前策略失败，尝试降级到下一种模型发现策略: {strategy.id}")
+        log_func(f"Текущая стратегия не сработала, переходим к следующей стратегии обнаружения "
+            f"моделей: {strategy.id}")
 
     return None, None
 
@@ -577,10 +581,10 @@ def _run_model_connection_test(
     config_group: dict[str, Any],
     log_func: Callable[[str], None],
 ) -> None:
-    model_id = "未知模型"
+    model_id = "неизвестная модель"
     model_id = config_group.get("model_id", "")
     if not config_group.get("api_url") or not model_id:
-        log_func("检查失败: API URL或模型ID为空")
+        log_func("Проверка не удалась: API URL или ID модели пусты")
         return
 
     payload, _strategy_id = _fetch_model_payload(
@@ -622,7 +626,7 @@ def test_model_in_list(
     log_func: Callable[[str], None] = print,
     thread_manager: ThreadRunner,
 ) -> None:
-    """测试模型是否在列表中（GET /v1/models）。"""
+    """Проверяет, есть ли модель в списке (GET /v1/models)."""
     thread_manager.run(
         "test_model_in_list",
         lambda: _run_model_connection_test(config_group, log_func),
@@ -635,12 +639,12 @@ def test_chat_completion(
     log_func: Callable[[str], None] = print,
     thread_manager: ThreadRunner,
 ) -> None:
-    """测试上游生成接口连接。"""
+    """Проверяет подключение к интерфейсу генерации апстрима."""
 
     def run_test():
         try:
             _run_generation_test_with_mlitellm(config_group, log_func)
         except Exception as exc:
-            log_func(f"❌ 模型测活意外错误: {str(exc)}")
+            log_func(f"❌ Непредвиденная ошибка проверки модели: {str(exc)}")
 
     thread_manager.run("test_chat_completion", run_test)

@@ -295,15 +295,15 @@ class MLiteLLMSlimTests(unittest.TestCase):
                     {
                         "type": "reasoning",
                         "summary": [
-                            {"type": "summary_text", "text": "先分析"},
+                            {"type": "summary_text", "text": "анализ"},
                         ],
                         "content": [
-                            {"type": "reasoning_text", "text": "再验证"},
+                            {"type": "reasoning_text", "text": "проверка"},
                         ],
                     },
                     {
                         "type": "message",
-                        "content": [{"type": "output_text", "text": "答案"}],
+                        "content": [{"type": "output_text", "text": "ответ"}],
                     },
                 ],
             },
@@ -317,8 +317,8 @@ class MLiteLLMSlimTests(unittest.TestCase):
             )
 
         message = result["choices"][0]["message"]
-        self.assertEqual(message["reasoning_content"], "先分析再验证")
-        self.assertEqual(message["content"], "答案")
+        self.assertEqual(message["reasoning_content"], "анализпроверка")
+        self.assertEqual(message["content"], "ответ")
 
     def test_openai_responses_stream_maps_reasoning_delta(self) -> None:
         response = httpx.Response(
@@ -327,8 +327,8 @@ class MLiteLLMSlimTests(unittest.TestCase):
             stream=httpx.ByteStream(
                 (
                     'data: {"type":"response.reasoning_summary_text.delta",'
-                    '"delta":"先想"}\n\n'
-                    'data: {"type":"response.output_text.delta","delta":"答案"}\n\n'
+                    '"delta":"думаю"}\n\n'
+                    'data: {"type":"response.output_text.delta","delta":"ответ"}\n\n'
                     'data: {"type":"response.completed"}\n\n'
                 ).encode()
             ),
@@ -344,8 +344,8 @@ class MLiteLLMSlimTests(unittest.TestCase):
             )
 
         chunks = list(iterator)
-        self.assertEqual(chunks[1]["choices"][0]["delta"]["reasoning_content"], "先想")
-        self.assertEqual(chunks[2]["choices"][0]["delta"]["content"], "答案")
+        self.assertEqual(chunks[1]["choices"][0]["delta"]["reasoning_content"], "думаю")
+        self.assertEqual(chunks[2]["choices"][0]["delta"]["content"], "ответ")
         self.assertEqual(chunks[3]["choices"][0]["finish_reason"], "stop")
         self.assertTrue(stream.closed)
 
@@ -526,9 +526,9 @@ class MLiteLLMSlimTests(unittest.TestCase):
             stream=httpx.ByteStream(
                 (
                     'data: {"type":"content_block_delta","delta":'
-                    '{"type":"thinking_delta","thinking":"先想"}}\n\n'
+                    '{"type":"thinking_delta","thinking":"думаю"}}\n\n'
                     'data: {"type":"content_block_delta","delta":'
-                    '{"type":"text_delta","text":"答案"}}\n\n'
+                    '{"type":"text_delta","text":"ответ"}}\n\n'
                     'data: {"type":"message_stop"}\n\n'
                 ).encode()
             ),
@@ -544,8 +544,8 @@ class MLiteLLMSlimTests(unittest.TestCase):
             )
 
         chunks = list(iterator)
-        self.assertEqual(chunks[1]["choices"][0]["delta"]["reasoning_content"], "先想")
-        self.assertEqual(chunks[2]["choices"][0]["delta"]["content"], "答案")
+        self.assertEqual(chunks[1]["choices"][0]["delta"]["reasoning_content"], "думаю")
+        self.assertEqual(chunks[2]["choices"][0]["delta"]["content"], "ответ")
         self.assertEqual(chunks[3]["choices"][0]["finish_reason"], "stop")
         self.assertTrue(stream.closed)
 
@@ -558,8 +558,8 @@ class MLiteLLMSlimTests(unittest.TestCase):
                 "model": "claude-3-7-sonnet-latest",
                 "stop_reason": "end_turn",
                 "content": [
-                    {"type": "thinking", "thinking": "先想"},
-                    {"type": "text", "text": "答案"},
+                    {"type": "thinking", "thinking": "думаю"},
+                    {"type": "text", "text": "ответ"},
                 ],
                 "usage": {"input_tokens": 1, "output_tokens": 2},
             },
@@ -573,8 +573,8 @@ class MLiteLLMSlimTests(unittest.TestCase):
             )
 
         message = result["choices"][0]["message"]
-        self.assertEqual(message["reasoning_content"], "先想")
-        self.assertEqual(message["content"], "答案")
+        self.assertEqual(message["reasoning_content"], "думаю")
+        self.assertEqual(message["content"], "ответ")
 
     def test_gemini_stream_maps_thought_parts_to_reasoning_content(self) -> None:
         response = httpx.Response(
@@ -586,8 +586,8 @@ class MLiteLLMSlimTests(unittest.TestCase):
             stream=httpx.ByteStream(
                 (
                     'data: {"candidates":[{"content":{"parts":['
-                    '{"thought":true,"text":"先想"},'
-                    '{"text":"答案"}]}}]}\n\n'
+                    '{"thought":true,"text":"думаю"},'
+                    '{"text":"ответ"}]}}]}\n\n'
                 ).encode()
             ),
         )
@@ -602,8 +602,8 @@ class MLiteLLMSlimTests(unittest.TestCase):
             )
 
         chunks = list(iterator)
-        self.assertEqual(chunks[1]["choices"][0]["delta"]["reasoning_content"], "先想")
-        self.assertEqual(chunks[2]["choices"][0]["delta"]["content"], "答案")
+        self.assertEqual(chunks[1]["choices"][0]["delta"]["reasoning_content"], "думаю")
+        self.assertEqual(chunks[2]["choices"][0]["delta"]["content"], "ответ")
         self.assertTrue(stream.closed)
 
     def test_gemini_non_stream_maps_thought_parts_to_reasoning_content(self) -> None:
@@ -618,8 +618,8 @@ class MLiteLLMSlimTests(unittest.TestCase):
                     {
                         "content": {
                             "parts": [
-                                {"thought": True, "text": "先想"},
-                                {"text": "答案"},
+                                {"thought": True, "text": "думаю"},
+                                {"text": "ответ"},
                             ]
                         }
                     }
@@ -635,8 +635,8 @@ class MLiteLLMSlimTests(unittest.TestCase):
             )
 
         message = result["choices"][0]["message"]
-        self.assertEqual(message["reasoning_content"], "先想")
-        self.assertEqual(message["content"], "答案")
+        self.assertEqual(message["reasoning_content"], "думаю")
+        self.assertEqual(message["content"], "ответ")
 
     def test_gemini_empty_prompt_feedback_block_reason_is_sanitized(self) -> None:
         payload = {

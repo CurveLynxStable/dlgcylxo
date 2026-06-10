@@ -56,7 +56,7 @@ SERVER_ERROR_STATUS_MIN = 500
 
 
 class ProxyApp:
-    """代理服务的领域逻辑：配置解析 + Flask 路由 + 上游转发。"""
+    """Доменная логика прокси-сервиса: разбор конфигурации + маршруты Flask + пересылка апстриму."""
 
     _TRACE_LOG_HEADER_REDACTION_PATTERN = re.compile(
         r"(?im)^(authorization|proxy-authorization|x-api-key|x-goog-api-key):\s*.+$"
@@ -354,14 +354,14 @@ class ProxyApp:
                     asyncio.run(ProxyApp._consume_awaitable(close_result))
                 return
             except Exception as exc:  # noqa: BLE001
-                log(f"关闭上游流 close() 失败，尝试 aclose(): {exc}")
+                log(f"Сбой close() при закрытии потока апстрима, пробуем aclose(): {exc}")
 
         aclose_method = getattr(payload, "aclose", None)
         if callable(aclose_method):
             try:
                 asyncio.run(ProxyApp._consume_awaitable(aclose_method()))
             except Exception as exc:  # noqa: BLE001
-                log(f"关闭上游流 aclose() 失败: {exc}")
+                log(f"Сбой aclose() при закрытии потока апстрима: {exc}")
 
     @staticmethod
     async def _consume_awaitable(awaitable: Any) -> None:
@@ -372,10 +372,10 @@ class ProxyApp:
 
     @classmethod
     def _sanitize_trace_log_message(cls, message: str) -> str:
-        if message.startswith("--- 请求头 (调试模式) ---"):
-            return "调试请求头/请求体已省略，详见结构化 request_body"
-        if message.startswith("--- 完整响应体 (调试模式) ---"):
-            return "调试响应体已省略，详见结构化 response_body"
+        if message.startswith("--- Заголовки запроса (режим отладки) ---"):
+            return "Отладочные заголовки/тело запроса опущены, см. структурированный request_body"
+        if message.startswith("--- Полное тело ответа (режим отладки) ---"):
+            return "Отладочное тело ответа опущено, см. структурированный response_body"
 
         header_redacted = cls._TRACE_LOG_HEADER_REDACTION_PATTERN.sub(
             lambda match: f"{match.group(1)}: <redacted>",
@@ -517,7 +517,7 @@ class ProxyApp:
 
             changed = True
             if edited_text == "":
-                log(f"🧹 清空系统提示词并移除消息 hash={hash_value[:12]}")
+                log(f"🧹 Системный промпт очищен, сообщение удалено hash={hash_value[:12]}")
                 continue
 
             if isinstance(message, dict):
@@ -527,7 +527,7 @@ class ProxyApp:
                 next_messages.append(replaced)
             else:
                 next_messages.append(message)
-            log(f"✏️ 应用系统提示词增量 hash={hash_value[:12]}")
+            log(f"✏️ Применено инкрементное изменение системного промпта hash={hash_value[:12]}")
 
         return next_messages, changed
 
@@ -587,7 +587,7 @@ class ProxyApp:
 
             changed = True
             if edited_text == "":
-                log(f"🧹 清空系统提示词并移除输入消息 hash={hash_value[:12]}")
+                log(f"🧹 Системный промпт очищен, входное сообщение удалено hash={hash_value[:12]}")
                 continue
 
             if isinstance(item, dict):
@@ -597,7 +597,7 @@ class ProxyApp:
                 next_items.append(replaced)
             else:
                 next_items.append(item)
-            log(f"✏️ 应用系统提示词增量 hash={hash_value[:12]}")
+            log(f"✏️ Применено инкрементное изменение системного промпта hash={hash_value[:12]}")
 
         return next_items, changed
 
@@ -619,7 +619,7 @@ class ProxyApp:
                 capture_entries
             )
             for added_hash in added_hashes:
-                log(f"📝 收录系统提示词 hash={added_hash[:12]}")
+                log(f"📝 Системный промпт сохранён hash={added_hash[:12]}")
 
             if not overrides:
                 return
@@ -645,7 +645,7 @@ class ProxyApp:
             capture_entries
         )
         for added_hash in added_hashes:
-            log(f"📝 收录系统提示词 hash={added_hash[:12]}")
+            log(f"📝 Системный промпт сохранён hash={added_hash[:12]}")
 
         if not overrides:
             return
@@ -655,10 +655,12 @@ class ProxyApp:
             if edited_instructions is not None:
                 if edited_instructions == "":
                     request_data.pop("instructions", None)
-                    log(f"🧹 清空系统提示词并移除 instructions hash={instructions_hash[:12]}")
+                    log(f"🧹 Системный промпт очищен, instructions удалены "
+                        f"hash={instructions_hash[:12]}")
                 else:
                     request_data["instructions"] = edited_instructions
-                    log(f"✏️ 应用系统提示词增量 hash={instructions_hash[:12]}")
+                    log(f"✏️ Применено инкрементное изменение системного промпта "
+                        f"hash={instructions_hash[:12]}")
 
         input_items_obj = request_data.get("input")
         if not isinstance(input_items_obj, list):
@@ -682,7 +684,7 @@ class ProxyApp:
         try:
             self._apply_system_prompt_overrides(request_data=request_data, log=log)
         except Exception as prompt_exc:  # noqa: BLE001
-            log(f"⚠️ 系统提示词处理失败: {prompt_exc}")
+            log(f"⚠️ Сбой обработки системного промпта: {prompt_exc}")
 
     def _build_route(self, base_route: str, suffix: str) -> str:
         middle_route = base_route or ""
@@ -705,10 +707,10 @@ class ProxyApp:
             log_path = transport.prepare_sse_log_path()
             log_file_stack = contextlib.ExitStack()
             log_file = log_file_stack.enter_context(open(log_path, "wb"))  # noqa: SIM115
-            log(f"SSE 归一化数据将记录到: {log_path}")
+            log(f"Нормализованные данные SSE будут записаны в: {log_path}")
             return log_file_stack, log_file, log_path
         except Exception as log_exc:  # noqa: BLE001
-            log(f"SSE 日志文件创建失败: {log_exc}")
+            log(f"Не удалось создать файл лога SSE: {log_exc}")
             return None, None, None
 
     @staticmethod
@@ -725,7 +727,7 @@ class ProxyApp:
             log_file.flush()
             return log_file
         except Exception as write_exc:  # noqa: BLE001
-            log(f"SSE 日志写入失败，停止记录: {write_exc}")
+            log(f"Сбой записи лога SSE, запись остановлена: {write_exc}")
             with contextlib.suppress(Exception):
                 log_file.close()
             return None
@@ -755,14 +757,16 @@ class ProxyApp:
             routing_config_obj if isinstance(routing_config_obj, ModelRoutingConfig) else None
         )
         mapped_model_id = str(snapshot["custom_model_id"])
-        self.log_func(f"收到模型列表请求 {self._build_route(inbound_route, 'models')}")
+        self.log_func(
+            f"Получен запрос списка моделей: {self._build_route(inbound_route, 'models')}"
+        )
         if not auth:
-            self.log_func("代理鉴权未就绪")
+            self.log_func("Авторизация прокси не готова")
             return jsonify({"error": {"message": "Proxy not ready", "type": "server_error"}}), 500
 
         auth_header = request.headers.get("Authorization")
         if not auth.verify(auth_header):
-            self.log_func("模型列表请求鉴权失败")
+            self.log_func("Ошибка авторизации запроса списка моделей")
             return jsonify(
                 {"error": {"message": "Invalid authentication", "type": "authentication_error"}}
             ), 401
@@ -801,7 +805,7 @@ class ProxyApp:
             ],
         }
 
-        self.log_func(f"返回发布模型: {', '.join(model_ids)}")
+        self.log_func(f"Возвращены публикуемые модели: {', '.join(model_ids)}")
         return jsonify(model_data)
 
     def _chat_completions(  # noqa: PLR0911, PLR0912, PLR0915
@@ -882,10 +886,11 @@ class ProxyApp:
             transport_released = True
             self._release_transport_ref(transport)
 
-        log(f"收到 Chat Completions 请求 {self._build_route(inbound_route, 'chat/completions')}")
+        log(f"Получен запрос Chat Completions: "
+            f"{self._build_route(inbound_route, 'chat/completions')}")
 
         if not (auth and transport and (proxy_config or routing_config)):
-            log("代理服务未就绪")
+            log("Прокси-сервис не готов")
             finish_trace_once(status="failed", status_code=500, error="Proxy not ready")
             release_transport()
             return (
@@ -901,7 +906,7 @@ class ProxyApp:
 
         auth_header = request.headers.get("Authorization")
         if not auth.verify(auth_header):
-            log("Chat Completions 请求 MTGA 鉴权失败")
+            log("Ошибка авторизации MTGA для запроса Chat Completions")
             finish_trace_once(
                 status="failed",
                 status_code=401,
@@ -915,17 +920,17 @@ class ProxyApp:
         if debug_mode:
             headers_str = "\\n".join(f"{k}: {v}" for k, v in request.headers.items())
             log_message = (
-                f"--- 请求头 (调试模式) ---\\n{headers_str}\\n"
+                f"--- Заголовки запроса (режим отладки) ---\\n{headers_str}\\n"
                 "--------------------------------------"
             )
             try:
                 body_str = request.get_data(as_text=True)
                 log_message += (
-                    f"--- 请求体 (调试模式) ---\\n{body_str}\\n"
+                    f"--- Тело запроса (режим отладки) ---\\n{body_str}\\n"
                     "--------------------------------------"
                 )
             except Exception as body_exc:
-                error_msg = f"读取请求体数据时出错: {body_exc}\\n"
+                error_msg = f"Ошибка чтения данных тела запроса: {body_exc}\\n"
                 log(error_msg)
                 log_message += error_msg
             log(log_message)
@@ -933,7 +938,7 @@ class ProxyApp:
         request_data_obj = request.get_json(silent=True)
 
         if not isinstance(request_data_obj, dict):
-            log("解析 JSON 失败或请求不是 JSON 格式")
+            log("Не удалось разобрать JSON или запрос не в формате JSON")
             log(f"Content-Type: {request.headers.get('Content-Type')}")
             finish_trace_once(
                 status="failed",
@@ -956,14 +961,14 @@ class ProxyApp:
         raw_client_model = request_data.get("model")
         client_model = raw_client_model if isinstance(raw_client_model, str) else ""
         client_requested_stream = request_data.get("stream", False)
-        log(f"客户端请求的流模式: {client_requested_stream}")
+        log(f"Потоковый режим, запрошенный клиентом: {client_requested_stream}")
 
         resolved_route: ResolvedRoute | None = None
         target_model_id = str(snapshot["target_model_id"])
         if routing_config is not None:
             route_resolution = resolve_published_model(routing_config, raw_client_model)
             if isinstance(route_resolution, RouteResolutionError):
-                log(f"模型路由解析失败: {route_resolution.code}")
+                log(f"Ошибка разрешения маршрутизации моделей: {route_resolution.code}")
                 finish_trace_once(
                     status="failed",
                     status_code=route_resolution.status_code,
@@ -974,7 +979,7 @@ class ProxyApp:
             resolved_route = route_resolution
             target_model_id = resolved_route.primary_upstream_model
             log(
-                "模型路由命中: "
+                "Маршрутизация моделей: совпадение: "
                 f"published_model={resolved_route.published_model.name} "
                 f"target_id={resolved_route.primary_target.id} "
                 f"upstream_model={resolved_route.primary_upstream_model}"
@@ -982,20 +987,21 @@ class ProxyApp:
             request_data["model"] = target_model_id
         elif "model" in request_data:
             original_model = request_data["model"]
-            log(f"替换模型名: {original_model} -> {target_model_id}")
+            log(f"Замена имени модели: {original_model} -> {target_model_id}")
             request_data["model"] = target_model_id
         else:
-            log(f"请求中没有 model 字段，添加 model: {target_model_id}")
+            log(f"В запросе нет поля model, добавлено model: {target_model_id}")
             request_data["model"] = target_model_id
 
         if stream_mode is not None:
             stream_value = stream_mode == "true"
             if "stream" in request_data:
                 original_stream_value = request_data["stream"]
-                log(f"强制修改流模式: {original_stream_value} -> {stream_value}")
+                log(f"Принудительное изменение потокового режима: {original_stream_value} -> "
+                    f"{stream_value}")
                 request_data["stream"] = stream_value
             else:
-                log(f"请求中没有 stream 参数，设置为 {stream_value}")
+                log(f"В запросе нет параметра stream, установлено {stream_value}")
                 request_data["stream"] = stream_value
 
         update_proxy_trace(
@@ -1030,7 +1036,7 @@ class ProxyApp:
                     cooldowns=self._target_cooldowns,
                 )
                 if not attempts:
-                    log("模型路由无可用目标")
+                    log("Маршрутизация моделей: нет доступных целей")
                     finish_trace_once(
                         status="failed",
                         status_code=503,
@@ -1091,9 +1097,10 @@ class ProxyApp:
 
                 fallback_api_key = (effective_proxy_config.api_key or "").strip()
                 if fallback_api_key:
-                    log("使用目标中的 API key")
+                    log("Используется API key из цели")
                 else:
-                    log("目标未设置 API key；下游 Authorization 仅用于 MTGA 鉴权，不会透传到上游")
+                    log("У цели не задан API key; нижестоящий Authorization используется только "
+                        "для авторизации MTGA и не передаётся апстриму")
 
                 upstream_route = transport.adapter.build_route(
                     effective_proxy_config,
@@ -1110,7 +1117,7 @@ class ProxyApp:
                     },
                 )
                 log(
-                    f"MLiteLLM 路由: provider={upstream_route.provider} "
+                    f"Маршрут MLiteLLM: provider={upstream_route.provider} "
                     f"request_api={upstream_route.request_api} "
                     f"model={upstream_route.mlitellm_model} "
                     f"base_url={upstream_route.base_url}"
@@ -1119,7 +1126,7 @@ class ProxyApp:
                     upstream_route.mlitellm_base_url
                     and upstream_route.mlitellm_base_url != upstream_route.base_url
                 ):
-                    log(f"MLiteLLM 内部基路径: {upstream_route.mlitellm_base_url}")
+                    log(f"Внутренний базовый путь MLiteLLM: {upstream_route.mlitellm_base_url}")
                 if upstream_route.request_body_patch:
                     trace_event(
                         "request_body_patch",
@@ -1138,11 +1145,11 @@ class ProxyApp:
                         },
                     )
                     log(
-                        "MLiteLLM 请求体补丁: "
-                        f"{len(upstream_route.request_body_patch)} 条"
+                        "Патч тела запроса MLiteLLM: "
+                        f"правил: {len(upstream_route.request_body_patch)}"
                     )
 
-                trace_event("upstream_request", "准备转发到上游")
+                trace_event("upstream_request", "Подготовка пересылки апстриму")
                 upstream_response = transport.adapter.create_chat_completion(
                     route=upstream_route,
                     request_data=request_data,
@@ -1197,8 +1204,8 @@ class ProxyApp:
                         has_next_attempt = attempt.index < len(attempts)
                         if should_failover and has_next_attempt:
                             log(
-                                f"目标 {attempt.target.id} / {attempt.upstream_model} "
-                                "失败，尝试故障转移到下一个目标"
+                                f"Цель {attempt.target.id} / {attempt.upstream_model} "
+                                "не сработала, фейловер на следующую цель"
                             )
                             continue
                         raise
@@ -1227,7 +1234,7 @@ class ProxyApp:
 
             is_stream = bool(request_data.get("stream", False))
             update_proxy_trace(trace_id, is_stream=is_stream)
-            log(f"流模式: {is_stream}")
+            log(f"Потоковый режим: {is_stream}")
 
             response_json = transport.coerce_payload_dict(response_from_target)
             if response_json is not None:
@@ -1245,8 +1252,8 @@ class ProxyApp:
             )
 
             if should_proxy_stream:
-                log("返回流式响应")
-                trace_event("stream_start", "返回流式响应")
+                log("Возвращён потоковый ответ")
+                trace_event("stream_start", "Возвращён потоковый ответ")
 
                 log_file_stack, log_file, log_path = self._open_sse_debug_log(
                     debug_mode=debug_mode,
@@ -1313,9 +1320,14 @@ class ProxyApp:
                                     on_cancelled=mark_stream_cancelled,
                                     log=log,
                                     disconnect_message=(
-                                        f"DOWN 连接提前中断，已读取上游 evt#{event_index}"
+                                        
+                                            f"Соединение DOWN прервано досрочно, прочитано от "
+                                            f"апстрима evt#{event_index}"
+                                        
                                     ),
-                                    write_error_prefix="DOWN 写入异常，停止向下游发送",
+                                    write_error_prefix=(
+                                        "Ошибка записи DOWN, отправка нижестоящему остановлена"
+                                    ),
                                 )
                             ):
                                 downstream_open = False
@@ -1332,13 +1344,15 @@ class ProxyApp:
                                 done_bytes,
                                 on_cancelled=mark_stream_cancelled,
                                 log=log,
-                                disconnect_message="DOWN 连接提前中断，未完成 DONE 事件发送",
-                                write_error_prefix="DOWN 写入 DONE 事件异常",
+                                disconnect_message=(
+                                    "Соединение DOWN прервано досрочно, событие DONE не отправлено"
+                                ),
+                                write_error_prefix="Ошибка записи события DONE в DOWN",
                             )
                     except Exception as stream_exc:  # noqa: BLE001
                         stream_status = "failed"
                         stream_error = str(stream_exc)
-                        log(f"UP 流式响应处理失败: {stream_exc}")
+                        log(f"Сбой обработки потокового ответа UP: {stream_exc}")
                         raise
                     finally:
                         self._close_upstream_stream(response_from_target, log=log)
@@ -1355,9 +1369,9 @@ class ProxyApp:
                             with contextlib.suppress(Exception):
                                 log_file_stack.close()
                         if log_path:
-                            log(f"SSE 记录完成: {log_path}")
+                            log(f"Запись SSE завершена: {log_path}")
                         if debug_mode:
-                            log(f"UP 流结束，累计 {event_index} 个事件")
+                            log(f"Поток UP завершён, всего событий: {event_index}")
 
                 return Response(
                     generate_stream(),
@@ -1365,7 +1379,7 @@ class ProxyApp:
                 )
 
             if response_json is None:
-                log("上游响应不是 JSON 对象")
+                log("Ответ апстрима не является JSON-объектом")
                 finish_trace_once(
                     status="failed",
                     status_code=502,
@@ -1376,11 +1390,12 @@ class ProxyApp:
 
             if client_requested_stream:
                 if route.request_api == RESPONSES_REQUEST_API:
-                    log("上游为 Responses API，代理侧模拟 Chat Completions SSE")
+                    log("Апстрим использует Responses API, прокси эмулирует Chat Completions SSE")
                 elif stream_mode == "false":
-                    log("将非流式响应转换为 Chat Completions SSE 返回给客户端")
+                    log("Непотоковый ответ преобразуется в Chat Completions SSE для клиента")
                 else:
-                    log("上游未返回流式结果，代理侧模拟 Chat Completions SSE")
+                    log("Апстрим не вернул потоковый результат, прокси эмулирует Chat Completions "
+                        "SSE")
 
                 log_file_stack, log_file, log_path = self._open_sse_debug_log(
                     debug_mode=debug_mode,
@@ -1438,8 +1453,13 @@ class ProxyApp:
                                     event_bytes,
                                     on_cancelled=mark_stream_cancelled,
                                     log=log,
-                                    disconnect_message="DOWN 连接提前中断，停止模拟流式响应",
-                                    write_error_prefix="DOWN 写入异常，停止向下游发送",
+                                    disconnect_message=(
+                                        "Соединение DOWN прервано досрочно, эмуляция потокового "
+                                        "ответа остановлена"
+                                    ),
+                                    write_error_prefix=(
+                                        "Ошибка записи DOWN, отправка нижестоящему остановлена"
+                                    ),
                                 )
                             ):
                                 downstream_open = False
@@ -1457,13 +1477,15 @@ class ProxyApp:
                                 done_bytes,
                                 on_cancelled=mark_stream_cancelled,
                                 log=log,
-                                disconnect_message="DOWN 连接提前中断，未完成 DONE 事件发送",
-                                write_error_prefix="DOWN 写入 DONE 事件异常",
+                                disconnect_message=(
+                                    "Соединение DOWN прервано досрочно, событие DONE не отправлено"
+                                ),
+                                write_error_prefix="Ошибка записи события DONE в DOWN",
                             )
                     except Exception as stream_exc:  # noqa: BLE001
                         stream_status = "failed"
                         stream_error = str(stream_exc)
-                        log(f"模拟流式响应失败: {stream_exc}")
+                        log(f"Сбой эмуляции потокового ответа: {stream_exc}")
                         raise
                     finally:
                         finish_trace_once(
@@ -1478,7 +1500,7 @@ class ProxyApp:
                             with contextlib.suppress(Exception):
                                 log_file_stack.close()
                         if log_path:
-                            log(f"SSE 记录完成: {log_path}")
+                            log(f"Запись SSE завершена: {log_path}")
 
                 release_transport()
                 return Response(simulate_stream(), content_type="text/event-stream")
@@ -1486,11 +1508,11 @@ class ProxyApp:
             if debug_mode:
                 response_str = json.dumps(response_json, indent=2, ensure_ascii=False)
                 log(
-                    f"--- 完整响应体 (调试模式) ---\\n{response_str}\\n"
+                    f"--- Полное тело ответа (режим отладки) ---\\n{response_str}\\n"
                     "--------------------------------------"
                 )
             else:
-                log("返回非流式 JSON 响应")
+                log("Возвращён непотоковый JSON-ответ")
             finish_trace_once(
                 status="completed",
                 status_code=200,

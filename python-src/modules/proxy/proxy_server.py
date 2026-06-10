@@ -1,6 +1,6 @@
 """
-代理服务器模块
-将代理逻辑拆分为领域逻辑（ProxyApp）与运行时（ProxyRuntime）。
+Модуль прокси-сервера
+Разделяет логику прокси на доменную часть (ProxyApp) и рантайм (ProxyRuntime).
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ type LogFunc = Callable[[str], None]
 
 
 class ProxyServer:
-    """代理服务器类，负责装配领域逻辑与运行时。"""
+    """Класс прокси-сервера: собирает доменную логику и рантайм."""
 
     def __init__(
         self,
@@ -65,7 +65,7 @@ class ProxyServer:
 
     def apply_runtime_config(self, config: dict[str, Any]) -> OperationResult:
         if not self.runtime.is_running():
-            return OperationResult.failure("代理服务器未运行")
+            return OperationResult.failure("Прокси-сервер не запущен")
         return self.app_layer.apply_runtime_config(config)
 
     def is_running(self) -> bool:

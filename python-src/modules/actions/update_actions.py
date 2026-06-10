@@ -79,32 +79,34 @@ def run_update_check(*, deps: UpdateCheckDeps, state: UpdateCheckState) -> None:
         if not result.ok:
             if result.code == ErrorCode.NO_VERSION or status == "no_version":
                 def _warn_no_version() -> None:
-                    deps.messagebox.showwarning("检查更新", "未能解析最新版本号，请稍后再试。")
-                    deps.log("检查更新失败：未解析到版本号")
+                    deps.messagebox.showwarning("Проверка обновлений", "Не удалось разобрать номер "
+                        "последней версии, повторите попытку позже.")
+                    deps.log("Проверка обновлений не удалась: не удалось разобрать номер версии")
 
                 finalize(_warn_no_version)
                 return
 
-            error_msg = describe_result(result, "检查更新失败")
-            finalize(lambda: show_error("检查更新失败", error_msg))
+            error_msg = describe_result(result, "Проверка обновлений не удалась")
+            finalize(lambda: show_error("Проверка обновлений не удалась", error_msg))
             return
 
         if status == "up_to_date":
             def _info_up_to_date() -> None:
                 deps.messagebox.showinfo(
-                    "检查更新", f"当前版本 {deps.app_version} 已是最新。"
+                    "Проверка обновлений", f"Текущая версия {deps.app_version} — последняя."
                 )
-                deps.log("检查更新：当前已是最新版本")
+                deps.log("Проверка обновлений: установлена последняя версия")
 
             finalize(_info_up_to_date)
             return
 
         if not update_result:
-            finalize(lambda: show_error("检查更新失败", "更新结果解析失败"))
+            finalize(lambda: show_error("Проверка обновлений не удалась", "Не удалось разобрать "
+                "результат обновления"))
             return
 
-        latest_version = update_result.latest_version or "未知版本"
-        release_notes = update_result.release_notes or "该版本暂无更新说明。"
+        latest_version = update_result.latest_version or "неизвестная версия"
+        release_notes = update_result.release_notes or "Для этой версии нет описания изменений."
         release_url = update_result.release_url or ""
 
         def _show_new_version() -> None:
@@ -119,7 +121,7 @@ def run_update_check(*, deps: UpdateCheckDeps, state: UpdateCheckState) -> None:
                     log=deps.log,
                 )
             )
-            deps.log(f"发现新版本：{latest_version}")
+            deps.log(f"Доступна новая версия: {latest_version}")
 
         finalize(_show_new_version)
 

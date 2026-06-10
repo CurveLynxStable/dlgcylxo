@@ -29,14 +29,14 @@ if (import.meta.client) {
 }
 
 /**
- * 当前选中的左侧面板 ID
+ * ID текущей выбранной левой панели
  */
 const activeTab = ref("model-routing");
 const direction = ref<"down" | "up">("down");
 
 /**
- * 处理导航切换
- * @param id 目标面板 ID
+ * Переключение навигации
+ * @param id ID целевой панели
  */
 const selectTab = (id: string) => {
   const oldIndex = navigation.findIndex((item) => item.id === activeTab.value);
@@ -53,7 +53,7 @@ const clearLogs = () => {
 };
 
 /**
- * 全局 Tooltip 代理状态
+ * Состояние глобального прокси Tooltip
  */
 const tooltipProxy = reactive({
   show: false,
@@ -62,11 +62,11 @@ const tooltipProxy = reactive({
   style: {} as Record<string, string>,
 });
 
-// 检测是否支持 CSS 锚点定位 API (macOS WebKit 目前不支持)
+// Проверка поддержки CSS Anchor Positioning API (macOS WebKit пока не поддерживает)
 const supportsAnchor =
   typeof CSS !== "undefined" && CSS.supports && CSS.supports("anchor-name", "--test");
 
-// 记录当前激活了锚点的元素，用于及时清理
+// Текущий элемент с активным якорем — для своевременной очистки
 let lastAnchorTarget: HTMLElement | null = null;
 
 const emitFrontendReady = async () => {
@@ -94,14 +94,14 @@ const emitFrontendReady = async () => {
 };
 
 /**
- * 监听全局鼠标悬停，捕获 mtga-tooltip 元素
+ * Глобальный обработчик наведения мыши — ловит элементы mtga-tooltip
  */
 const handleGlobalMouseOver = (e: MouseEvent) => {
   const eventTarget = e.target;
   const target = eventTarget instanceof HTMLElement ? eventTarget.closest(".mtga-tooltip") : null;
 
   if (target instanceof HTMLElement) {
-    // 如果目标换了，先清理旧目标的锚点
+    // Если цель сменилась — сначала очистить якорь старой цели
     if (lastAnchorTarget && lastAnchorTarget !== target) {
       lastAnchorTarget.style.removeProperty("anchor-name");
     }
@@ -111,11 +111,11 @@ const handleGlobalMouseOver = (e: MouseEvent) => {
     tooltipProxy.show = true;
 
     if (supportsAnchor) {
-      // 支持锚点定位：给新目标设置锚点名称
+      // Якорное позиционирование поддерживается: задаём имя якоря новой цели
       target.style.setProperty("anchor-name", "--mtga-tooltip-anchor");
       tooltipProxy.style = {};
     } else {
-      // 不支持锚点定位 (如 macOS)：手动计算位置
+      // Якорное позиционирование не поддерживается (например, macOS): считаем позицию вручную
       const rect = target.getBoundingClientRect();
       tooltipProxy.style = {
         left: `${rect.left + rect.width / 2}px`,
@@ -127,7 +127,7 @@ const handleGlobalMouseOver = (e: MouseEvent) => {
     lastAnchorTarget = target;
   } else {
     tooltipProxy.show = false;
-    // 离开 tooltip 区域时清理锚点
+    // При выходе из зоны tooltip очищаем якорь
     if (lastAnchorTarget) {
       lastAnchorTarget.style.removeProperty("anchor-name");
       lastAnchorTarget = null;
@@ -136,14 +136,14 @@ const handleGlobalMouseOver = (e: MouseEvent) => {
 };
 
 /**
- * 导航菜单配置
+ * Конфигурация меню навигации
  */
 const navigation = [
-  { id: "model-routing", name: "模型路由", icon: ICONS.MODEL_ROUTING },
-  { id: "main-tabs", name: "主要流程", icon: ICONS.MAIN_TABS },
-  { id: "proxy-logs", name: "代理日志", icon: ICONS.PROXY_LOGS },
-  { id: "system-prompts", name: "系统提示词", icon: ICONS.SYSTEM_PROMPTS },
-  { id: "settings", name: "设置", icon: ICONS.SETTINGS },
+  { id: "model-routing", name: "Маршрутизация", icon: ICONS.MODEL_ROUTING },
+  { id: "main-tabs", name: "Основное", icon: ICONS.MAIN_TABS },
+  { id: "proxy-logs", name: "Логи прокси", icon: ICONS.PROXY_LOGS },
+  { id: "system-prompts", name: "Промпты", icon: ICONS.SYSTEM_PROMPTS },
+  { id: "settings", name: "Настройки", icon: ICONS.SETTINGS },
 ];
 
 const resolvePanelTarget = (value: string | null) => {
@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
     <AppShell>
       <template #left>
         <div class="flex items-stretch h-full min-h-0">
-          <!-- 垂直菜单栏 -->
+          <!-- Вертикальное меню -->
           <div class="w-38 border-r border-slate-200/50 flex flex-col p-3 shrink-0">
             <ul class="menu p-0 gap-1">
               <li v-for="item in navigation" :key="item.id">
@@ -218,7 +218,7 @@ onBeforeUnmount(() => {
               </li>
             </ul>
 
-            <!-- 关于与更新 -->
+            <!-- О программе и обновления -->
             <div class="mt-auto pt-4 border-t border-slate-200/50 flex flex-col gap-2 px-1">
               <div class="flex flex-col gap-0.5">
                 <div class="relative w-fit">
@@ -233,14 +233,14 @@ onBeforeUnmount(() => {
                 class="btn btn-xs btn-outline rounded-lg border-slate-200 hover:border-amber-500 hover:bg-amber-50 hover:text-amber-600 font-bold w-full"
                 @click="runCheckUpdates"
               >
-                检查更新
+                Проверить обновления
               </button>
 
               <div class="text-[10px] text-slate-400/80 text-center mt-1">powered by BiFangKNT</div>
             </div>
           </div>
 
-          <!-- 面板内容区域 -->
+          <!-- Область содержимого панелей -->
           <div class="flex-1 min-w-0 p-6 overflow-hidden flex flex-col">
             <Transition
               enter-active-class="transition duration-200 ease-out"
@@ -290,7 +290,7 @@ onBeforeUnmount(() => {
       @open-release="openUpdateRelease"
     />
 
-    <!-- 全局 Tooltip 代理，用于逃逸容器剪裁 -->
+    <!-- Глобальный прокси Tooltip для выхода за пределы обрезки контейнера -->
     <div
       v-show="tooltipProxy.show"
       class="mtga-tooltip-proxy"

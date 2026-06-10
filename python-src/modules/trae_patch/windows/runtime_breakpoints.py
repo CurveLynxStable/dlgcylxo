@@ -231,7 +231,7 @@ def enable_debug_privilege() -> dict[str, Any]:
 def iter_processes() -> list[ProcessInfo]:
     snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
     if _handle_value(snapshot) == INVALID_HANDLE_VALUE:
-        _raise_last_error("CreateToolhelp32Snapshot(process) 失败")
+        _raise_last_error("Сбой CreateToolhelp32Snapshot(process)")
 
     try:
         entry = PROCESSENTRY32W()
@@ -379,7 +379,7 @@ def parse_rva_pairs(values: list[str]) -> dict[str, int]:
     result: dict[str, int] = {}
     for value in values:
         if "=" not in value:
-            raise ValueError(f"RVA 参数必须是 name=value: {value}")
+            raise ValueError(f"Параметр RVA должен иметь вид name=value: {value}")
         name, raw_rva = value.split("=", 1)
         result[name] = int(raw_rva, 0)
     return result
@@ -387,16 +387,22 @@ def parse_rva_pairs(values: list[str]) -> dict[str, int]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="枚举加载 ai_agent.dll 的 Trae 进程，并把 RVA 转成运行时断点地址。"
+        description=(
+            "Перечисляет процессы Trae, загрузившие ai_agent.dll, и превращает RVA в адреса точек "
+            "останова во время выполнения."
+        )
     )
-    parser.add_argument("--module-path", type=Path, default=AI_AGENT_DLL, help="目标模块")
+    parser.add_argument("--module-path", type=Path, default=AI_AGENT_DLL, help="Целевой модуль")
     parser.add_argument(
         "--rva",
         action="append",
         default=[],
-        help="追加断点 RVA，格式 name=0x1234；不传则使用当前 native 锚点",
+        help=(
+            "Добавить RVA точки останова в формате name=0x1234; если не задано — используются "
+            "текущие native якоря"
+        ),
     )
-    parser.add_argument("--json", action="store_true", help="输出 JSON")
+    parser.add_argument("--json", action="store_true", help="Вывод в JSON")
     return parser
 
 

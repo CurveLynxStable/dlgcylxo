@@ -81,7 +81,7 @@ def _resolve_target_test_group(
 ) -> tuple[dict[str, Any] | None, str | None]:
     normalized_target_id = target_id.strip()
     if not normalized_target_id:
-        return None, "目标 ID 为空"
+        return None, "ID цели пуст"
     routing_config = config_store.load_model_routing_config()
     targets_obj = routing_config.get("targets")
     targets = cast(list[Any], targets_obj) if isinstance(targets_obj, list) else []
@@ -97,7 +97,7 @@ def _resolve_target_test_group(
         None,
     )
     if target is None:
-        return None, "目标不存在"
+        return None, "Цель не существует"
     return _target_to_test_group(target), None
 
 
@@ -111,8 +111,8 @@ def register_model_test_commands(commands: Commands) -> None:
             target_id=body.target_id,
         )
         if target_group is None:
-            result = OperationResult.failure(error_message or "测活目标无效")
-            return build_result_payload(result, logs, "目标测活失败")
+            result = OperationResult.failure(error_message or "Некорректная цель проверки")
+            return build_result_payload(result, logs, "Проверка цели не удалась")
 
         thread_manager = InlineThreadManager()
         if body.mode == "models":
@@ -124,9 +124,9 @@ def register_model_test_commands(commands: Commands) -> None:
                 target_model_id = (target_group.get("model_id") or "").strip()
                 if target_model_id:
                     if target_model_id in result.model_ids:
-                        log_func(f"✅ 发现模型: {target_model_id}")
+                        log_func(f"✅ Модель найдена: {target_model_id}")
                     else:
-                        log_func(f"❌ 未找到模型: {target_model_id}")
+                        log_func(f"❌ Модель не найдена: {target_model_id}")
         else:
             model_tests.test_chat_completion(
                 target_group,
@@ -134,7 +134,7 @@ def register_model_test_commands(commands: Commands) -> None:
                 thread_manager=thread_manager,
             )
         result = OperationResult.success()
-        return build_result_payload(result, logs, "目标测活完成")
+        return build_result_payload(result, logs, "Проверка цели завершена")
 
     @register_command(commands)
     async def model_routing_target_models(
@@ -150,12 +150,14 @@ def register_model_test_commands(commands: Commands) -> None:
         }
         discovery_result = model_tests.fetch_model_list_result(group, log_func=log_func)
         if not discovery_result.ok:
-            result = OperationResult.failure("模型列表获取失败", models=discovery_result.model_ids)
-            return build_result_payload(result, logs, "模型列表获取失败")
+            result = OperationResult.failure(
+                "Не удалось получить список моделей", models=discovery_result.model_ids
+            )
+            return build_result_payload(result, logs, "Не удалось получить список моделей")
         result = OperationResult.success(
             models=discovery_result.model_ids,
             strategy_id=discovery_result.strategy_id,
         )
-        return build_result_payload(result, logs, "模型列表获取完成")
+        return build_result_payload(result, logs, "Получение списка моделей завершено")
 
     _ = (model_routing_target_test, model_routing_target_models)

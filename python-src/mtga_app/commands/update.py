@@ -34,6 +34,6 @@ def register_update_commands(commands: Commands) -> None:
             repo=DEFAULT_METADATA.github_repo,
             app_version=version,
         )
-        return build_result_payload(result, logs, "更新检查完成")
+        return build_result_payload(result, logs, "Проверка обновлений завершена")
 
     _ = check_updates

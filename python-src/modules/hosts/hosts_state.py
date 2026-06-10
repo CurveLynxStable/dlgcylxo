@@ -25,7 +25,8 @@ def configure_hosts_modify_block(
     reason: str | None = None,
     report: FileOperabilityReport | None = None,
 ) -> None:
-    """配置 hosts 自动修改的阻断开关（主要由 GUI 启动预检设置）。"""
+    """Настраивает блокировку автоматического изменения hosts (задаётся предварительной проверкой
+    при запуске GUI)."""
     state = _HOSTS_MODIFY_BLOCK_STATE
     state.blocked = bool(blocked)
     state.reason = reason
@@ -49,7 +50,7 @@ def should_block_hosts_action(action: str) -> bool:
 
 
 def guard_hosts_modify(action: str, log_func: LogFunc = print) -> bool:
-    """如需阻断则输出提示并返回 False；允许则返回 True。"""
+    """Если операция заблокирована — выводит подсказку и возвращает False; иначе True."""
     state = _HOSTS_MODIFY_BLOCK_STATE
     if not state.blocked:
         return True
@@ -58,10 +59,12 @@ def guard_hosts_modify(action: str, log_func: LogFunc = print) -> bool:
     report = state.report
     reason = state.reason or (report.status.value if report else "unknown")
     allow_flag = ALLOW_UNSAFE_HOSTS_FLAG
-    log_func(f"⚠️ 当前环境 hosts 写入受限（reason={reason}）。")
-    log_func("⚠️ 自动删除/还原需要原子性覆写，本环境下已禁用，请手动管理 hosts。")
-    log_func("⚠️ 你可以点击「打开hosts文件」手动修改后重试。")
-    log_func(f"⚠️ 如确需继续尝试自动修改，可使用启动参数 {allow_flag} 覆盖此检查（风险自负）。")
+    log_func(f"⚠️ В текущем окружении запись в hosts ограничена (reason={reason}).")
+    log_func("⚠️ Автоматическое удаление/восстановление требует атомарной перезаписи и в этом "
+        "окружении отключено; управляйте hosts вручную.")
+    log_func("⚠️ Вы можете нажать «Открыть файл hosts», изменить его вручную и повторить попытку.")
+    log_func(f"⚠️ Если всё же нужно автоматическое изменение, используйте параметр запуска "
+        f"{allow_flag}, чтобы обойти эту проверку (на свой риск).")
     return False
 
 

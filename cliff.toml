@@ -1,7 +1,7 @@
 [changelog]
 body = """
 ## {{ version | default(value="Unreleased") }} - {{ timestamp | date(format="%Y-%m-%d") }}
-{% set grouped = commits | group_by(attribute="group") %}{% for group in [":sparkles: 新功能", ":bug: 修复", ":art: 界面样式"] %}{% set items = grouped | get(key=group, default=[]) %}{% if items %}
+{% set grouped = commits | group_by(attribute="group") %}{% for group in [":sparkles: Новые возможности", ":bug: Исправления", ":art: Стиль интерфейса"] %}{% set items = grouped | get(key=group, default=[]) %}{% if items %}
 ### {{ group }}
 {% for commit in items %}
 - {{ commit.message | split(pat="\n") | first | trim }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }}))
@@ -15,13 +15,13 @@ filter_unconventional = true
 tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+(-.*)?$"
 
 commit_parsers = [
-  # 避免自动回写提交再次进入后续 changelog
+  # Не допускаем повторного попадания автокоммитов в последующий changelog
   { message = "^docs\\(changelog\\):", skip = true },
 
-  { message = "^feat(\\(.+\\))?(!)?:\\s", group = ":sparkles: 新功能" },
-  { message = "^fix(\\(.+\\))?(!)?:\\s", group = ":bug: 修复" },
-  { message = "^style(\\(.+\\))?(!)?:\\s", group = ":art: 界面样式" },
+  { message = "^feat(\\(.+\\))?(!)?:\\s", group = ":sparkles: Новые возможности" },
+  { message = "^fix(\\(.+\\))?(!)?:\\s", group = ":bug: Исправления" },
+  { message = "^style(\\(.+\\))?(!)?:\\s", group = ":art: Стиль интерфейса" },
 
-  # 其他类型全部忽略，保持与仓库既有规则一致
+  # Остальные типы игнорируются — в соответствии с действующими правилами репозитория
   { message = ".*", skip = true },
 ]

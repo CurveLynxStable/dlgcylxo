@@ -64,7 +64,7 @@ def _read_json_value(db_path: Path, key: str) -> Any:
         return None
     raw_value = rows[0][0]
     if not isinstance(raw_value, str):
-        raise RuntimeError(f"key={key} 的 value 不是文本")
+        raise RuntimeError(f"key={key}: value не является текстом")
     return json.loads(raw_value)
 
 
@@ -78,7 +78,7 @@ def _pick_user_id(
         key = candidates["global_model_map"][0][0]
         return key[: -len(GLOBAL_MODEL_MAP_SUFFIX)]
     if not candidates["model_list_map"]:
-        raise RuntimeError("未找到 Trae model_list_map 缓存键")
+        raise RuntimeError("Не найден ключ кэша Trae model_list_map")
     key = max(candidates["model_list_map"], key=lambda item: item[1])[0]
     return key[: -len(MODEL_LIST_MAP_SUFFIX)]
 
@@ -181,12 +181,12 @@ def _build_snapshot(db_path: Path, user_id: str) -> dict[str, Any]:
     global_model_key = f"{user_id}{GLOBAL_MODEL_MAP_SUFFIX}"
     model_list_map = _read_json_value(db_path, model_list_key)
     if not isinstance(model_list_map, dict):
-        raise RuntimeError(f"未找到或无法解析 model_list_map: {model_list_key}")
+        raise RuntimeError(f"Не найден или не удалось разобрать model_list_map: {model_list_key}")
     global_model_map = _read_json_value(db_path, global_model_key)
     if global_model_map is None:
         global_model_map = {}
     if not isinstance(global_model_map, dict):
-        raise RuntimeError(f"无法解析 globalModelMap: {global_model_key}")
+        raise RuntimeError(f"Не удалось разобрать globalModelMap: {global_model_key}")
 
     model_index, function_map = _index_models(model_list_map)
     return {
@@ -247,10 +247,11 @@ def _render_text(snapshot: dict[str, Any]) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="读取 Trae model_list_map/globalModelMap 快照")
+    parser = argparse.ArgumentParser(description="Читает снимок Trae model_list_map/globalModelMap")
     parser.add_argument("--db", type=Path, default=_global_storage_db())
     parser.add_argument("--user-id")
-    parser.add_argument("--list-users", action="store_true", help="仅列出可用 user_id/key")
+    parser.add_argument("--list-users", action="store_true", help="Только перечислить доступные "
+        "user_id/key")
     parser.add_argument("--json", action="store_true")
     return parser
 
@@ -259,7 +260,7 @@ def main() -> int:
     args = build_parser().parse_args()
     db_path = args.db.expanduser().resolve()
     if not db_path.is_file():
-        raise SystemExit(f"未找到 state.vscdb: {db_path}")
+        raise SystemExit(f"Не найден state.vscdb: {db_path}")
 
     candidates = _list_candidate_keys(db_path)
     if args.list_users:

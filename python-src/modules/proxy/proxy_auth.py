@@ -28,10 +28,10 @@ class ProxyAuth:
         headers: dict[str, str] = {"Content-Type": "application/json"}
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
-            log_func("使用配置组中的API key")
+            log_func("Используем API key из группы конфигурации")
         elif auth_header:
             headers["Authorization"] = auth_header
-            log_func("透传原始Authorization header")
+            log_func("Передаём исходный Authorization header как есть")
         return headers
 
 

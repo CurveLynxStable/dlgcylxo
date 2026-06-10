@@ -1,6 +1,6 @@
 """
-证书生成模块
-使用 Python cryptography 直接生成 CA 与服务器证书。
+Модуль генерации сертификатов
+Генерация CA и серверных сертификатов напрямую через Python cryptography.
 """
 
 from __future__ import annotations
@@ -102,7 +102,7 @@ def _write_bytes(path: str, payload: bytes, description: str, log_func: LogFunc 
         log_func(f"{description}: {path}")
         return True
     except Exception as exc:  # noqa: BLE001
-        log_func(f"写入 {description} 失败: {exc}")
+        log_func(f"Не удалось записать {description}: {exc}")
         return False
 
 
@@ -111,7 +111,7 @@ def _read_text_file(path: str, description: str, log_func: LogFunc = print) -> s
         with open(path, encoding="utf-8") as handle:
             return handle.read()
     except Exception as exc:  # noqa: BLE001
-        log_func(f"读取{description}失败: {exc}")
+        log_func(f"Не удалось прочитать {description}: {exc}")
         return None
 
 
@@ -153,13 +153,13 @@ def _build_name_attribute(
 ) -> SubjectAttribute | None:
     oid = _SUBJECT_OIDS.get(key)
     if oid is None:
-        log_func(f"不支持的主题字段: {key}")
+        log_func(f"Неподдерживаемое поле subject: {key}")
         return None
 
     try:
         return cast(SubjectAttribute, x509.NameAttribute(oid, value))
     except Exception as exc:  # noqa: BLE001
-        log_func(f"主题字段写入失败 ({key}): {exc}")
+        log_func(f"Не удалось записать поле subject ({key}): {exc}")
         return None
 
 
@@ -167,13 +167,13 @@ def _parse_subject(subject_info: str, log_func: LogFunc = print) -> SubjectName 
     attributes: list[SubjectAttribute] = []
     for component in _split_subject_components(subject_info):
         if "=" not in component:
-            log_func(f"主题字段格式无效: {component}")
+            log_func(f"Некорректный формат поля subject: {component}")
             return None
         key, value = component.split("=", 1)
         normalized_key = key.strip().upper()
         normalized_value = value.strip()
         if not normalized_value:
-            log_func(f"主题字段为空: {normalized_key}")
+            log_func(f"Пустое поле subject: {normalized_key}")
             return None
 
         attribute = _build_name_attribute(
@@ -186,7 +186,7 @@ def _parse_subject(subject_info: str, log_func: LogFunc = print) -> SubjectName 
         attributes.append(attribute)
 
     if not attributes:
-        log_func("主题信息为空")
+        log_func("Данные subject пусты")
         return None
     return x509.Name(attributes)
 
@@ -228,10 +228,10 @@ def _parse_general_name_value(
         if normalized_type == "URI":
             return x509.UniformResourceIdentifier(value)
     except ValueError as exc:
-        log_func(f"无效 SAN 项: {name_type}:{value} ({exc})")
+        log_func(f"Некорректный элемент SAN: {name_type}:{value} ({exc})")
         return None
 
-    log_func(f"不支持的 SAN 类型: {name_type}:{value}")
+    log_func(f"Неподдерживаемый тип SAN: {name_type}:{value}")
     return None
 
 
@@ -243,14 +243,14 @@ def _parse_alt_names_section(
 ) -> list[x509.GeneralName] | None:
     actual_section = _find_section_name(parser, section_name)
     if actual_section is None:
-        log_func(f"SAN 引用的节不存在: {section_name}")
+        log_func(f"Секция, на которую ссылается SAN, не найдена: {section_name}")
         return None
 
     general_names: list[x509.GeneralName] = []
     for key, raw_value in parser.items(actual_section):
         value = raw_value.strip()
         if not value:
-            log_func(f"SAN 项为空: {key}")
+            log_func(f"Пустой элемент SAN: {key}")
             return None
         name_type = key.split(".", 1)[0].strip()
         general_name = _parse_general_name_value(name_type, value, log_func=log_func)
@@ -268,7 +268,7 @@ def _parse_inline_subject_alt_names(
     general_names: list[x509.GeneralName] = []
     for token in tokens:
         if ":" not in token:
-            log_func(f"不支持的 subjectAltName 配置: {token}")
+            log_func(f"Неподдерживаемая конфигурация subjectAltName: {token}")
             return None
         name_type, value = token.split(":", 1)
         general_name = _parse_general_name_value(
@@ -290,7 +290,7 @@ def _parse_subject_alt_name_value(
 ) -> tuple[list[x509.GeneralName], bool] | None:
     critical, tokens = _split_extension_tokens(raw_value)
     if not tokens:
-        log_func("subjectAltName 为空")
+        log_func("subjectAltName пуст")
         return None
 
     if len(tokens) == 1 and tokens[0].startswith("@"):
@@ -299,13 +299,13 @@ def _parse_subject_alt_name_value(
         if section_general_names is None:
             return None
         if not section_general_names:
-            log_func("subjectAltName 引用的节为空")
+            log_func("Секция, на которую ссылается subjectAltName, пуста")
             return None
         return section_general_names, critical
 
     inline_general_names = _parse_inline_subject_alt_names(tokens, log_func=log_func)
     if not inline_general_names:
-        log_func("subjectAltName 未解析到任何 SAN")
+        log_func("Из subjectAltName не удалось разобрать ни одного SAN")
         return None
     return inline_general_names, critical
 
@@ -319,7 +319,7 @@ def _apply_basic_constraints_token(
 ) -> tuple[bool | None, int | None] | None:
     result: tuple[bool | None, int | None] | None = None
     if ":" not in token:
-        log_func(f"不支持的 basicConstraints 配置: {token}")
+        log_func(f"Неподдерживаемая конфигурация basicConstraints: {token}")
     else:
         key, value = token.split(":", 1)
         normalized_key = key.strip().lower()
@@ -330,16 +330,16 @@ def _apply_basic_constraints_token(
             elif normalized_value.upper() == "FALSE":
                 result = (False, current_path_length)
             else:
-                log_func(f"无效的 basicConstraints CA 值: {normalized_value}")
+                log_func(f"Некорректное значение CA в basicConstraints: {normalized_value}")
             return result
         if normalized_key == "pathlen":
             try:
                 result = (current_ca, int(normalized_value))
             except ValueError:
-                log_func(f"无效的 basicConstraints pathlen 值: {normalized_value}")
+                log_func(f"Некорректное значение pathlen в basicConstraints: {normalized_value}")
             return result
 
-        log_func(f"不支持的 basicConstraints 键: {key}")
+        log_func(f"Неподдерживаемый ключ basicConstraints: {key}")
 
     return result
 
@@ -365,10 +365,10 @@ def _parse_basic_constraints(
         is_ca, path_length = updated
 
     if is_ca is None:
-        log_func("basicConstraints 缺少 CA 标志")
+        log_func("В basicConstraints отсутствует флаг CA")
         return None
     if not is_ca and path_length is not None:
-        log_func("basicConstraints 在 CA:FALSE 时不允许 pathlen")
+        log_func("basicConstraints не допускает pathlen при CA:FALSE")
         return None
     return x509.BasicConstraints(ca=is_ca, path_length=path_length), critical
 
@@ -380,7 +380,7 @@ def _parse_key_usage(
 ) -> tuple[x509.KeyUsage, bool] | None:
     critical, tokens = _split_extension_tokens(raw_value)
     if not tokens:
-        log_func("keyUsage 为空")
+        log_func("keyUsage пуст")
         return None
     flags = {
         "content_commitment": False,
@@ -398,12 +398,13 @@ def _parse_key_usage(
         normalized = token.replace(" ", "").lower()
         flag_name = _KEY_USAGE_FLAGS.get(normalized)
         if flag_name is None:
-            log_func(f"不支持的 keyUsage 项: {token}")
+            log_func(f"Неподдерживаемый элемент keyUsage: {token}")
             return None
         flags[flag_name] = True
 
     if (flags["encipher_only"] or flags["decipher_only"]) and not flags["key_agreement"]:
-        log_func("keyUsage 中 encipherOnly/decipherOnly 需要同时启用 keyAgreement")
+        log_func("encipherOnly/decipherOnly в keyUsage требуют одновременного включения "
+            "keyAgreement")
         return None
 
     return (
@@ -429,7 +430,7 @@ def _parse_extended_key_usage(
 ) -> tuple[x509.ExtendedKeyUsage, bool] | None:
     critical, tokens = _split_extension_tokens(raw_value)
     if not tokens:
-        log_func("extendedKeyUsage 为空")
+        log_func("extendedKeyUsage пуст")
         return None
 
     oids: list[ObjectIdentifier] = []
@@ -440,7 +441,7 @@ def _parse_extended_key_usage(
             if all(part.isdigit() for part in normalized.split(".")) and "." in normalized:
                 oid = ObjectIdentifier(normalized)
             else:
-                log_func(f"不支持的 extendedKeyUsage 项: {token}")
+                log_func(f"Неподдерживаемый элемент extendedKeyUsage: {token}")
                 return None
         oids.append(oid)
 
@@ -458,7 +459,7 @@ def _load_server_extension_parser(
         parser.read_string(v3_req_config_text)
         parser.read_string(domain_config_text)
     except configparser.Error as exc:
-        log_func(f"解析证书扩展配置失败: {exc}")
+        log_func(f"Не удалось разобрать конфигурацию расширений сертификата: {exc}")
         return None
     return parser
 
@@ -470,13 +471,13 @@ def _load_v3_req_section_items(
 ) -> dict[str, str] | None:
     v3_req_section = _find_section_name(parser, "v3_req")
     if v3_req_section is None:
-        log_func("缺少 v3_req 扩展配置节")
+        log_func("Отсутствует секция расширений v3_req")
         return None
 
     section_items = {key.strip(): value.strip() for key, value in parser.items(v3_req_section)}
     for key in section_items:
         if key.replace(" ", "").lower() not in _V3_REQ_SUPPORTED_KEYS:
-            log_func(f"不支持的 v3_req 配置项: {key}")
+            log_func(f"Неподдерживаемый параметр v3_req: {key}")
             return None
     return section_items
 
@@ -511,7 +512,7 @@ def _parse_server_extensions(
 
     subject_alt_name_value = section_items.get("subjectAltName")
     if not subject_alt_name_value:
-        log_func("v3_req 缺少 subjectAltName 配置")
+        log_func("В v3_req отсутствует параметр subjectAltName")
         return None
     parsed_subject_alt_names = _parse_subject_alt_name_value(
         parser,
@@ -527,7 +528,7 @@ def _parse_server_extensions(
 
     key_usage_value = section_items.get("keyUsage")
     if not key_usage_value:
-        log_func("v3_req 缺少 keyUsage 配置")
+        log_func("В v3_req отсутствует параметр keyUsage")
         return None
     parsed_key_usage = _parse_key_usage(key_usage_value, log_func=log_func)
 
@@ -599,15 +600,15 @@ def _record_ca_cert_metadata(
 def create_default_config_files(
     resource_manager: ResourceManager, log_func: LogFunc = print
 ) -> bool:
-    """创建默认配置文件（如果不存在）"""
+    """Создать файлы конфигурации по умолчанию (если их ещё нет)"""
     ca_dir = resource_manager.ca_path
 
     if not os.path.exists(ca_dir):
         try:
             os.makedirs(ca_dir)
-            log_func(f"创建目录: {ca_dir}")
+            log_func(f"Создан каталог: {ca_dir}")
         except Exception as exc:  # noqa: BLE001
-            log_func(f"无法创建ca目录: {exc}")
+            log_func(f"Не удалось создать каталог ca: {exc}")
             return False
 
     config_files = {
@@ -665,12 +666,12 @@ DNS.1 = api.openai.com
             try:
                 with open(file_path, "w", encoding="utf-8") as handle:
                     handle.write(content)
-                log_func(f"创建配置文件: {file_path}")
+                log_func(f"Создан файл конфигурации: {file_path}")
             except Exception as exc:  # noqa: BLE001
-                log_func(f"无法创建文件 {file_path}: {exc}")
+                log_func(f"Не удалось создать файл {file_path}: {exc}")
                 return False
         else:
-            log_func(f"配置文件已存在: {file_path}")
+            log_func(f"Файл конфигурации уже существует: {file_path}")
 
     return True
 
@@ -729,8 +730,8 @@ def _build_ca_certificate(
 def generate_ca_cert(
     resource_manager: ResourceManager, log_func: LogFunc = print, *, ca_common_name: str = "MTGA_CA"
 ) -> bool:
-    """生成 CA 证书和私钥"""
-    log_func("开始生成CA证书和私钥...")
+    """Сгенерировать CA-сертификат и закрытый ключ"""
+    log_func("Начинаем генерацию CA-сертификата и закрытого ключа...")
 
     ca_key_path = resource_manager.get_ca_key_file()
     ca_crt_path = resource_manager.get_ca_cert_file()
@@ -739,42 +740,46 @@ def generate_ca_cert(
         private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         certificate = _build_ca_certificate(private_key, ca_common_name=ca_common_name)
     except Exception as exc:  # noqa: BLE001
-        log_func(f"生成 CA 证书材料失败: {exc}")
+        log_func(f"Не удалось сгенерировать материалы CA-сертификата: {exc}")
         return False
 
-    if not _write_bytes(ca_key_path, _serialize_private_key(private_key), "CA私钥已生成", log_func):
+    if not _write_bytes(
+        ca_key_path, _serialize_private_key(private_key), "Закрытый ключ CA создан", log_func
+    ):
         return False
-    if not _write_bytes(ca_crt_path, _serialize_certificate(certificate), "CA证书已生成", log_func):
+    if not _write_bytes(
+        ca_crt_path, _serialize_certificate(certificate), "CA-сертификат создан", log_func
+    ):
         return False
     if not _record_ca_cert_metadata(resource_manager, certificate, log_func):
-        log_func("CA 证书元数据写入失败")
+        log_func("Не удалось записать метаданные CA-сертификата")
         return False
     return True
 
 
 def _load_ca_certificate(ca_cert_path: str, log_func: LogFunc = print) -> x509.Certificate | None:
-    payload = _read_text_file(ca_cert_path, "CA证书文件", log_func)
+    payload = _read_text_file(ca_cert_path, "файл CA-сертификата", log_func)
     if payload is None:
         return None
     try:
         return x509.load_pem_x509_certificate(payload.encode("utf-8"))
     except Exception as exc:  # noqa: BLE001
-        log_func(f"加载 CA 证书失败: {exc}")
+        log_func(f"Не удалось загрузить CA-сертификат: {exc}")
         return None
 
 
 def _load_ca_private_key(ca_key_path: str, log_func: LogFunc = print) -> rsa.RSAPrivateKey | None:
-    payload = _read_text_file(ca_key_path, "CA私钥文件", log_func)
+    payload = _read_text_file(ca_key_path, "файл закрытого ключа CA", log_func)
     if payload is None:
         return None
     try:
         private_key = serialization.load_pem_private_key(payload.encode("utf-8"), password=None)
     except Exception as exc:  # noqa: BLE001
-        log_func(f"加载 CA 私钥失败: {exc}")
+        log_func(f"Не удалось загрузить закрытый ключ CA: {exc}")
         return None
 
     if not isinstance(private_key, rsa.RSAPrivateKey):
-        log_func("CA 私钥类型无效：仅支持 RSA")
+        log_func("Некорректный тип закрытого ключа CA: поддерживается только RSA")
         return None
     return private_key
 
@@ -797,7 +802,7 @@ def _certificate_matches_private_key(
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
     except Exception as exc:  # noqa: BLE001
-        log_func(f"校验 CA 证书与私钥匹配失败: {exc}")
+        log_func(f"Не удалось проверить соответствие CA-сертификата и закрытого ключа: {exc}")
         return False
     return cert_public_bytes == private_public_bytes
 
@@ -862,7 +867,7 @@ def _load_server_subject_and_extensions(
     required_files = [subject_path, v3_req_path, san_config_path]
     missing_file = _missing_required_file(required_files)
     if missing_file is not None:
-        log_func(f"必需文件不存在: {missing_file}")
+        log_func(f"Обязательный файл не найден: {missing_file}")
         return None
 
     subject_info = _read_text_file(subject_path, f"{domain}.subj", log_func)
@@ -891,7 +896,7 @@ def _load_ca_materials(
     ca_crt_path = resource_manager.get_ca_cert_file()
     missing_file = _missing_required_file([ca_crt_path, ca_key_path])
     if missing_file is not None:
-        log_func(f"必需文件不存在: {missing_file}")
+        log_func(f"Обязательный файл не найден: {missing_file}")
         return None
 
     ca_certificate = _load_ca_certificate(ca_crt_path, log_func)
@@ -903,7 +908,7 @@ def _load_ca_materials(
         ca_private_key,
         log_func=log_func,
     ):
-        log_func("CA 证书与私钥不匹配")
+        log_func("CA-сертификат и закрытый ключ не совпадают")
         return None
     return ca_certificate, ca_private_key
 
@@ -945,7 +950,7 @@ def _write_server_key_and_csr(
     if not _write_bytes(
         server_key_path,
         _serialize_private_key(server_private_key),
-        f"私钥 {domain}.key 生成成功",
+        f"Закрытый ключ {domain}.key успешно создан",
         log_func,
     ):
         return False
@@ -961,14 +966,14 @@ def _write_server_key_and_csr(
             .sign(server_private_key, hashes.SHA256())
         )
     except Exception as exc:  # noqa: BLE001
-        log_func(f"生成 CSR 失败: {exc}")
+        log_func(f"Не удалось создать CSR: {exc}")
         return False
 
     server_csr_path = os.path.join(resource_manager.ca_path, f"{domain}.csr")
     return _write_bytes(
         server_csr_path,
         _serialize_csr(csr),
-        f"CSR {domain}.csr 生成成功",
+        f"CSR {domain}.csr успешно создан",
         log_func,
     )
 
@@ -990,32 +995,32 @@ def _write_server_certificate(
             server_private_key=server_private_key,
         )
     except Exception as exc:  # noqa: BLE001
-        log_func(f"签署服务器证书失败: {exc}")
+        log_func(f"Не удалось подписать серверный сертификат: {exc}")
         return False
 
     server_crt_path = resource_manager.get_cert_file(domain)
     if not _write_bytes(
         server_crt_path,
         _serialize_certificate(server_certificate),
-        f"证书 {domain}.crt 生成成功",
+        f"Сертификат {domain}.crt успешно создан",
         log_func,
     ):
         return False
 
     file_size = os.path.getsize(server_crt_path)
     if file_size == 0:
-        log_func(f"错误: 证书文件 {server_crt_path} 为空文件")
+        log_func(f"Ошибка: файл сертификата {server_crt_path} пуст")
         return False
 
-    log_func(f"证书 {domain}.crt 文件大小: {file_size} bytes")
+    log_func(f"Размер файла сертификата {domain}.crt: {file_size} байт")
     return True
 
 
 def generate_server_cert(
     resource_manager: ResourceManager, domain: str = "api.openai.com", log_func: LogFunc = print
 ) -> bool:
-    """生成服务器证书"""
-    log_func(f"开始为 {domain} 生成服务器证书...")
+    """Сгенерировать серверный сертификат"""
+    log_func(f"Начинаем генерацию серверного сертификата для {domain}...")
 
     context = _load_server_cert_context(resource_manager, domain, log_func)
     if context is None:
@@ -1024,7 +1029,7 @@ def generate_server_cert(
     try:
         server_private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     except Exception as exc:  # noqa: BLE001
-        log_func(f"生成服务器私钥失败: {exc}")
+        log_func(f"Не удалось сгенерировать закрытый ключ сервера: {exc}")
         return False
 
     if not _write_server_key_and_csr(
@@ -1046,7 +1051,7 @@ def generate_server_cert(
         return False
 
     log_func("")
-    log_func("=== 服务器证书生成完成 ===")
+    log_func("=== Генерация серверного сертификата завершена ===")
     return True
 
 
@@ -1054,19 +1059,19 @@ def generate_certificates(
     domain: str = "api.openai.com", *, ca_common_name: str = "MTGA_CA", log_func: LogFunc = print
 ) -> bool:
     """
-    一键生成 CA 证书和服务器证书
+    Сгенерировать CA-сертификат и серверный сертификат одной операцией
 
-    参数:
-        domain: 服务器证书的域名
-        log_func: 日志输出函数
+    Параметры:
+        domain: домен серверного сертификата
+        log_func: функция вывода логов
 
-    返回:
-        成功返回 True，失败返回 False
+    Возвращает:
+        True при успехе, False при ошибке
     """
     log_func("=" * 60)
-    log_func("证书生成工具 - 一键生成CA证书和服务器证书")
+    log_func("Инструмент генерации сертификатов — создание CA и серверного сертификата")
     log_func("=" * 60)
-    log_func(f"使用 Python cryptography 生成证书: {cryptography_version}")
+    log_func(f"Сертификаты генерируются через Python cryptography: {cryptography_version}")
 
     resource_manager = ResourceManager()
 
@@ -1080,17 +1085,20 @@ def generate_certificates(
         return False
 
     log_func("=" * 60)
-    log_func("证书生成完成！")
+    log_func("Генерация сертификатов завершена!")
     log_func("=" * 60)
-    log_func(f"CA 证书: {resource_manager.get_ca_cert_file()}")
-    log_func(f"CA 私钥: {resource_manager.get_ca_key_file()} (请妥善保管，勿泄露)")
-    log_func(f"服务器证书: {resource_manager.get_cert_file(domain)}")
-    log_func(f"服务器私钥: {resource_manager.get_key_file(domain)} (请妥善保管，勿泄露)")
+    log_func(f"CA-сертификат: {resource_manager.get_ca_cert_file()}")
+    log_func(f"Закрытый ключ CA: {resource_manager.get_ca_key_file()} (храните надёжно, не "
+        f"передавайте третьим лицам)")
+    log_func(f"Серверный сертификат: {resource_manager.get_cert_file(domain)}")
+    log_func(f"Закрытый ключ сервера: {resource_manager.get_key_file(domain)} (храните надёжно, не "
+        f"передавайте третьим лицам)")
     log_func("")
-    log_func("后续步骤:")
-    log_func("1. 将CA证书 (ca.crt) 导入到Windows的受信任的根证书颁发机构存储中")
-    log_func("2. 修改hosts文件，将api.openai.com指向127.0.0.1")
-    log_func("3. 配置并运行代理服务器")
+    log_func("Дальнейшие шаги:")
+    log_func("1. Импортируйте CA-сертификат (ca.crt) в хранилище «Доверенные корневые центры "
+        "сертификации» Windows")
+    log_func("2. Измените файл hosts, направив api.openai.com на 127.0.0.1")
+    log_func("3. Настройте и запустите прокси-сервер")
     log_func("=" * 60)
 
     return True

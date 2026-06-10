@@ -38,7 +38,7 @@ def fetch_targets(host: str, port: int) -> list[CdpTarget]:
         payload = response.json()
 
     if not isinstance(payload, list):
-        raise RuntimeError("CDP /json/list 返回格式无效")
+        raise RuntimeError("CDP /json/list вернул ответ в неверном формате")
 
     targets: list[CdpTarget] = []
     for item in payload:
@@ -67,23 +67,23 @@ def fetch_targets(host: str, port: int) -> list[CdpTarget]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="枚举 Trae 当前 remote-debugging 端口暴露的所有 CDP targets。"
+        description="Перечисляет все CDP targets, доступные на текущем remote-debugging порту Trae."
     )
     parser.add_argument(
         "--host",
         default=DEFAULT_REMOTE_DEBUGGING_HOST,
-        help="CDP 主机，默认 127.0.0.1",
+        help="Хост CDP, по умолчанию 127.0.0.1",
     )
     parser.add_argument(
         "--port",
         type=int,
         default=DEFAULT_REMOTE_DEBUGGING_PORT,
-        help="CDP 端口，默认 9330",
+        help="Порт CDP, по умолчанию 9330",
     )
     parser.add_argument(
         "--json",
         action="store_true",
-        help="输出 JSON",
+        help="Вывод в JSON",
     )
     return parser
 
@@ -95,7 +95,9 @@ def main() -> int:
     try:
         targets = fetch_targets(args.host, args.port)
     except httpx.HTTPError as exc:
-        print(f"error: 无法连接 CDP {args.host}:{args.port} ({exc})", file=sys.stderr)
+        print(
+            f"error: не удалось подключиться к CDP {args.host}:{args.port} ({exc})", file=sys.stderr
+        )
         return 1
 
     if args.json:

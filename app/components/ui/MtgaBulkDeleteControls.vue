@@ -22,10 +22,10 @@ const props = withDefaults(
     allSelected: false,
     busy: false,
     size: "sm",
-    itemLabel: "条记录",
-    deleteText: "删除",
-    exitText: "退出删除",
-    batchDeleteText: "批量删除",
+    itemLabel: "зап.",
+    deleteText: "Удалить",
+    exitText: "Выйти из удаления",
+    batchDeleteText: "Массовое удаление",
     buttonWidthClass: "",
   },
 );
@@ -44,7 +44,7 @@ const buttonClass = computed(() => [
   props.size === "xs" ? "btn-xs rounded-lg" : "btn-sm rounded-xl",
   props.buttonWidthClass,
 ]);
-const selectedLabel = computed(() => `已选择 ${props.selectedCount} ${props.itemLabel}`);
+const selectedLabel = computed(() => `Выбрано: ${props.selectedCount} ${props.itemLabel}`);
 
 const toggleDeleteMode = () => {
   if (toggleDisabled.value) {

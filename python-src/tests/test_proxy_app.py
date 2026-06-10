@@ -739,8 +739,8 @@ class ProxyAppGeminiTests(unittest.TestCase):
             self.assertEqual(trace["error"], "Invalid authentication")
             self.assertNotIn("request_body", trace)
             self.assertNotIn("published_model", trace)
-        self.assertFalse(any("模型路由命中" in item for item in logs))
-        self.assertFalse(any("模型路由解析失败" in item for item in logs))
+        self.assertFalse(any("Маршрутизация моделей: совпадение" in item for item in logs))
+        self.assertFalse(any("Ошибка разрешения маршрутизации моделей" in item for item in logs))
 
     def test_mtga_auth_header_is_not_reused_as_upstream_api_key(self) -> None:
         clear_proxy_traces(include_active=True)
@@ -820,7 +820,12 @@ class ProxyAppGeminiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(captured_fallback_api_key["value"], "")
-        self.assertTrue(any("下游 Authorization 仅用于 MTGA 鉴权" in item for item in logs))
+        self.assertTrue(
+            any(
+                "нижестоящий Authorization используется только для авторизации MTGA" in item
+                for item in logs
+            )
+        )
         traces = list_proxy_traces()
         self.assertEqual(len(traces), 1)
         trace = get_proxy_trace(traces[0]["trace_id"])
@@ -851,7 +856,7 @@ class ProxyAppGeminiTests(unittest.TestCase):
             )
         self.addCleanup(app_layer.close)
 
-        original_prompt = "原始 developer 提示词"
+        original_prompt = "исходный developer промпт"
         expected_hash = app_layer.system_prompt_store.compute_hash(original_prompt)
         request_data = {
             "messages": [
@@ -863,7 +868,7 @@ class ProxyAppGeminiTests(unittest.TestCase):
         with patch.object(
             app_layer.system_prompt_store,
             "capture_and_collect_overrides",
-            return_value=([], {expected_hash: "替换后的 developer 提示词"}),
+            return_value=([], {expected_hash: "заменённый developer промпт"}),
         ) as capture_mock:
             app_layer._apply_system_prompt_overrides(
                 request_data=request_data,
@@ -876,7 +881,7 @@ class ProxyAppGeminiTests(unittest.TestCase):
         )
         self.assertEqual(
             request_data["messages"][0]["content"],
-            "替换后的 developer 提示词",
+            "заменённый developer промпт",
         )
 
     def test_gemini_non_stream_fallback_preserves_stream_intent(self) -> None:
@@ -918,7 +923,7 @@ class ProxyAppGeminiTests(unittest.TestCase):
             "choices": [
                 {
                     "index": 0,
-                    "message": {"role": "assistant", "content": "你好"},
+                    "message": {"role": "assistant", "content": "привет"},
                     "finish_reason": "stop",
                 }
             ],
@@ -958,7 +963,7 @@ class ProxyAppGeminiTests(unittest.TestCase):
 
         response_text = response.get_data(as_text=True)
         self.assertIn("data: [DONE]", response_text)
-        self.assertIn('"content": "你好"', response_text)
+        self.assertIn('"content": "привет"', response_text)
         self.assertIn('"model": "gemini-2.5-pro"', response_text)
         self.assertNotIn('"model": "gemini/gemini-2.5-pro"', response_text)
 
@@ -966,9 +971,13 @@ class ProxyAppGeminiTests(unittest.TestCase):
         self.assertEqual(len(log_files), 1)
         self.assertGreater(log_files[0].stat().st_size, 0)
         self.assertTrue(
-            any("上游未返回流式结果，代理侧模拟 Chat Completions SSE" in item for item in logs)
+            any(
+                "Апстрим не вернул потоковый результат, прокси эмулирует Chat Completions SSE"
+                in item
+                for item in logs
+            )
         )
-        self.assertTrue(any("SSE 记录完成" in item for item in logs))
+        self.assertTrue(any("Запись SSE завершена" in item for item in logs))
 
     def test_gemini_stream_is_forwarded_to_upstream(self) -> None:
         clear_proxy_traces(include_active=True)
@@ -1018,7 +1027,7 @@ class ProxyAppGeminiTests(unittest.TestCase):
                         "choices": [
                             {
                                 "index": 0,
-                                "delta": {"role": "assistant", "content": "你"},
+                                "delta": {"role": "assistant", "content": "при"},
                                 "finish_reason": None,
                             }
                         ],
@@ -1030,7 +1039,7 @@ class ProxyAppGeminiTests(unittest.TestCase):
                         "choices": [
                             {
                                 "index": 0,
-                                "delta": {"content": "好"},
+                                "delta": {"content": "вет"},
                                 "finish_reason": "stop",
                             }
                         ],
@@ -1064,16 +1073,21 @@ class ProxyAppGeminiTests(unittest.TestCase):
 
         response_text = response.get_data(as_text=True)
         self.assertIn("data: [DONE]", response_text)
-        self.assertIn('"content": "你"', response_text)
-        self.assertIn('"content": "好"', response_text)
+        self.assertIn('"content": "при"', response_text)
+        self.assertIn('"content": "вет"', response_text)
         self.assertIn('"model": "gemini-2.5-pro"', response_text)
         self.assertNotIn('"model": "gemini/gemini-2.5-pro"', response_text)
 
         log_files = list(Path(temp_dir, "logs", "SSE").glob("sse_*.log"))
         self.assertEqual(len(log_files), 1)
         self.assertGreater(log_files[0].stat().st_size, 0)
-        self.assertTrue(any("返回流式响应" in item for item in logs))
-        self.assertFalse(any("Gemini 上游流式返回兼容性较差" in item for item in logs))
+        self.assertTrue(any("Возвращён потоковый ответ" in item for item in logs))
+        self.assertFalse(
+            any(
+                "Потоковый ответ апстрима Gemini имеет плохую совместимость" in item
+                for item in logs
+            )
+        )
         traces = list_proxy_traces()
         self.assertEqual(len(traces), 1)
         trace = get_proxy_trace(traces[0]["trace_id"])
@@ -1083,8 +1097,8 @@ class ProxyAppGeminiTests(unittest.TestCase):
         self.assertEqual(trace["chunk_count"], 2)
         self.assertIn("response_body", trace)
         event_text = str(trace["events"])
-        self.assertIn("调试请求头/请求体已省略", event_text)
-        self.assertNotIn("--- 请求体 (调试模式) ---", event_text)
+        self.assertIn("Отладочные заголовки/тело запроса опущены", event_text)
+        self.assertNotIn("--- Тело запроса (режим отладки) ---", event_text)
         self.assertNotIn("Bearer mtga-auth", event_text)
 
 
@@ -1134,7 +1148,7 @@ class ProxyAppOpenAIResponseTests(unittest.TestCase):
                     "choices": [
                         {
                             "index": 0,
-                            "delta": {"role": "assistant", "content": "你"},
+                            "delta": {"role": "assistant", "content": "при"},
                             "finish_reason": None,
                         }
                     ],
@@ -1146,7 +1160,7 @@ class ProxyAppOpenAIResponseTests(unittest.TestCase):
                     "choices": [
                         {
                             "index": 0,
-                            "delta": {"content": "好"},
+                            "delta": {"content": "вет"},
                             "finish_reason": "stop",
                         }
                     ],
@@ -1181,4 +1195,4 @@ class ProxyAppOpenAIResponseTests(unittest.TestCase):
             response.close()
 
         self.assertTrue(upstream_stream.closed)
-        self.assertTrue(any("返回流式响应" in item for item in logs))
+        self.assertTrue(any("Возвращён потоковый ответ" in item for item in logs))

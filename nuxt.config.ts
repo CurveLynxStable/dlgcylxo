@@ -8,21 +8,21 @@ export default defineNuxtConfig({
   components: {
     dirs: [{ path: "~/components", pathPrefix: false }],
   },
-  // 禁用 SSR，因为 Tauri 不支持
+  // SSR отключён, так как Tauri его не поддерживает
   ssr: false,
-  // 使开发服务器能够被其他设备发现，以便在 iOS 物理机运行。
+  // Делает dev-сервер видимым для других устройств, чтобы запускать на физическом iOS-устройстве.
   devServer: { host: process.env.TAURI_DEV_HOST || "localhost" },
   vite: {
-    // 为 Tauri 命令输出提供更好的支持
+    // Лучшая поддержка вывода команд Tauri
     clearScreen: false,
-    // 启用环境变量
-    // 其他环境变量可以在如下网页中获知：
+    // Включение переменных окружения
+    // Прочие переменные окружения см. на странице:
     // https://v2.tauri.app/reference/environment-variables/
     envPrefix: ["VITE_", "TAURI_"],
     server: {
-      // Tauri需要一个确定的端口
+      // Tauri требуется фиксированный порт
       strictPort: true,
-      // 开发期禁用缓存，避免 Tauri WebView 读取到损坏缓存
+      // В разработке кэш отключён, чтобы Tauri WebView не читал повреждённый кэш
       headers: {
         "Cache-Control": "no-store",
         Pragma: "no-cache",

@@ -70,7 +70,7 @@ function getFirstDifference(originalText, formattedText) {
 function summarizeLine(text) {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (normalized.length <= 40) {
-    return normalized || "(空行)";
+    return normalized || "(пустая строка)";
   }
   return `${normalized.slice(0, 40)}...`;
 }
@@ -96,7 +96,7 @@ async function main() {
       sourceText = await fs.readFile(absolutePath, "utf8");
     } catch (error) {
       hasIssues = true;
-      report(file, 1, 1, `无法读取文件: ${error.message}`);
+      report(file, 1, 1, `Не удалось прочитать файл: ${error.message}`);
       continue;
     }
 
@@ -112,11 +112,16 @@ async function main() {
         const diff = getFirstDifference(sourceText, formattedText);
         const oldPart = summarizeLine(diff.oldLine);
         const newPart = summarizeLine(diff.newLine);
-        report(file, diff.line, diff.column, `Prettier 不一致: "${oldPart}" -> "${newPart}"`);
+        report(
+          file,
+          diff.line,
+          diff.column,
+          `Несоответствие Prettier: "${oldPart}" -> "${newPart}"`,
+        );
       }
     } catch (error) {
       hasIssues = true;
-      report(file, 1, 1, `Prettier 处理失败: ${error.message}`);
+      report(file, 1, 1, `Сбой обработки Prettier: ${error.message}`);
     }
   }
 

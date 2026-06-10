@@ -1,17 +1,17 @@
-# UI 迁移总览（Nuxt + Tailwind + daisyUI）
+# Обзор миграции UI (Nuxt + Tailwind + daisyUI)
 
-本文件合并原有分析/计划/配置说明，用于指导从 Tkinter UI 迁移到 `mtga-tauri/app/`。
+Этот файл объединяет прежний анализ/план/описание конфигурации и служит руководством по миграции с Tkinter UI на `mtga-tauri/app/`.
 
-## 迁移目标与组件拆分
+## Цели миграции и разбиение на компоненты
 
-- 页面级布局：`AppShell`（标题 + 分栏）
-- 主要组件：
-  - `ConfigGroupPanel`、`GlobalConfigPanel`、`RuntimeOptionsPanel`
-  - `MainTabs` + 各 Tab 组件
-  - `LogPanel`、`FooterActions`
-  - `UpdateDialog`、`ConfirmDialog`
+- Макет уровня страницы: `AppShell` (заголовок + колонки)
+- Основные компоненты:
+  - `ConfigGroupPanel`, `GlobalConfigPanel`, `RuntimeOptionsPanel`
+  - `MainTabs` + компоненты вкладок
+  - `LogPanel`, `FooterActions`
+  - `UpdateDialog`, `ConfirmDialog`
 
-## 页面骨架建议（目录结构）
+## Рекомендуемый каркас страницы (структура каталогов)
 
 ```
 app/
@@ -36,57 +36,57 @@ app/
       ConfirmDialog.vue
 ```
 
-## 迁移顺序建议
+## Рекомендуемый порядок миграции
 
-1. 布局 + 日志面板
-2. 配置组 / 全局配置 / 运行时选项
-3. Tabs 功能区
-4. 更新弹窗与确认弹窗
+1. Макет + панель логов
+2. Группы конфигурации / глобальная конфигурация / параметры рантайма
+3. Функциональные вкладки (Tabs)
+4. Диалог обновления и диалог подтверждения
 
-## 当前进度摘要（便于恢复上下文）
+## Сводка текущего прогресса (для восстановления контекста)
 
-- 已确定 UI 技术选型：Tailwind + daisyUI（基于 daisyUI 5 / Tailwind v4 的 CSS-first 配置方式）。
-- 已搭建组件骨架：`AppShell`、`LogPanel`、`FooterActions`、`panels/*`、`tabs/*`、`dialogs/*`。
-- 已在 `mtga-tauri/app/app.vue` 挂载骨架布局：左侧面板 + Tabs，右侧日志面板，底部按钮。
-- 交互方式确认：前端通过 `pyInvoke` 调用 Python 后端命令（pytauri-wheel）。
+- Выбран технологический стек UI: Tailwind + daisyUI (CSS-first конфигурация на базе daisyUI 5 / Tailwind v4).
+- Создан каркас компонентов: `AppShell`, `LogPanel`, `FooterActions`, `panels/*`, `tabs/*`, `dialogs/*`.
+- Каркасный макет подключён в `mtga-tauri/app/app.vue`: панель + вкладки слева, панель логов справа, кнопки внизу.
+- Подтверждён способ взаимодействия: фронтенд вызывает команды Python-бэкенда через `pyInvoke` (pytauri-wheel).
 
-## TODO（下一步执行清单）
+## TODO (чек-лист следующих шагов)
 
-- [x] 安装并启用 Tailwind + daisyUI（创建 `mtga-tauri/app/assets/css/tailwind.css`，在 `mtga-tauri/nuxt.config.ts` 引入）。
-- [x] `MainTabs` 支持切换并挂载各 Tab 内容（证书/hosts/代理/数据/关于）。
-- [x] `ConfigGroupPanel` 改为可交互：列表数据、选中状态、增删改弹窗。
-- [x] `GlobalConfigPanel` 与 `RuntimeOptionsPanel` 接入真实数据与保存逻辑。
-- [x] `LogPanel` 支持追加日志流（从后端或前端事件）。
-- [x] `UpdateDialog`、确认弹窗完善交互与 HTML 内容渲染。
-- [x] 用 `pyInvoke` 串起最小功能链路（例如 `greet` -> 日志输出）。
+- [x] Установить и включить Tailwind + daisyUI (создать `mtga-tauri/app/assets/css/tailwind.css`, подключить в `mtga-tauri/nuxt.config.ts`).
+- [x] `MainTabs` поддерживает переключение и монтирует содержимое вкладок (сертификаты/hosts/прокси/данные/о программе).
+- [x] `ConfigGroupPanel` сделан интерактивным: данные списка, состояние выбора, диалоги добавления/изменения/удаления.
+- [x] `GlobalConfigPanel` и `RuntimeOptionsPanel` подключены к реальным данным и логике сохранения.
+- [x] `LogPanel` поддерживает поток добавляемых логов (события бэкенда или фронтенда).
+- [x] `UpdateDialog` и диалог подтверждения: доработано взаимодействие и рендер HTML-контента.
+- [x] Минимальная функциональная цепочка через `pyInvoke` (например, `greet` -> вывод в лог).
 
-## 现有 UI 功能梳理
+## Обзор функциональности существующего UI
 
-- **整体布局**：标题 + 左右分栏，左侧操作区，右侧日志滚动面板。
-- **配置区**：配置组列表（含新增/修改/删除/上移/下移/测活/刷新）、全局配置（映射模型 ID / MTGA 鉴权 Key）。
-- **运行时选项**：调试模式、关闭 SSL 严格模式、强制流模式。
-- **功能标签页**：
-  - 证书管理：生成 / 安装 / 清除（确认弹窗）
-  - hosts 文件：修改 / 备份 / 还原 / 打开
-  - 代理操作：启动 / 停止 / 检查网络环境
-  - 用户数据管理（仅打包态）：打开目录 / 备份 / 还原 / 清除
-  - 关于：版本信息 + 检查更新
-- **更新弹窗**：展示 HTML release notes + 跳转发布页
+- **Общий макет**: заголовок + две колонки, слева зона действий, справа прокручиваемая панель логов.
+- **Зона конфигурации**: список групп конфигурации (добавление/изменение/удаление/вверх/вниз/проверка/обновление), глобальная конфигурация (маппинг ID модели / ключ авторизации MTGA).
+- **Параметры рантайма**: режим отладки, отключение строгого режима SSL, принудительный потоковый режим.
+- **Функциональные вкладки**:
+  - Управление сертификатами: генерация / установка / очистка (с диалогом подтверждения)
+  - Файл hosts: изменение / резервная копия / восстановление / открытие
+  - Операции прокси: запуск / остановка / проверка сетевого окружения
+  - Управление пользовательскими данными (только в собранном виде): открыть каталог / резервная копия / восстановление / очистка
+  - О программе: информация о версии + проверка обновлений
+- **Диалог обновления**: показ HTML release notes + переход на страницу релиза
 
-## 交互方式（pytauri-wheel）
+## Способ взаимодействия (pytauri-wheel)
 
-前端通过 `tauri-plugin-pytauri-api` 调用 Python 后端：
+Фронтенд вызывает Python-бэкенд через `tauri-plugin-pytauri-api`:
 
 ```ts
 import { pyInvoke } from "tauri-plugin-pytauri-api";
 const msg = await pyInvoke("greet", { name: "bifang" });
 ```
 
-需要对接的能力包括：配置读写、证书/hosts/代理操作、用户数据管理、更新检查、运行环境标志。
+Необходимые возможности: чтение/запись конфигурации, операции с сертификатами/hosts/прокси, управление пользовательскими данными, проверка обновлений, флаги среды выполнения.
 
-## 前后端契约（pyInvoke 命令）
+## Контракт фронтенд–бэкенд (команды pyInvoke)
 
-### 已实现
+### Реализовано
 
 ```
 greet({ name: string }) -> string
@@ -116,7 +116,7 @@ get_app_info() -> {
 is_packaged() -> boolean
 ```
 
-### 待实现（优先按 UI 按钮接入）
+### Предстоит реализовать (в порядке подключения кнопок UI)
 
 ```
 generate_certificates()
@@ -139,7 +139,7 @@ user_data_clear()
 check_updates()
 ```
 
-## 状态字段定义（前端 store）
+## Определение полей состояния (фронтенд store)
 
 ```
 config_groups: ConfigGroup[]
@@ -163,7 +163,7 @@ app_info: {
 show_data_tab: boolean
 ```
 
-## ConfigGroup 结构
+## Структура ConfigGroup
 
 ```
 type ConfigGroup = {
@@ -177,70 +177,70 @@ type ConfigGroup = {
 }
 ```
 
-## 旧 Tkinter 功能 → 新 UI 按钮映射
+## Соответствие функций старого Tkinter → кнопок нового UI
 
 ```
 ConfigGroupPanel:
-  测活 -> test_chat_completion
-  刷新 -> load_config
-  新增/修改/删除/上移/下移 -> save_config
+  Проверка -> test_chat_completion
+  Обновить -> load_config
+  Добавить/Изменить/Удалить/Вверх/Вниз -> save_config
 
 GlobalConfigPanel:
-  保存全局配置 -> save_config
+  Сохранить глобальную конфигурацию -> save_config
 
 RuntimeOptionsPanel:
-  调试/SSL/流模式 -> 仅前端状态，启动代理时传给后端
+  Отладка/SSL/потоковый режим -> только состояние фронтенда, передаётся бэкенду при запуске прокси
 
 CertTab:
-  生成CA和服务器证书 -> generate_certificates
-  安装CA证书 -> install_ca_cert
-  清除系统CA证书 -> clear_ca_cert
+  Сгенерировать CA и серверный сертификат -> generate_certificates
+  Установить CA-сертификат -> install_ca_cert
+  Удалить системный CA-сертификат -> clear_ca_cert
 
 HostsTab:
-  修改hosts文件 -> hosts_modify(add)
-  备份hosts -> hosts_modify(backup)
-  还原hosts -> hosts_modify(restore)
-  打开hosts文件 -> hosts_open
+  Изменить файл hosts -> hosts_modify(add)
+  Резервная копия hosts -> hosts_modify(backup)
+  Восстановить hosts -> hosts_modify(restore)
+  Открыть файл hosts -> hosts_open
 
 ProxyTab:
-  启动代理服务器 -> proxy_start
-  停止代理服务器 -> proxy_stop
-  检查网络环境 -> proxy_check_network
+  Запустить прокси-сервер -> proxy_start
+  Остановить прокси-сервер -> proxy_stop
+  Проверить сетевое окружение -> proxy_check_network
 
 FooterActions:
-  一键启动全部服务 -> proxy_start_all
+  Запустить всё одной кнопкой -> proxy_start_all
 
-DataManagementTab（仅打包态）:
-  打开目录 -> user_data_open_dir
-  备份数据 -> user_data_backup
-  还原数据 -> user_data_restore_latest
-  清除数据 -> user_data_clear
+DataManagementTab (только в собранном виде):
+  Открыть каталог -> user_data_open_dir
+  Резервная копия -> user_data_backup
+  Восстановить данные -> user_data_restore_latest
+  Очистить данные -> user_data_clear
 
 AboutTab:
-  检查更新 -> check_updates
+  Проверить обновления -> check_updates
 ```
 
-## Tailwind + daisyUI 最小集成（按 daisyUI 5 / Tailwind v4）
+## Минимальная интеграция Tailwind + daisyUI (по daisyUI 5 / Tailwind v4)
 
-依赖（示例 pnpm）：
+Зависимости (пример для pnpm):
 
 ```bash
 pnpm add -D tailwindcss daisyui
 ```
 
-`mtga-tauri/app/assets/css/tailwind.css`：
+`mtga-tauri/app/assets/css/tailwind.css`:
 
 ```css
 @import "tailwindcss";
 @plugin "daisyui";
 
-/* 主题（可选）：先用 light 作为默认主题 */
+/* Тема (опционально): сначала используем light как тему по умолчанию */
 @plugin "daisyui" {
   themes: light --default;
 }
 ```
 
-`mtga-tauri/nuxt.config.ts` 引入样式：
+Подключение стилей в `mtga-tauri/nuxt.config.ts`:
 
 ```ts
 export default defineNuxtConfig({
@@ -248,85 +248,85 @@ export default defineNuxtConfig({
 });
 ```
 
-常用组件类：
+Часто используемые классы компонентов:
 
-- Tabs：`tabs` / `tab`
-- Dialog：`modal` / `modal-box`
-- Tooltip：`tooltip`
-- 表格：`table`
-- 表单：`input` / `select` / `checkbox`
-- 按钮：`btn` + `btn-primary/secondary`
+- Tabs: `tabs` / `tab`
+- Dialog: `modal` / `modal-box`
+- Tooltip: `tooltip`
+- Таблицы: `table`
+- Формы: `input` / `select` / `checkbox`
+- Кнопки: `btn` + `btn-primary/secondary`
 
-## 迁移期开发环境下的开发方法
+## Методика разработки в период миграции
 
-### 后端工程化
+### Инженерия бэкенда
 
-在 `mtga-tauri/python-src` 下：
+В `mtga-tauri/python-src`:
 
 ```bash
 uv venv
 uv pip install -e .
 ```
 
-### 启动前端
+### Запуск фронтенда
 
-在 `mtga-tauri/app` 下：
+В `mtga-tauri/app`:
 
 ```bash
 pnpm dev
 ```
 
-### 启动后端
+### Запуск бэкенда
 
-在 `mtga-tauri/python-src` 下：
+В `mtga-tauri/python-src`:
 
 ```pwsh
 $env:DEV_SERVER="http://localhost:3000"; $env:MTGA_SRC_TAURI_DIR="..\\src-tauri"; uv run python -m mtga_app
 ```
 
-## 打包：嵌入 Python（Tauri bundle）
+## Сборка: встраивание Python (Tauri bundle)
 
-### 1) 准备嵌入解释器
+### 1) Подготовка встроенного интерпретатора
 
-- 目录 `mtga-tauri/src-tauri/pyembed/...` 需要先准备。
-- 使用 `python-build-standalone` 解压到 `mtga-tauri/src-tauri/pyembed/`：
-  - Windows：`mtga-tauri/src-tauri/pyembed/python/python.exe`
-  - macOS：`mtga-tauri/src-tauri/pyembed/python/bin/python3`
+- Сначала нужно подготовить каталог `mtga-tauri/src-tauri/pyembed/...`.
+- Распакуйте `python-build-standalone` в `mtga-tauri/src-tauri/pyembed/`:
+  - Windows: `mtga-tauri/src-tauri/pyembed/python/python.exe`
+  - macOS: `mtga-tauri/src-tauri/pyembed/python/bin/python3`
 
-### 2) 安装后端到嵌入解释器
+### 2) Установка бэкенда во встроенный интерпретатор
 
-在 `mtga-tauri/src-tauri`：
+В `mtga-tauri/src-tauri`:
 
-Windows：
+Windows:
 
 ```pwsh
 $env:PYTAURI_STANDALONE="1"
 uv pip install --exact --python ".\pyembed\python\python.exe" --reinstall-package mtga-app "..\python-src"
 ```
 
-macOS：
+macOS:
 
 ```zsh
 export PYTAURI_STANDALONE="1"
 uv pip install --exact --python "./pyembed/python/bin/python3" --reinstall-package mtga-app "../python-src"
 ```
 
-### 3) 放置 .env（可选）
+### 3) Размещение .env (опционально)
 
-默认无需提供必填环境变量；如需覆盖自动探测到的资源目录，可放置 `.env` 并确保嵌入解释器可读取：
+По умолчанию обязательные переменные окружения не требуются; чтобы переопределить автоматически определяемый каталог ресурсов, можно разместить `.env` так, чтобы встроенный интерпретатор мог его прочитать:
 
-- Windows：`mtga-tauri/src-tauri/pyembed/python/Lib/.env`
-- macOS：`mtga-tauri/src-tauri/pyembed/python/lib/python3.13/.env`（按实际版本调整）
+- Windows: `mtga-tauri/src-tauri/pyembed/python/Lib/.env`
+- macOS: `mtga-tauri/src-tauri/pyembed/python/lib/python3.13/.env` (скорректируйте по фактической версии)
 
-当前仅保留可选项：
+Сейчас поддерживается только опциональная переменная:
 
-- `MTGA_RESOURCE_DIR`：覆盖默认资源目录探测
+- `MTGA_RESOURCE_DIR`: переопределяет автоматическое определение каталога ресурсов
 
-也可以在启动器中设置 `MTGA_ENV_FILE` 指向 `.env` 绝对路径。
+Также можно задать в лаунчере `MTGA_ENV_FILE` с абсолютным путём к `.env`.
 
-### 4) 配置 tauri-cli（仅打包用）
+### 4) Настройка tauri-cli (только для сборки)
 
-新建 `mtga-tauri/src-tauri/tauri.bundle.json`：
+Создайте `mtga-tauri/src-tauri/tauri.bundle.json`:
 
 ```json
 {
@@ -340,17 +340,17 @@ uv pip install --exact --python "./pyembed/python/bin/python3" --reinstall-packa
 }
 ```
 
-> 不要把 `bundle.resources` 写进 `tauri.conf.json`，而是用 `--config` 传入。
+> Не вписывайте `bundle.resources` в `tauri.conf.json` — передавайте через `--config`.
 
-同时建议在 `mtga-tauri/src-tauri/.taurignore` 中加入：
+Также рекомендуется добавить в `mtga-tauri/src-tauri/.taurignore`:
 
 ```
 /pyembed/
 ```
 
-避免 `tauri dev` 每次复制庞大的解释器目录。
+чтобы `tauri dev` не копировал каждый раз огромный каталог интерпретатора.
 
-`mtga-tauri/src-tauri/Cargo.toml` 增加：
+Добавьте в `mtga-tauri/src-tauri/Cargo.toml`:
 
 ```toml
 [profile.bundle-dev]
@@ -360,16 +360,16 @@ inherits = "dev"
 inherits = "release"
 ```
 
-### 5) Build & Bundle（环境变量 + 最终打包命令）
+### 5) Build & Bundle (переменные окружения + финальная команда сборки)
 
-**回到 `mtga-tauri` 根目录下。**
-设置编译期 Python：
+**Вернитесь в корневой каталог `mtga-tauri`.**
+Задайте Python для этапа компиляции:
 
 ```pwsh
 $env:PYO3_PYTHON = (Resolve-Path -LiteralPath ".\src-tauri\pyembed\python\python.exe").Path
 ```
 
-macOS 还需：
+Для macOS дополнительно:
 
 ```zsh
 export PYO3_PYTHON=$(realpath ./src-tauri/pyembed/python/bin/python3)
@@ -380,16 +380,16 @@ install_name_tool -id '@rpath/libpython3.13.dylib' \
   ./src-tauri/pyembed/python/lib/libpython3.13.dylib
 ```
 
-最终打包：
+Финальная сборка:
 
 ```bash
 pnpm -- tauri build --config="src-tauri/tauri.bundle.json" -- --profile bundle-release
 ```
 
-### Windows 安装器/应用图标配置
+### Настройка иконок инсталлятора/приложения для Windows
 
-1. **NSIS 安装包（setup.exe）图标**
-   在 `mtga-tauri/src-tauri/tauri.conf.json`：
+1. **Иконка NSIS-инсталлятора (setup.exe)**
+   В `mtga-tauri/src-tauri/tauri.conf.json`:
 
 ```json
 "bundle": {
@@ -401,8 +401,8 @@ pnpm -- tauri build --config="src-tauri/tauri.bundle.json" -- --profile bundle-r
 }
 ```
 
-2. **应用图标（程序窗口/任务栏/快捷方式）**
-   在同一文件的 `bundle.icon` 中配置 `.ico`（Windows）：
+2. **Иконка приложения (окно программы/панель задач/ярлык)**
+   В том же файле в `bundle.icon` укажите `.ico` (Windows):
 
 ```json
 "bundle": {
@@ -412,8 +412,8 @@ pnpm -- tauri build --config="src-tauri/tauri.bundle.json" -- --profile bundle-r
 }
 ```
 
-3. **MSI 安装界面图片（WiX banner/dialog BMP）**
-   在 `mtga-tauri/src-tauri/tauri.conf.json`：
+3. **Картинки интерфейса MSI-инсталлятора (WiX banner/dialog BMP)**
+   В `mtga-tauri/src-tauri/tauri.conf.json`:
 
 ```json
 "bundle": {
@@ -426,9 +426,9 @@ pnpm -- tauri build --config="src-tauri/tauri.bundle.json" -- --profile bundle-r
 }
 ```
 
-### MSI 图片生成（PowerShell 快速生成）
+### Генерация картинок MSI (быстрая генерация в PowerShell)
 
-使用现有 logo 生成 WiX 需要的两张 BMP：
+Сгенерируйте из существующего логотипа две BMP-картинки, необходимые WiX:
 
 ```pwsh
 Add-Type -AssemblyName System.Drawing
@@ -452,13 +452,13 @@ $g2.DrawImage($logo, 20, 20, 80, 80)
 $dialog.Save((Join-Path $iconsDir "wix-dialog.bmp"), [System.Drawing.Imaging.ImageFormat]::Bmp)
 ```
 
-## Tauri 后端模块/资源对齐（关键约定）
+## Согласование модулей/ресурсов бэкенда Tauri (ключевые договорённости)
 
-- 采用“复制方案”：`mtga-tauri/python-src/modules` 作为 Tauri 侧核心逻辑来源，仓库根 `modules` 仅供旧 GUI 使用。
-- `mtga-tauri/.env` 为可选配置入口（支持 `MTGA_ENV_FILE` 覆盖路径）；默认无需配置，当前仅保留 `MTGA_RESOURCE_DIR` 作为资源目录覆盖项。
-- `mtga-tauri/python-src/mtga_app/__init__.py` 会最早加载 `mtga-tauri/.env`，当前固定从 `python-src/modules` 导入 `modules` 包。
-- 开发期从 `python-src` 启动时需要设置 `MTGA_SRC_TAURI_DIR` 指向 `src-tauri`（用于定位 `tauri.conf.json`）。
-- 资源目录约定：`mtga-tauri/python-src/modules/resources/{ca,openssl}`；`ResourceManager` 优先用包资源，
-  其次本地 `mtga-tauri/python-src/modules/resources`，必要时可用 `MTGA_RESOURCE_DIR` 覆盖。
-- 软件图标由 Tauri 处理（`mtga-tauri/src-tauri/icons` + `mtga-tauri/tauri.conf.json`），不进入 Python 资源。
-- `mtga-tauri/python-src/pyproject.toml` 已声明 `modules` 包资源（`resources/ca`、`resources/openssl`）。
+- Используется «схема копирования»: `mtga-tauri/python-src/modules` — источник основной логики на стороне Tauri, корневой `modules` репозитория используется только старым GUI.
+- `mtga-tauri/.env` — опциональная точка конфигурации (поддерживается переопределение пути через `MTGA_ENV_FILE`); по умолчанию настройка не нужна, сейчас остаётся только `MTGA_RESOURCE_DIR` для переопределения каталога ресурсов.
+- `mtga-tauri/python-src/mtga_app/__init__.py` загружает `mtga-tauri/.env` максимально рано; пакет `modules` сейчас жёстко импортируется из `python-src/modules`.
+- При запуске из `python-src` в период разработки нужно задать `MTGA_SRC_TAURI_DIR`, указывающий на `src-tauri` (для поиска `tauri.conf.json`).
+- Договорённость о каталоге ресурсов: `mtga-tauri/python-src/modules/resources/{ca,openssl}`; `ResourceManager` сначала использует ресурсы пакета,
+  затем локальные `mtga-tauri/python-src/modules/resources`, при необходимости можно переопределить через `MTGA_RESOURCE_DIR`.
+- Иконка приложения обрабатывается Tauri (`mtga-tauri/src-tauri/icons` + `mtga-tauri/tauri.conf.json`) и не входит в ресурсы Python.
+- В `mtga-tauri/python-src/pyproject.toml` уже объявлены ресурсы пакета `modules` (`resources/ca`, `resources/openssl`).

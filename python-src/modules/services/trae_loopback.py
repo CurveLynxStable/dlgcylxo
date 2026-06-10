@@ -101,7 +101,7 @@ class TraeLoopbackManager:
             self._refresh_running_state_locked()
             proxy_app = self._state.proxy_app
             if not self._state.running or proxy_app is None:
-                return OperationResult.failure("Trae loopback 未运行")
+                return OperationResult.failure("Trae loopback не запущен")
             return proxy_app.apply_runtime_config(raw_config)
 
     def start(
@@ -151,7 +151,7 @@ class TraeLoopbackManager:
                 self._stop_locked()
                 checked = ", ".join(str(port) for port in attempted_ports)
                 message = (
-                    "Trae loopback 未找到可用端口: "
+                    "Trae loopback: не найден свободный порт: "
                     f"host={config.loopback_host} "
                     f"preferred={config.loopback_port} "
                     f"checked=[{checked}]"
@@ -161,7 +161,7 @@ class TraeLoopbackManager:
 
             if selected_port != config.loopback_port:
                 log_func(
-                    "⚠️ Trae loopback 首选端口已被占用，"
+                    "⚠️ Trae loopback: предпочитаемый порт занят, "
                     f"preferred={config.loopback_port} selected={selected_port}"
                 )
 
@@ -179,7 +179,7 @@ class TraeLoopbackManager:
                 )
             except Exception as exc:  # noqa: BLE001
                 self._stop_locked()
-                message = f"Trae loopback 启动失败: {exc}"
+                message = f"Не удалось запустить Trae loopback: {exc}"
                 log_func(f"❌ {message}")
                 return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
 
@@ -201,8 +201,8 @@ class TraeLoopbackManager:
 
             base_url = build_trae_loopback_base_url(config.loopback_host, selected_port)
             chat_url = build_trae_loopback_chat_url(config.loopback_host, selected_port)
-            log_func(f"{log_label} 已启动: {base_url}/v1")
-            log_func(f"{log_label} chat 入口: {chat_url}")
+            log_func(f"{log_label} запущен: {base_url}/v1")
+            log_func(f"{log_label} chat-эндпоинт: {chat_url}")
             return OperationResult.success(
                 base_url=base_url,
                 loopback_url=chat_url,
@@ -224,7 +224,9 @@ class TraeLoopbackManager:
         )
         if not proxy_app.valid or proxy_app.app is None:
             proxy_app.close()
-            return OperationResult.failure("Trae loopback 初始化失败", code=ErrorCode.UNKNOWN)
+            return OperationResult.failure(
+                "Не удалось инициализировать Trae loopback", code=ErrorCode.UNKNOWN
+            )
 
         self._state.proxy_app = proxy_app
         return OperationResult.success()
@@ -245,13 +247,13 @@ class TraeLoopbackManager:
             )
             server.RequestHandlerClass = WSGIRequestHandler
         except OSError as exc:
-            message = f"Trae loopback 监听失败: {exc}"
+            message = f"Trae loopback: не удалось начать прослушивание: {exc}"
             log_func(f"⚠️ {message}")
             return OperationResult.failure(message, code=ErrorCode.PORT_IN_USE)
         except Exception as exc:  # noqa: BLE001
             proxy_app.close()
             self._state.proxy_app = None
-            message = f"Trae loopback 创建失败: {exc}"
+            message = f"Не удалось создать Trae loopback: {exc}"
             log_func(f"❌ {message}")
             return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
 
@@ -274,12 +276,15 @@ class TraeLoopbackManager:
             status = self._thread_manager.get_status(task_id=task_id)
             if status is not None and status.get("status") in {"failed", "finished"}:
                 error = str(status.get("error") or "<empty>")
-                message = f"Trae loopback 提前退出: status={status.get('status')} error={error}"
+                message = (
+                    f"Trae loopback завершился преждевременно: status={status.get('status')} "
+                    f"error={error}"
+                )
                 log_func(f"❌ {message}")
                 return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
             time.sleep(0.15)
 
-        message = f"Trae loopback 启动超时: {host}:{port}"
+        message = f"Тайм-аут запуска Trae loopback: {host}:{port}"
         log_func(f"❌ {message}")
         return OperationResult.failure(message, code=ErrorCode.UNKNOWN)
 
